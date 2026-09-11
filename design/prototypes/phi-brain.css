@@ -27,8 +27,10 @@
   --c-surface:var(--fill);--c-hover-bg:var(--fill);--c-chip-bg:var(--fill);--c-footer-bg:var(--fill);
 }
 
-/* Type — one size for the whole page (theme.css's 12/10/8pt scale collapses to 10pt) */
-:root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
+/* Type — one size for the whole page (theme.css's 12/10/8pt scale collapses to 10pt);
+   mono only for inline code in the editor */
+:root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt;
+      --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 
 /* Layout — one left edge. The nav label is the anchor: the sidebar gutter
    plus the tab's own horizontal padding. Logo and footer pad to that x. */
@@ -40,8 +42,9 @@
 }
 
 /* Shape — one radius for every soft control (nav tabs, pills, rows, the
-   primary button). On these ~31px boxes it reads as a full pill. */
-:root{--radius:20px}
+   primary button). On these ~31px boxes it reads as a full pill.
+   --radius-sm is only for inline code, which should read as code, not a tag. */
+:root{--radius:20px;--radius-sm:4px}
 
 /* ---------- 2. Header: logo + wordmark, search, profile ---------- */
 .toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
@@ -112,6 +115,9 @@
 .pill:hover,.pill:focus-visible,.pill[aria-pressed="true"],.pill[aria-expanded="true"]{background:var(--fill);color:var(--ink)}
 .pill-start{margin-left:calc(-1 * var(--tab-pad-x))}
 .pill-end{margin-right:calc(-1 * var(--tab-pad-x))}
+/* square pill for a single glyph (month steps, format tools) — a circle on hover */
+.pill-icon{width:28px;height:28px;justify-content:center;padding:0}
+.pill-icon:disabled{opacity:.35;cursor:default;background:none}
 .caret{color:var(--gray);transition:transform 340ms var(--ease-out)}
 .field-label{color:var(--gray)}
 .field-hint{color:var(--gray);margin:10px 0 0}
@@ -127,8 +133,6 @@
 .dp-head{display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 8px}
 .dp-title{font-weight:700;color:var(--ink)}
 .dp-steps{display:flex;gap:2px}
-.dp-step{width:28px;height:28px;justify-content:center;padding:0}
-.dp-step:disabled{opacity:.35;cursor:default;background:none}
 .dp-week,.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);justify-items:center}
 .dp-week span{color:var(--gray);padding:4px 0}
 .dp-day{width:32px;height:32px;margin:1px 0;border-radius:50%;color:var(--ink);font-variant-numeric:tabular-nums;transition:background 140ms,color 140ms}
@@ -156,6 +160,21 @@
 .editor-tools{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
 .tool-sep{width:1px;height:12px;background:var(--line);margin:0 6px}
 
+/* format bar — glyph buttons for the dragged text; pressed = current selection has it */
+.format-bar{display:flex;align-items:center;gap:2px;margin:4px 0 0 -9px}
+.format-bar b{font-weight:700}
+.format-bar i{font-style:italic;font-synthesis:style}
+.ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
+.ico-code{font-family:var(--font-mono);letter-spacing:-.5px}
+
+/* course menu — same floating card as the date picker */
+.journal{position:relative}
+.course-menu{position:absolute;z-index:30;width:248px;padding:6px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
+.cm-item{display:block;width:100%;text-align:left;white-space:nowrap;padding:5px 10px;border-radius:var(--radius);corner-shape:squircle;color:var(--gray);transition:background 140ms,color 140ms}
+.cm-item:hover,.cm-item:focus-visible{background:var(--fill);color:var(--ink);outline:0}
+.cm-item[aria-selected="true"]{color:var(--ink)}
+.cm-item .nav-code{color:var(--ink)}
+
 .editor{position:relative;min-height:300px;padding:18px 0 28px;color:var(--ink);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
 .editor:focus-visible{outline:0}
 .editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:18px;left:0;color:var(--gray);pointer-events:none}
@@ -163,11 +182,22 @@
    structure reads apart from the writing; the text lines up with the
    body copy and the fill bleeds left by the pill padding */
 .editor h3{position:relative;width:fit-content;margin:22px 0 6px calc(-1 * var(--tab-pad-x));padding:4px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;background:var(--fill);color:var(--ink)}
-.editor>h3:first-child{margin-top:0}
+.editor>h3:first-child,.editor>.course-box:first-child{margin-top:0}
 /* hovering a 4F pill brings its guiding question in from a blur, to the right */
 .editor h3[data-guide]::after{content:attr(data-guide);position:absolute;left:100%;top:50%;margin-left:12px;transform:translateY(-50%);white-space:nowrap;color:var(--gray);opacity:0;filter:blur(6px);pointer-events:none;transition:opacity 340ms var(--ease-out),filter 340ms var(--ease-out)}
 .editor h3[data-guide]:hover::after{opacity:1;filter:blur(0)}
 .editor p{margin:0}
+/* course box — an outlined pill (vs the 4F fill pill) marking which course the
+   lines below belong to; click it to pick from the course menu */
+.course-box{width:fit-content;margin:12px 0 4px calc(-1 * var(--tab-pad-x) - 1px)}
+.cb-btn{display:inline-flex;align-items:center;gap:4px;padding:3px var(--tab-pad-x);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;color:var(--ink);transition:background 140ms}
+.cb-btn:hover,.cb-btn:focus-visible,.course-box.is-open .cb-btn{background:var(--fill)}
+.course-box[data-course=""] .cb-btn{color:var(--gray)}
+/* typing styles from the format bar */
+.editor b,.editor strong{font-weight:700}
+.editor i,.editor em{font-style:italic;font-synthesis:style}
+.editor blockquote{margin:6px 0;padding:0 0 0 12px;border-left:2px solid var(--gray)}
+.editor code{font-family:var(--font-mono);background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}

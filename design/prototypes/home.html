@@ -83,8 +83,8 @@
           <div class="dp-head">
             <span class="dp-title" id="dp-title"></span>
             <span class="dp-steps">
-              <button type="button" class="pill dp-step" id="dp-prev" aria-label="이전 달">‹</button>
-              <button type="button" class="pill dp-step" id="dp-next" aria-label="다음 달">›</button>
+              <button type="button" class="pill pill-icon" id="dp-prev" aria-label="이전 달">‹</button>
+              <button type="button" class="pill pill-icon" id="dp-next" aria-label="다음 달">›</button>
             </span>
           </div>
           <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
@@ -110,14 +110,24 @@
 
     <!-- 2. one document: 4F headings live inside it, not in separate boxes -->
     <div class="editor-bar">
-      <div class="editor-tools" role="toolbar" aria-label="서식">
+      <div class="editor-tools" role="toolbar" aria-label="삽입">
         <button type="button" class="pill pill-start" data-cmd="template">4F 템플릿</button>
         <span class="tool-sep" aria-hidden="true"></span>
-        <button type="button" class="pill" data-cmd="heading">제목</button>
-        <button type="button" class="pill" data-cmd="list">목록</button>
+        <button type="button" class="pill" data-cmd="course">과목</button>
         <button type="button" class="pill" data-cmd="check">체크리스트</button>
       </div>
     </div>
+    <!-- acts on the dragged selection -->
+    <div class="format-bar" role="toolbar" aria-label="글자 서식">
+      <button type="button" class="pill pill-icon" data-fmt="bold" aria-pressed="false" aria-label="굵게" title="굵게"><b>B</b></button>
+      <button type="button" class="pill pill-icon" data-fmt="italic" aria-pressed="false" aria-label="기울임" title="기울임"><i>I</i></button>
+      <button type="button" class="pill pill-icon" data-fmt="underline" aria-pressed="false" aria-label="밑줄" title="밑줄"><u>U</u></button>
+      <button type="button" class="pill pill-icon" data-fmt="strikeThrough" aria-pressed="false" aria-label="취소선" title="취소선"><s>S</s></button>
+      <span class="tool-sep" aria-hidden="true"></span>
+      <button type="button" class="pill pill-icon" data-fmt="quote" aria-pressed="false" aria-label="인용 (왼쪽 선)" title="인용"><span class="ico-quote" aria-hidden="true"></span></button>
+      <button type="button" class="pill pill-icon" data-fmt="code" aria-pressed="false" aria-label="코드" title="코드"><span class="ico-code" aria-hidden="true">&lt;/&gt;</span></button>
+    </div>
+    <div class="course-menu" id="course-menu" role="listbox" aria-label="과목 선택" hidden></div>
 
     <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="저널 본문" data-placeholder="오늘의 저널링을 적어주세요"></div>
 

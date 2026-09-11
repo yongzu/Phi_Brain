@@ -18,6 +18,23 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const EASE = 'cubic-bezier(.22,1,.36,1)';
 
+  // floating cards (date picker, course menu) come in from a blur and leave into one
+  const popIn = el => {
+    el.getAnimations().forEach(a => a.cancel());
+    el.dataset.open = '1'; // a late finish from an earlier close must not hide it again
+    el.hidden = false;
+    if (!reduce.matches) el.animate(
+      [{ opacity: 0, filter: 'blur(6px)', transform: 'translateY(-4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
+      { duration: 280, easing: EASE });
+  };
+  const popOut = el => {
+    el.getAnimations().forEach(a => a.cancel());
+    delete el.dataset.open;
+    if (reduce.matches) { el.hidden = true; return; }
+    el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(6px)' }], { duration: 180, easing: EASE })
+      .onfinish = () => { if (!el.dataset.open) el.hidden = true; };
+  };
+
   const COURSES = [
     ['AL', 'Aesthetic Literacy'], ['AOR', 'Art of Reading'], ['BI', 'Beautiful Interface'],
     ['EAI', 'Engaging with AI'], ['IAE', 'Interviewing as Exploration'], ['IPS', 'Iterative Problem Solving'],
@@ -75,7 +92,7 @@
   // ---- state ----
   let current = today, chosen = new Set(), saveTimer = 0, dirty = false;
 
-  const isEmpty = () => editor.textContent.trim() === '' && !editor.querySelector('h3, li');
+  const isEmpty = () => editor.textContent.trim() === '' && !editor.querySelector('h3, li, .course-box');
   const refreshEmpty = () => editor.classList.toggle('is-empty', isEmpty());
   // any heading whose text is a 4F name gets that F's question — typed,
   // pasted, renamed or template-made alike
@@ -90,6 +107,7 @@
   }
 
   function load(date) {
+    closeCourseMenu();
     current = date;
     const saved = store.get(date);
     const example = !saved && EXAMPLES[date];
@@ -153,20 +171,15 @@
     const d = fromIso(current);
     viewY = d.getFullYear(); viewM = d.getMonth();
     renderPicker();
-    picker.hidden = false;
+    popIn(picker);
     dateBtn.setAttribute('aria-expanded', 'true');
     dpGrid.querySelector('[tabindex="0"]')?.focus();
-    if (!reduce.matches) picker.animate(
-      [{ opacity: 0, filter: 'blur(6px)', transform: 'translateY(-4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
-      { duration: 280, easing: EASE });
   }
   function closePicker(refocus = true) {
-    if (picker.hidden) return;
+    if (picker.hidden || dateBtn.getAttribute('aria-expanded') === 'false') return;
     dateBtn.setAttribute('aria-expanded', 'false');
     if (refocus) dateBtn.focus();
-    if (reduce.matches) { picker.hidden = true; return; }
-    picker.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(6px)' }], { duration: 180, easing: EASE })
-      .onfinish = () => { picker.hidden = true; };
+    popOut(picker);
   }
   function pick(date) {
     closePicker();
@@ -266,28 +279,148 @@
     afterEdit();
   }
 
-  function format(cmd) {
+  function toggleChecklist() {
     ensureCaret();
     document.execCommand('defaultParagraphSeparator', false, 'p');
-    const block = blockOf(getSelection().anchorNode);
-    if (cmd === 'heading') {
-      document.execCommand('formatBlock', false, block && block.tagName === 'H3' ? 'p' : 'h3');
-    } else {
-      const wantCheck = cmd === 'check';
-      const ul = block && block.closest('ul');
-      if (ul && ul.classList.contains('checklist') === wantCheck) document.execCommand('insertUnorderedList'); // toggle off
-      else if (ul) ul.classList.toggle('checklist', wantCheck);
-      else {
-        document.execCommand('insertUnorderedList');
-        if (wantCheck) blockOf(getSelection().anchorNode)?.closest('ul')?.classList.add('checklist');
-      }
+    const ul = blockOf(getSelection().anchorNode)?.closest('ul');
+    if (ul?.classList.contains('checklist')) document.execCommand('insertUnorderedList'); // toggle off
+    else if (ul) ul.classList.add('checklist'); // a pasted bullet list becomes a checklist
+    else {
+      document.execCommand('insertUnorderedList');
+      blockOf(getSelection().anchorNode)?.closest('ul')?.classList.add('checklist');
     }
     afterEdit();
   }
 
-  document.querySelectorAll('[data-cmd]').forEach(btn => {
+  // ---- course box: marks which course the lines below it belong to ----
+  const courseName = code => COURSES.find(c => c[0] === code)?.[1];
+  const courseBoxInner = code => `<button type="button" class="cb-btn" aria-haspopup="listbox">`
+    + `<span>${code ? `<span class="nav-code">${code}</span>_${courseName(code)}` : '과목 선택'}</span>`
+    + `<span class="caret" aria-hidden="true">▾</span></button>`;
+  const courseMenu = $('#course-menu');
+  let menuBox = null; // the course box the menu is open for
+
+  function insertCourseBox() {
+    ensureCaret();
+    let top = blockOf(getSelection().anchorNode);
+    while (top && top.parentNode !== editor) top = top.parentNode; // the editor-level block holding the caret
+    const box = document.createElement('div');
+    box.className = 'course-box';
+    box.contentEditable = 'false';
+    box.dataset.course = '';
+    box.innerHTML = courseBoxInner('');
+    let line;
+    if (top && top.tagName === 'P' && top.textContent.trim() === '') { top.before(box); line = top; } // reuse an empty line
+    else {
+      line = document.createElement('p');
+      line.innerHTML = '<br>';
+      top ? top.after(box, line) : editor.append(box, line);
+    }
+    caretIn(line);
+    afterEdit();
+    openCourseMenu(box);
+  }
+
+  function openCourseMenu(box) {
+    menuBox?.classList.remove('is-open');
+    menuBox = box;
+    box.classList.add('is-open');
+    const cur = box.dataset.course;
+    courseMenu.innerHTML = COURSES.map(([code, name]) =>
+      `<button type="button" class="cm-item" role="option" data-code="${code}" aria-selected="${code === cur}"><span class="nav-code">${code}</span>_${name}</button>`).join('');
+    const j = editor.closest('.journal').getBoundingClientRect(), b = box.getBoundingClientRect();
+    courseMenu.style.top = `${b.bottom - j.top + 6}px`;
+    courseMenu.style.left = `${b.left - j.left}px`;
+    popIn(courseMenu);
+    (courseMenu.querySelector('[aria-selected="true"]') || courseMenu.firstElementChild).focus({ preventScroll: true });
+  }
+  function closeCourseMenu(refocus = false) {
+    if (!menuBox) return;
+    const box = menuBox;
+    menuBox = null;
+    box.classList.remove('is-open');
+    popOut(courseMenu);
+    if (refocus && box.nextElementSibling) { editor.focus(); caretIn(box.nextElementSibling); }
+  }
+  courseMenu.addEventListener('click', e => {
+    const item = e.target.closest('.cm-item');
+    if (!item || !menuBox) return;
+    const code = item.dataset.code;
+    menuBox.dataset.course = code;
+    menuBox.innerHTML = courseBoxInner(code);
+    chosen.add(code); // a course marked in the body is also a course covered today
+    renderCourses();
+    closeCourseMenu(true);
+    afterEdit();
+  });
+  courseMenu.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); closeCourseMenu(true); return; }
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const items = [...courseMenu.children], i = items.indexOf(document.activeElement);
+    items[(i + step + items.length) % items.length].focus();
+  });
+  document.addEventListener('pointerdown', e => {
+    if (menuBox && !courseMenu.contains(e.target) && !menuBox.contains(e.target)) closeCourseMenu();
+  });
+
+  // ---- format bar: acts on the dragged text ----
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const closestIn = (node, sel) => {
+    const el = node && (node.nodeType === 1 ? node : node.parentElement);
+    const hit = el?.closest(sel);
+    return hit && editor.contains(hit) ? hit : null;
+  };
+  const unwrap = el => { el.replaceWith(...el.childNodes); editor.normalize(); };
+
+  function toggleQuote() {
+    const bq = closestIn(getSelection().anchorNode, 'blockquote');
+    if (!bq) { document.execCommand('formatBlock', false, 'blockquote'); return; }
+    // unwrapping by hand: formatBlock('p') leaves Chrome's blockquote in place
+    if ([...bq.childNodes].some(n => n.nodeType === 3 || !/^(P|UL|H3|DIV)$/.test(n.tagName))) {
+      const p = document.createElement('p');
+      p.append(...bq.childNodes);
+      bq.replaceWith(p);
+      caretIn(p);
+    } else unwrap(bq);
+  }
+  function toggleCode() {
+    const s = getSelection();
+    const code = closestIn(s.anchorNode, 'code');
+    if (code) { unwrap(code); return; }
+    if (s.isCollapsed) return;
+    document.execCommand('insertHTML', false, `<code>${esc(s.toString().replace(/\s*\n\s*/g, ' '))}</code>`);
+  }
+  function applyFormat(f) {
+    ensureCaret();
+    if (f === 'quote') toggleQuote();
+    else if (f === 'code') toggleCode();
+    else document.execCommand(f);
+    afterEdit();
+    refreshFormatState();
+  }
+  const fmtButtons = [...document.querySelectorAll('[data-fmt]')];
+  function refreshFormatState() {
+    const s = getSelection();
+    const inside = s.rangeCount > 0 && editor.contains(s.anchorNode);
+    fmtButtons.forEach(b => {
+      const f = b.dataset.fmt;
+      let on = false;
+      if (inside) {
+        if (f === 'quote') on = !!closestIn(s.anchorNode, 'blockquote');
+        else if (f === 'code') on = !!closestIn(s.anchorNode, 'code');
+        else try { on = document.queryCommandState(f); } catch { on = false; }
+      }
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+  document.addEventListener('selectionchange', refreshFormatState);
+
+  const COMMANDS = { template: insertTemplate, course: insertCourseBox, check: toggleChecklist };
+  document.querySelectorAll('[data-cmd], [data-fmt]').forEach(btn => {
     btn.addEventListener('mousedown', e => e.preventDefault()); // keep the editor's selection
-    btn.addEventListener('click', () => btn.dataset.cmd === 'template' ? insertTemplate() : format(btn.dataset.cmd));
+    btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
   });
 
   function afterEdit() { syncGuides(); refreshEmpty(); scheduleSave(); }
@@ -297,8 +430,10 @@
     e.preventDefault();
     document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
   });
-  editor.addEventListener('click', e => { // the circle sits left of the <li> box
-    const li = e.target.closest('ul.checklist > li');
+  editor.addEventListener('click', e => {
+    const box = e.target.closest('.course-box');
+    if (box) { menuBox === box ? closeCourseMenu() : openCourseMenu(box); return; }
+    const li = e.target.closest('ul.checklist > li'); // the circle sits left of the <li> box
     if (li && e.clientX < li.getBoundingClientRect().left) { li.toggleAttribute('data-done'); scheduleSave(); }
   });
 
