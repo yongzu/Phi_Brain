@@ -28,9 +28,9 @@
 }
 
 /* Type — one size for the whole page (theme.css's 12/10/8pt scale collapses to 10pt);
-   mono only for inline code in the editor */
+   Unifont (a 16px pixel font) only for inline code in the editor */
 :root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt;
-      --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      --font-mono:'Unifont',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 
 /* Layout — one left edge. The nav label is the anchor: the sidebar gutter
    plus the tab's own horizontal padding. Logo and footer pad to that x. */
@@ -165,7 +165,7 @@
 .format-bar b{font-weight:700}
 .format-bar i{font-style:italic;font-synthesis:style}
 .ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
-.ico-code{font-family:var(--font-mono);letter-spacing:-.5px}
+.ico-code{letter-spacing:-.5px} /* not Unifont: the icon alone shouldn't pull the 1.6MB font */
 
 /* course menu — same floating card as the date picker */
 .journal{position:relative}

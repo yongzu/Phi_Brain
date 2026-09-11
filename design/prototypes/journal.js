@@ -116,7 +116,7 @@
     editor.innerHTML = data.html || '';
     chosen = new Set(data.courses || []);
     dirty = false;
-    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); resetOrganize();
+    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
     setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
@@ -264,12 +264,25 @@
     s.addRange(r);
   }
 
-  function insertTemplate() {
-    // only the 4F headings the document doesn't have yet
-    const have = new Set([...editor.querySelectorAll('h3')].map(h => h.textContent.trim().toLowerCase()));
-    const missing = FOUR_F.filter(([f]) => !have.has(f.toLowerCase()));
+  // 4F 템플릿 is a toggle: with 4F boxes present it takes them out again.
+  // Only the boxes (and the blank line each one brought) go — writing stays.
+  const fourFHeads = () => [...editor.querySelectorAll('h3')].filter(h => guideFor(h.textContent));
+  const templateBtn = document.querySelector('[data-cmd="template"]');
+  const refreshTemplateState = () => templateBtn.setAttribute('aria-pressed', String(fourFHeads().length > 0));
+  function toggleTemplate() {
+    const heads = fourFHeads();
+    if (heads.length) {
+      heads.forEach(h => {
+        const next = h.nextElementSibling;
+        if (next && next.tagName === 'P' && next.textContent.trim() === '') next.remove();
+        h.remove();
+      });
+      if (isEmpty()) editor.innerHTML = '';
+      afterEdit();
+      return;
+    }
     if (isEmpty()) editor.innerHTML = '';
-    editor.insertAdjacentHTML('beforeend', missing.map(([f]) => section(f)).join(''));
+    editor.insertAdjacentHTML('beforeend', FOUR_F.map(([f]) => section(f)).join(''));
     editor.focus();
     // caret into the first 4F section that has nothing written under it yet
     const open = [...editor.querySelectorAll('h3[data-guide]')]
@@ -417,13 +430,13 @@
   }
   document.addEventListener('selectionchange', refreshFormatState);
 
-  const COMMANDS = { template: insertTemplate, course: insertCourseBox, check: toggleChecklist };
+  const COMMANDS = { template: toggleTemplate, course: insertCourseBox, check: toggleChecklist };
   document.querySelectorAll('[data-cmd], [data-fmt]').forEach(btn => {
     btn.addEventListener('mousedown', e => e.preventDefault()); // keep the editor's selection
     btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
   });
 
-  function afterEdit() { syncGuides(); refreshEmpty(); scheduleSave(); }
+  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
