@@ -35,12 +35,7 @@
       .onfinish = () => { if (!el.dataset.open) el.hidden = true; };
   };
 
-  const COURSES = [
-    ['AL', 'Aesthetic Literacy'], ['AOR', 'Art of Reading'], ['BI', 'Beautiful Interface'],
-    ['EAI', 'Engaging with AI'], ['IAE', 'Interviewing as Exploration'], ['IPS', 'Iterative Problem Solving'],
-    ['PC', 'Peer Coaching'], ['RW', 'Readable Writing'], ['SI', 'Self Introduction'],
-    ['TF', 'Typography as Foundation'], ['VT', 'Visual Translation'], ['WI', 'What If'],
-  ];
+  const { COURSES, future } = window.PhiBrain; // from future.js
   const FOUR_F = [
     ['Fact', '오늘 무엇을 배우거나 경험했나요?'],
     ['Feeling', '무엇이 인상적이거나 불편했나요?'],
@@ -83,11 +78,6 @@
     { date: daysAgo(4), meta: '정리 완료 · 확인 전' },
     { date: daysAgo(7), meta: '과목 분류 확인 필요' },
   ];
-  const TODO = [ // open Future Items from past journals (examples)
-    ['BI', '과제 프로세스를 도식화하고 적용할 지점을 표시하기'],
-    ['AOR', '사전과제 디벨롭 내용을 한 장으로 정리해 공유하기'],
-    ['SI', '자기소개 초안을 세 문장으로 줄여보기'],
-  ];
 
   // ---- state ----
   let current = today, chosen = new Set(), saveTimer = 0, dirty = false;
@@ -116,7 +106,7 @@
     editor.innerHTML = data.html || '';
     chosen = new Set(data.courses || []);
     dirty = false;
-    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
+    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); placeFiButton(); resetOrganize();
     setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
@@ -436,7 +426,60 @@
     btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
   });
 
-  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
+  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); placeFiButton(); scheduleSave(); }
+
+  // ---- Future Item에 등록하기 (feeds the temporary Future Item tab) ----
+  const journalEl = editor.closest('.journal');
+  const fiBtn = $('#fi-register'), FI_LABEL = fiBtn.textContent;
+  const futureHead = () => fourFHeads().find(h => h.textContent.trim().toLowerCase() === 'future item');
+  // sits on the Future Item box's row at the column's right edge — clear of the hover guide on the left
+  function placeFiButton() {
+    const head = futureHead();
+    fiBtn.hidden = !head;
+    if (!head) return;
+    const j = journalEl.getBoundingClientRect(), r = head.getBoundingClientRect();
+    fiBtn.style.top = `${r.top - j.top + r.height / 2}px`;
+  }
+  new ResizeObserver(placeFiButton).observe(editor);
+
+  // Course for each line, until the AI does this properly: the course box
+  // above it in the section, else a leading code ("BI — …"), else the one
+  // course picked in 다룬 과목, else unassigned.
+  const CODE_LEAD = new RegExp(`^(${COURSES.map(c => c[0]).sort((a, b) => b.length - a.length).join('|')})(?:\\s*[—–:\\-·_]\\s*|\\s+)`);
+  function collectFutureItems(head) {
+    const fallback = chosen.size === 1 ? [...chosen][0] : '';
+    const entries = [];
+    let boxCourse = '';
+    for (let el = head.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) {
+      if (el.classList.contains('course-box')) { boxCourse = el.dataset.course || ''; continue; }
+      (el.tagName === 'UL' ? [...el.children] : [el]).forEach(line => {
+        let text = line.textContent.split(String.fromCharCode(160)).join(' ').trim(); // nbsp → space
+        if (!text) return;
+        let course = boxCourse;
+        const m = text.match(CODE_LEAD);
+        if (m && text.length > m[0].length) { course = m[1]; text = text.slice(m[0].length).trim(); }
+        entries.push({ course: course || fallback, text });
+      });
+    }
+    return entries;
+  }
+  let fiTimer = 0;
+  const flashFi = text => {
+    fiBtn.textContent = text;
+    clearTimeout(fiTimer);
+    fiTimer = setTimeout(() => { fiBtn.textContent = FI_LABEL; }, 1800);
+  };
+  fiBtn.addEventListener('mousedown', e => e.preventDefault());
+  fiBtn.addEventListener('click', () => {
+    const head = futureHead();
+    if (!head) return;
+    const entries = collectFutureItems(head);
+    if (!entries.length) { flashFi('등록할 내용이 없어요'); return; }
+    save();
+    const n = future.register(current, entries);
+    flashFi(n < 0 ? '이 브라우저에서는 저장할 수 없어요' : `${n}개 등록됨`);
+    renderResume();
+  });
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
@@ -479,6 +522,12 @@
     $('#count-drafts').textContent = drafts.length;
     $('#list-review').innerHTML = REVIEW.map(r => item(`${monthDay(r.date)} 저널`, r.meta)).join('');
     $('#count-review').textContent = REVIEW.length;
+    // 지난 할 일: registered Future Items from other days, not yet done
+    const open = future.all().filter(i => !i.done && i.date !== current);
+    $('#list-todo').innerHTML = open.length
+      ? open.map(i => `<li>${i.course ? `<span class="nav-code">${i.course}</span>` : ''}${esc(i.text)}</li>`).join('')
+      : '<li>아직 없어요</li>';
+    $('#count-todo').textContent = open.length;
   }
   $('#list-drafts').addEventListener('click', e => {
     const b = e.target.closest('[data-open]');
@@ -487,9 +536,6 @@
     load(b.dataset.open);
     scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
   });
-  $('#list-todo').innerHTML = TODO.map(([code, text]) => `<li><span class="nav-code">${code}</span>${text}</li>`).join('');
-  $('#count-todo').textContent = TODO.length;
-
   addEventListener('pagehide', save);
   load(today);
 })();

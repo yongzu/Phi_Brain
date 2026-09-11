@@ -27,10 +27,9 @@
   --c-surface:var(--fill);--c-hover-bg:var(--fill);--c-chip-bg:var(--fill);--c-footer-bg:var(--fill);
 }
 
-/* Type — one size for the whole page (theme.css's 12/10/8pt scale collapses to 10pt);
-   Unifont (a 16px pixel font) only for inline code in the editor */
-:root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt;
-      --font-mono:'Unifont',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+/* Type — one face (Pretendard, code included) at one size (theme.css's
+   12/10/8pt scale collapses to 10pt) */
+:root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
 
 /* Layout — one left edge. The nav label is the anchor: the sidebar gutter
    plus the tab's own horizontal padding. Logo and footer pad to that x. */
@@ -165,7 +164,7 @@
 .format-bar b{font-weight:700}
 .format-bar i{font-style:italic;font-synthesis:style}
 .ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
-.ico-code{letter-spacing:-.5px} /* not Unifont: the icon alone shouldn't pull the 1.6MB font */
+.ico-code{letter-spacing:-.5px}
 
 /* course menu — same floating card as the date picker */
 .journal{position:relative}
@@ -190,20 +189,23 @@
 /* course box — an outlined pill (vs the 4F fill pill) marking which course the
    lines below belong to; click it to pick from the course menu */
 .course-box{width:fit-content;margin:12px 0 4px calc(-1 * var(--tab-pad-x) - 1px)}
-.cb-btn{display:inline-flex;align-items:center;gap:4px;padding:3px var(--tab-pad-x);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;color:var(--ink);transition:background 140ms}
+.cb-btn,.course-tag{display:inline-flex;align-items:center;gap:4px;padding:3px var(--tab-pad-x);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;color:var(--ink);transition:background 140ms}
 .cb-btn:hover,.cb-btn:focus-visible,.course-box.is-open .cb-btn{background:var(--fill)}
 .course-box[data-course=""] .cb-btn{color:var(--gray)}
 /* typing styles from the format bar */
 .editor b,.editor strong{font-weight:700}
 .editor i,.editor em{font-style:italic;font-synthesis:style}
 .editor blockquote{margin:6px 0;padding:0 0 0 12px;border-left:2px solid var(--gray)}
-.editor code{font-family:var(--font-mono);background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
+.editor code{background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}
 .editor ul.checklist>li::before{content:'';position:absolute;left:-22px;top:.45em;width:12px;height:12px;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .editor ul.checklist>li[data-done]{color:var(--gray);text-decoration:line-through}
 .editor ul.checklist>li[data-done]::before{background:var(--ink);border-color:var(--ink)}
+
+/* Future Item에 등록하기 — a quiet pill on the Future Item box's row, flush right */
+.fi-register{position:absolute;right:calc(-1 * var(--tab-pad-x));transform:translateY(-50%);z-index:1}
 
 /* ---- journal: save state + next action ---- */
 .journal-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;border-top:1px solid var(--line)}
@@ -234,6 +236,20 @@
 .todo-list li{padding:6px var(--tab-pad-x);color:var(--gray)}
 .todo-list .nav-code{color:var(--ink);margin-right:8px}
 .resume-hint{padding-left:calc(24px + var(--tab-pad-x));margin:0 0 12px}
+
+/* ---- Future Item (temporary view): one group per course ---- */
+.future-hint{margin:6px 0 28px}
+.fi-empty{color:var(--gray);margin:0}
+.fi-group+.fi-group{margin-top:28px}
+.fi-course{display:flex;align-items:center;gap:10px;margin:0 0 8px calc(-1 * var(--tab-pad-x) - 1px);font-weight:400}
+.fi-list{list-style:none;margin:0;padding:0}
+.fi-item{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.fi-check{flex:0 0 12px;width:12px;height:12px;align-self:center;border:1px solid var(--gray);border-radius:50%;transition:background 140ms,border-color 140ms}
+.fi-check:hover{background:var(--fill)}
+.fi-text{color:var(--ink)}
+.fi-meta{margin-left:auto;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fi-item.is-done .fi-check{background:var(--ink);border-color:var(--ink)}
+.fi-item.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
