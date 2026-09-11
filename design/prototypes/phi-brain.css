@@ -70,9 +70,9 @@
   Hover follows the style kit's reveal-list: the tab slides 10px right,
   an arrow fades in to the left of the label, and a fill box hugs the
   label through its own padding. The squircle corner falls back to a
-  plain 10px radius where corner-shape isn't supported.
+  plain 20px radius where corner-shape isn't supported.
 */
-.nav-tab{position:relative;display:block;white-space:nowrap;text-align:left;padding:6px var(--tab-pad-x);border-radius:10px;corner-shape:squircle;transition:transform 340ms var(--ease-out),background 140ms,color 140ms}
+.nav-tab{position:relative;display:block;white-space:nowrap;text-align:left;padding:6px var(--tab-pad-x);border-radius:20px;corner-shape:squircle;transition:transform 340ms var(--ease-out),background 140ms,color 140ms}
 .nav-tab::before{content:'→';position:absolute;right:100%;top:50%;margin-right:4px;color:var(--ink);opacity:0;transform:translate(-3px,-50%);transition:opacity 140ms,transform 140ms}
 .nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:translateX(10px);background:var(--fill);color:var(--ink)}
 .nav-tab:hover::before,.nav-tab:focus-visible::before,.nav-tab.active::before{opacity:1;transform:translate(0,-50%)}

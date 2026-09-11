@@ -81,7 +81,7 @@
 - **레이아웃:** 헤더 좌상단 로고(이미지) + 두 줄 워드마크(이미지) → 검색 → 우상단 프로필. 좌측 고정 사이드바 + 남은
   공간 중앙의 본문. 로고·사이드바 Tab1 라벨·푸터가 같은 좌측선(`--text-start`)에 정렬.
 - **사이드바:** Tab1(Journaling · General · Course) / Tab2(하위 항목, 12개 과목은 알파벳순). 호버 시 라벨에 맞춘
-  padding 박스(`--fill`, 10px squircle) + 10px 우측 이동 + 좌측 화살표(→) — 키트의 reveal-list 인터랙션을 따름.
+  padding 박스(`--fill`, 20px squircle) + 10px 우측 이동 + 좌측 화살표(→) — 키트의 reveal-list 인터랙션을 따름.
 - **푸터:** 배경 없음, 전체 `--gray`, 링크는 GitHub 하나.
 - **폰트 로드:** Pretendard v1.3.9를 jsDelivr CDN의 dynamic subset CSS로 불러온다(`home.html` `<head>`). 설치 여부와
   무관하게 모든 사용자에게 표시되고, 페이지에 쓰인 글자 범위의 조각만 내려받는다. 사용 굵기는 400·700 두 가지.
