@@ -1,6 +1,6 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-11 / Claude Code
+최종 갱신: 2026-09-12 / Claude Code
 
 ## 현재 단계
 
@@ -19,6 +19,10 @@
 - (Claude Code) 스타일 키트를 적용한 홈 화면 정적 프로토타입 작성: `design/prototypes/home.html` +
   `design/prototypes/phi-brain.css`(새 컴포넌트 전용 추가 스타일, 새 색상 토큰 없음). 브라우저에서 로컬 정적 서버로
   렌더링·hover-reveal 인터랙션까지 확인 완료. `docs/DESIGN.md`에 반영 내용 기록.
+- (Claude Code) GitHub Pages 배포: `https://yongzu.github.io/Phi_Brain/` (`.github/workflows/design-pages.yml`, `design/` 폴더 게시).
+- (Claude Code) 사용자 지시로 홈 화면 반복 수정: 로고·워드마크 이미지 헤더, 좌측 고정 사이드바(Tab1/Tab2, 12개 과목),
+  폰트 10pt 통일, 좌측선 정렬, 푸터 단순화, 색상 4색 토큰으로 축소, 사이드바 호버 인터랙션. 확정 내용은
+  `docs/DESIGN.md` "Phi Brain 확정 사항" 참고. 기존 과목 reveal-list·Future Item 아코디언 섹션은 사이드바로 대체되며 본문에서 제거됨.
 
 ## 진행 중
 
@@ -118,3 +122,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-11 | Codex | 사용자 요청에 따라 공통 문서 GitHub 게시용 상태 갱신 | 원격 main을 받아 CLAUDE.md부터 읽기 |
 | 2026-09-11 | Claude Code | origin/main 병합(fd53677) 후 공통 문서 교차 검토, 일치/차이/미결정 정리, 기존 구현·되돌림 이력 기록 | 사용자가 위 "다른 내용"·"미결정 사항" 검토 후 방향 확정 필요. 구현 아직 시작 안 함 |
 | 2026-09-11 | Claude Code | 사용자 제공 스타일 키트를 `design/style-kit/`에 반영, 홈 화면 정적 프로토타입(`design/prototypes/`) 작성, `docs/DESIGN.md` 갱신 | 사용자 피드백 대기. 나머지 화면 초안·앱 구현은 아직 시작 안 함 |
+| 2026-09-12 | Claude Code | 홈 화면 반복 수정(헤더·사이드바·푸터·10pt·4색 토큰·호버 인터랙션), Pages 배포, `docs/DESIGN.md`에 확정 사항·최소화 원칙 기록 | Pretendard 미로드 문제 결정 필요. 나머지 화면·앱 구현은 아직 시작 안 함 |

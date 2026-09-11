@@ -1,28 +1,45 @@
 /*
-  Phi Brain — additive styles on top of ../style-kit/theme.css
+  Phi Brain — styles on top of ../style-kit/theme.css
 
-  Only new component rules for things the style kit doesn't cover
-  (journal textarea, the one filled action, course tags, future-item
-  rows). No new color tokens — every value below is one of theme.css's
-  existing custom properties. Re-skin by editing theme.css §1, not here.
+  §1 holds every token (color, type, layout). Rules below use only those
+  tokens; keep the palette minimal — extend a token before adding a
+  one-off value.
 */
 
-/* one uniform type size across the whole page (overrides theme.css's
-   12pt/10pt/8pt scale — all three tokens collapse to the same value) */
+/* ---------- 1. Tokens ---------- */
+
+/* Color — white ground + 4 tones. Nothing on the page uses any other color. */
+:root{
+  --bg:#fff;
+  --ink:#333;     /* primary text, Tab1, hover/active text, the one filled button */
+  --gray:#999;    /* all secondary text: Tab2, meta, hints, placeholder, footer */
+  --line:#ededed; /* borders, text selection */
+  --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
+}
+
+/* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
+   the 4 tones above so its components (search, drawer, footer) render in
+   the same palette. New rules should not use these names. */
+:root{
+  --c-ink:var(--ink);--c-copy:var(--ink);--c-selection-fg:var(--ink);
+  --c-body:var(--gray);--c-muted:var(--gray);--c-faint:var(--gray);--c-faintest:var(--gray);--c-placeholder:var(--gray);
+  --c-border:var(--line);--c-border-soft:var(--line);--c-border-panel:var(--line);--c-selection-bg:var(--line);--c-chip-bg-hover:var(--line);
+  --c-surface:var(--fill);--c-hover-bg:var(--fill);--c-chip-bg:var(--fill);--c-footer-bg:var(--fill);
+}
+
+/* Type — one size for the whole page (theme.css's 12/10/8pt scale collapses to 10pt) */
 :root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
 
-/* nav hover fill — the one value here that isn't already in theme.css */
-:root{--c-nav-hover:#f4f4f4}
+/* Layout — one left edge. The nav label is the anchor: the sidebar gutter
+   plus the tab's own horizontal padding. Logo and footer pad to that x. */
+:root{
+  --nav-gutter:32px;
+  --tab-pad-x:12px;
+  --tab2-indent:16px;
+  --text-start:calc(var(--nav-gutter) + var(--tab-pad-x));
+}
 
-/*
-  One left edge for the whole page. The nav tab label is the anchor: its
-  x is the sidebar's own gutter plus the Tab1 inset, and the header logo
-  and the footer are padded to that same x so all three line up.
-*/
-:root{--nav-gutter:32px;--tab1-inset:12px;--tab2-inset:28px;
-      --text-start:calc(var(--nav-gutter) + var(--tab1-inset))}
-
-/* ---- header: logo + wordmark, search, profile ---- */
+/* ---------- 2. Header: logo + wordmark, search, profile ---------- */
 .toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
 .brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .brand-logo{height:25px;width:25px;display:block}
@@ -38,91 +55,66 @@
 .brand-word{height:29.43px;width:auto;display:block;margin-top:-0.7px}
 .profile-trigger{margin-left:auto}
 
-/* ---- app body: nav flush to the left edge, content follows ---- */
+/* ---------- 3. Side nav ---------- */
 .app-body{display:flex;align-items:flex-start}
 
-/* 300px, not 260: the 40px fixed-height hover rows can't wrap, and the
-   longest course label ("IAE_Interviewing as Exploration") needs ~187px
-   of text width inside the Tab2 inset and the row's right padding. */
+/* 300px: room for the longest course label ("IAE_Interviewing as
+   Exploration", ~187px) plus the Tab2 indent, the tab padding and the
+   10px hover shift, without wrapping. */
 .side-nav{width:300px;flex:0 0 300px;padding:32px 24px 40px var(--nav-gutter)}
-.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-group,.nav-list{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .nav-group+.nav-group{margin-top:16px}
-.nav-list{display:flex;flex-direction:column}
 
 /*
-  Two nav levels, one hover target. Tab1 is a section (Journaling /
-  General / Course), Tab2 an item under it; they differ only in weight,
-  color and indent, so the 40px hover box is defined once on .nav-tab.
-
-  CSS has no direct equivalent of Figma's "corner smoothing %" —
-  `corner-shape: squircle` is the superellipse the iOS/60% preset
-  approximates. Browsers without corner-shape fall back to the plain
-  10px radius, i.e. the same box minus the smoothing.
+  Tab1 = section (Journaling / General / Course), Tab2 = item under it.
+  Hover follows the style kit's reveal-list: the tab slides 10px right,
+  an arrow fades in to the left of the label, and a fill box hugs the
+  label through its own padding. The squircle corner falls back to a
+  plain 10px radius where corner-shape isn't supported.
 */
-.nav-tab{display:flex;align-items:center;height:40px;width:100%;font-size:var(--fs-base);text-align:left;border-radius:10px;corner-shape:squircle;transition:background 140ms,color 140ms}
-.nav-tab:hover,.nav-tab:focus-visible{background:var(--c-nav-hover)}
-.nav-tab.active{background:var(--c-nav-hover)}
+.nav-tab{position:relative;display:block;white-space:nowrap;text-align:left;padding:6px var(--tab-pad-x);border-radius:10px;corner-shape:squircle;transition:transform 340ms var(--ease-out),background 140ms,color 140ms}
+.nav-tab::before{content:'→';position:absolute;right:100%;top:50%;margin-right:4px;color:var(--ink);opacity:0;transform:translate(-3px,-50%);transition:opacity 140ms,transform 140ms}
+.nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:translateX(10px);background:var(--fill);color:var(--ink)}
+.nav-tab:hover::before,.nav-tab:focus-visible::before,.nav-tab.active::before{opacity:1;transform:translate(0,-50%)}
 
-.tab1{font-weight:700;color:var(--c-ink);letter-spacing:-.16px;padding:0 12px 0 var(--tab1-inset)}
-.tab2{color:var(--c-body);padding:0 12px 0 var(--tab2-inset)}
-.tab2:hover,.tab2:focus-visible,.tab2.active{color:var(--c-ink)}
+.tab1{font-weight:700;color:var(--ink);letter-spacing:-.16px}
+.tab2{color:var(--gray);margin-left:var(--tab2-indent)}
 .nav-code{font-weight:700}
 
 @media(max-width:860px){
   .app-body{flex-direction:column}
   .side-nav{width:100%;flex:none;padding:20px 24px}
-  .nav-group{flex-direction:row;flex-wrap:wrap;gap:6px}
-  .nav-tab{width:auto;height:32px;padding:0 12px}
+  .nav-group,.nav-list{flex-direction:row;flex-wrap:wrap;gap:6px}
   .tab1{width:100%}
+  .tab2{margin-left:0}
+  .nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:none}
+  .nav-tab::before{display:none}
 }
 
+/* ---------- 4. Content ---------- */
 /* sidebar stays pinned at its fixed width; this column takes the rest
    of the row and centers its own (max-width-capped) content within it */
 .shell{flex:1;min-width:0;max-width:680px;margin:0 auto;padding:40px 32px 100px}
+.section{padding:0 0 48px}
 
-.eyebrow{font-size:var(--fs-xs);color:var(--c-muted);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
-.prototype-note{font-size:var(--fs-xs);color:var(--c-placeholder);margin:2px 0 0}
+.eyebrow{color:var(--gray);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
+.prototype-note{color:var(--gray);margin:2px 0 0}
 
-.section{padding:48px 0;border-top:1px solid var(--c-border)}
-.section:first-of-type{border-top:0;padding-top:0}
-.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 20px}
-.section-head h2{font-size:var(--fs-base);font-weight:600;color:var(--c-ink);margin:0}
-.section-head .count{font-size:var(--fs-xs);color:var(--c-muted)}
-
-/* ---- today / journal entry ---- */
-.entry-date{font-size:var(--fs-sm);color:var(--c-muted);margin:0 0 16px}
-.entry-field{position:relative}
-.entry-input{width:100%;min-height:220px;resize:vertical;border:1px solid var(--c-border);border-radius:3px;background:var(--c-surface);padding:18px 20px;color:var(--c-ink);line-height:1.75;transition:border-color 140ms,background 140ms}
-.entry-input::placeholder{color:var(--c-placeholder);white-space:pre-line}
-.entry-input:hover{border-color:var(--c-border-panel)}
-.entry-input:focus-visible{outline:0;border-color:var(--c-body);background:#fff}
+.entry-input{width:100%;min-height:220px;resize:vertical;border:1px solid var(--line);border-radius:3px;background:var(--fill);padding:18px 20px;color:var(--ink);line-height:1.75;transition:border-color 140ms,background 140ms}
+.entry-input::placeholder{color:var(--gray);white-space:pre-line}
+.entry-input:focus-visible{outline:0;border-color:var(--gray);background:var(--bg)}
 .entry-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:16px}
-.entry-hint{margin-right:auto;font-size:var(--fs-xs);color:var(--c-muted)}
+.entry-hint{margin-right:auto;color:var(--gray)}
 
 /* the one deliberately filled control on the page — everything else stays quiet */
-.btn-primary{background:var(--c-ink);color:#fff;padding:11px 22px;border-radius:3px;font-size:var(--fs-sm);transition:transform 200ms var(--ease-out),background 140ms}
-.btn-primary:hover{background:#000}
+.btn-primary{background:var(--ink);color:var(--bg);padding:11px 22px;border-radius:3px;white-space:nowrap;transition:transform 200ms var(--ease-out),opacity 140ms}
+.btn-primary:hover{opacity:.85}
 .btn-primary:active{transform:scale(.98)}
 
-/* ---- footer: flush left with the header lockup ---- */
-/* theme.css uses max(32px,6vw) inline padding, which on wide screens
-   indents the footer further than the header — pin it to the same
-   --text-start so "Phi Brain" lines up with the logo and the nav tabs. */
+/* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
+/* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
+   on the page's own white, all three lines in the secondary tone */
 .site-footer{padding-left:var(--text-start);padding-right:32px;background:none}
-/* the whole footer reads as one quiet block — the identity line drops
-   from --c-ink to the same faintest tone as the tagline and the link */
-.site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--c-faintest)}
-.footer-social a:hover{color:var(--c-body)}
+.site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--gray)}
+.footer-social a:hover{color:var(--ink)}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
-
-/* ---- course reveal rows: stat line + tag inside .reveal-copy ---- */
-.course-stat{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);color:var(--c-muted);margin-top:2px}
-.course-stat .n{color:var(--c-copy);font-variant-numeric:tabular-nums}
-.course-empty{color:var(--c-placeholder)}
-
-/* ---- future items: plain rows, not cards ---- */
-.action-list{list-style:none;margin:0;padding:0}
-.action-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-top:1px solid var(--c-border-soft)}
-.action-row:first-child{border-top:0}
-.action-tag{flex:0 0 auto;background:var(--c-chip-bg);color:var(--c-copy);font-size:var(--fs-xs);padding:3px 9px;border-radius:2px;line-height:1.4;margin-top:1px}
-.action-text{color:var(--c-copy);font-size:var(--fs-sm);line-height:1.6;word-break:keep-all}
