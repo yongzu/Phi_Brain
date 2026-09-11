@@ -108,7 +108,11 @@
 /* theme.css uses max(32px,6vw) inline padding, which on wide screens
    indents the footer further than the header — pin it to the same
    --text-start so "Phi Brain" lines up with the logo and the nav tabs. */
-.site-footer{padding-left:var(--text-start);padding-right:32px}
+.site-footer{padding-left:var(--text-start);padding-right:32px;background:none}
+/* the whole footer reads as one quiet block — the identity line drops
+   from --c-ink to the same faintest tone as the tagline and the link */
+.site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--c-faintest)}
+.footer-social a:hover{color:var(--c-body)}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
 
 /* ---- course reveal rows: stat line + tag inside .reveal-copy ---- */
