@@ -77,6 +77,13 @@
 .btn-primary:hover{background:#000}
 .btn-primary:active{transform:scale(.98)}
 
+/* ---- footer: flush left with the header lockup ---- */
+/* theme.css uses max(32px,6vw) inline padding, which on wide screens
+   indents the footer further than the 32px toolbar — pin it to 32px so
+   "Phi Brain" lines up with the logo above it. */
+.site-footer{padding-left:32px;padding-right:32px}
+@media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
+
 /* ---- course reveal rows: stat line + tag inside .reveal-copy ---- */
 .course-stat{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);color:var(--c-muted);margin-top:2px}
 .course-stat .n{color:var(--c-copy);font-variant-numeric:tabular-nums}
