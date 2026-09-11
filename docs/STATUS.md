@@ -126,3 +126,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | Pretendard CDN(dynamic subset) 로드로 미설치 기기 대응, General에 "Assignment Manage" Tab2 추가 | Assignment Manage 화면 내용은 미정 |
 | 2026-09-12 | Claude Code | Journaling 본문 프로토타입(맥락·통합 편집기·초안 자동 저장·정리하기 상태·이어 쓰기), `--radius` 토큰 추가, `docs/DESIGN.md`에 구성 기록 | 브라우저 localStorage 저장만 있음(서버 없음). AI 정리·검토 화면·다른 탭 본문은 미구현 |
 | 2026-09-12 | Claude Code | 자체 날짜 선택창, 4F 소제목 pill 박스, 호버 시 블러 해제로 나타나는 도움 질문(작성 도움 버튼 제거) | 터치 기기에는 호버가 없어 도움 질문이 보이지 않음 — 필요 시 대안 결정 |
+| 2026-09-12 | Claude Code | 기본 빈 문서로 시작(4F는 템플릿 버튼으로만), 안내 문구 변경, 과목 선택창 바깥 클릭·Esc로 닫기(선택 유지) | — |

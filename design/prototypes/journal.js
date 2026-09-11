@@ -51,14 +51,11 @@
   };
 
   // ---- example data (shown until the user edits; never auto-saved) ----
+  // Today always opens as a blank document — 4F boxes appear only via the
+  // 4F 템플릿 button. The past draft below shows what a resumed one looks like.
   const guideFor = text => FOUR_F.find(([f]) => f.toLowerCase() === text.trim().toLowerCase())?.[1];
   const section = (f, body) => `<h3 data-guide="${guideFor(f)}">${f}</h3>` + (body ?? '<p><br></p>');
   const EXAMPLES = {
-    [today]: {
-      courses: ['AOR', 'BI'],
-      html: section('Fact', '<ul><li>BI — 영준님의 BI 수업을 들었다. 과제를 어떤 프로세스로 했는지 도식화해서 보여주셨고, 그 과정을 따라가며 내가 적용할 지점을 메모했다.</li><li>AOR — 사전과제에서 했던 내용을 각자 디벨롭하며 공유하는 시간을 가졌다.</li></ul>')
-        + section('Feeling') + section('Finding') + section('Future Item'),
-    },
     [daysAgo(2)]: {
       courses: ['SI'],
       html: section('Fact', '<p>SI — 자기소개 초안을 서로 읽고 피드백을 주고받았다.</p>')
@@ -130,6 +127,7 @@
     dateLabel.textContent = label;
     heading.textContent = current === today ? '오늘의 저널' : '지난 저널';
     titleInput.placeholder = `${label} 저널`;
+    editor.dataset.placeholder = current === today ? '오늘의 저널링을 적어주세요' : `${label}의 저널링을 적어주세요`;
   }
 
   // ---- date picker: today or earlier only ----
@@ -213,7 +211,18 @@
     renderCourses();
     scheduleSave();
   });
-  coursesEl.addEventListener('toggle', renderCourses);
+  // each chip click is already saved; clicking anywhere else (or Esc) just
+  // closes the panel — 완료 is a convenience, never a required confirm
+  let coursesClosing = false;
+  coursesEl.addEventListener('toggle', () => { if (!coursesEl.open) coursesClosing = false; renderCourses(); });
+  const closeCourses = () => {
+    if (!coursesEl.open || coursesClosing) return; // one close at a time, or the animation restarts
+    coursesClosing = true;
+    save();
+    coursesEl.querySelector('summary').click(); // the kit's accordion animates the close
+  };
+  document.addEventListener('pointerdown', e => { if (!coursesEl.contains(e.target)) closeCourses(); });
+  coursesEl.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCourses(); coursesEl.querySelector('summary').focus(); } });
   titleInput.addEventListener('input', scheduleSave);
 
   // ---- editor ----
