@@ -10,7 +10,10 @@
 <body>
 
 <header class="toolbar">
-  <span class="brand">Phi Brain</span>
+  <a class="brand-lockup" href="./home.html" aria-label="Phi Brain 홈">
+    <img class="brand-logo" src="assets/logo.png" alt="" width="50" height="50">
+    <span class="brand-word">Phi Brain</span>
+  </a>
   <div class="search-shell">
     <form class="search-field" id="search-form">
       <input type="search" class="search-input" id="search-input" placeholder="저널·과목 검색">
@@ -27,6 +30,35 @@
   <button class="profile-trigger" id="drawer-trigger" aria-haspopup="dialog" aria-expanded="false">프로필</button>
 </header>
 
+<div class="app-body">
+<nav class="side-nav" aria-label="주요 탐색">
+  <div class="nav-group">
+    <div class="nav-heading">General</div>
+    <div class="nav-list">
+      <button type="button" class="nav-link">Future Item</button>
+      <button type="button" class="nav-link">Journal Archive</button>
+      <button type="button" class="nav-link">Insight Archive</button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-heading">Course</div>
+    <div class="nav-list nav-list-course">
+      <button type="button" class="nav-link"><span class="nav-code">AL</span>_Aesthetic Literacy</button>
+      <button type="button" class="nav-link"><span class="nav-code">AOR</span>_Art of Reading</button>
+      <button type="button" class="nav-link"><span class="nav-code">BI</span>_Beautiful Interface</button>
+      <button type="button" class="nav-link"><span class="nav-code">EAI</span>_Engaging with AI</button>
+      <button type="button" class="nav-link"><span class="nav-code">IAE</span>_Interviewing as Exploration</button>
+      <button type="button" class="nav-link"><span class="nav-code">IPS</span>_Iterative Problem Solving</button>
+      <button type="button" class="nav-link"><span class="nav-code">PC</span>_Peer Coaching</button>
+      <button type="button" class="nav-link"><span class="nav-code">RW</span>_Readable Writing</button>
+      <button type="button" class="nav-link"><span class="nav-code">SI</span>_Self Introduction</button>
+      <button type="button" class="nav-link"><span class="nav-code">TF</span>_Typography as Foundation</button>
+      <button type="button" class="nav-link"><span class="nav-code">VT</span>_Visual Translation</button>
+      <button type="button" class="nav-link"><span class="nav-code">WI</span>_What If</button>
+    </div>
+  </div>
+</nav>
+
 <main class="shell">
 
   <section class="section">
@@ -42,117 +74,8 @@
     </div>
   </section>
 
-  <section class="section">
-    <div class="section-head">
-      <h2>과목</h2>
-      <span class="count">13개 · 기록 있는 과목 3개</span>
-    </div>
-
-    <ul class="reveal-list">
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Beautiful Interface</span></summary>
-        <div class="reveal-content"><div class="reveal-copy">
-          <p>"영준님이 사고 과정을 도식화해서 보여주셨다 — 도달한 과정도, 그 이후 해결 방법도 훨씬 더 체계적이고 합리적이었다."</p>
-          <div class="course-stat">기록 <span class="n">3</span> · Future Item <span class="n">1</span></div>
-        </div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Art of Reading</span></summary>
-        <div class="reveal-content"><div class="reveal-copy">
-          <p>"같은 텍스트를 보고도 각자의 프레임이 다르기에 인출할 수 있는 내용이 다르다. 이를 더 잘 정리하고 전달하는 데 목적이 있는 것 같다."</p>
-          <div class="course-stat">기록 <span class="n">2</span> · Future Item <span class="n">0</span></div>
-        </div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Self Introduction</span></summary>
-        <div class="reveal-content"><div class="reveal-copy">
-          <p>"코스프로필을 보지 않고, 오늘 메모한 내용을 바탕으로 내가 무엇을, 어떻게 좋아하는지 탐구하고 정리."</p>
-          <div class="course-stat">기록 <span class="n">1</span> · Future Item <span class="n">1</span></div>
-        </div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">공통 / 미분류</span></summary>
-        <div class="reveal-content"><div class="reveal-copy">
-          <p>"데스크탑·노트북 파일 연동, 작업설계 프레임워크 타이머 등 특정 과목에 속하지 않는 메모."</p>
-          <div class="course-stat">기록 <span class="n">1</span> · Future Item <span class="n">1</span></div>
-        </div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Iterative Problem Solving</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Visual Translation</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Interviewing as Exploration</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Engaging with AI</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Aesthetic Literacy</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Typography as Foundation</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">What If</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Peer Coaching</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-      <li><details class="reveal">
-        <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">Readable Writing</span></summary>
-        <div class="reveal-content"><div class="reveal-copy"><p class="course-empty">아직 기록 없음</p></div></div>
-      </details></li>
-
-    </ul>
-  </section>
-
-  <section class="section">
-    <details class="accordion-block">
-      <summary class="accordion-trigger">미해결 Future Item (3)</summary>
-      <div class="accordion-content">
-        <ul class="action-list" style="padding-bottom:8px">
-          <li class="action-row">
-            <span class="action-tag">BI</span>
-            <span class="action-text">오늘 메모 정리해서 액션 아이템으로 만들기</span>
-          </li>
-          <li class="action-row">
-            <span class="action-tag">SI</span>
-            <span class="action-text">60분 대신 45분으로 제한을 줄여서 탐색해보기</span>
-          </li>
-          <li class="action-row">
-            <span class="action-tag">공통</span>
-            <span class="action-text">작업설계 프레임워크에 행동별 타이머 적용해보기 (옵시디언)</span>
-          </li>
-        </ul>
-      </div>
-    </details>
-  </section>
-
 </main>
+</div>
 
 <dialog class="drawer" id="drawer">
   <div class="drawer-header">
@@ -180,8 +103,6 @@
 
 <script src="../style-kit/interactions.js"></script>
 <script>
-  StyleKit.createHoverReveal(document.querySelector('.reveal-list'));
-  document.querySelectorAll('.accordion-block').forEach(StyleKit.createAccordion);
   StyleKit.createDrawer({
     trigger: document.getElementById('drawer-trigger'),
     panel: document.getElementById('drawer'),

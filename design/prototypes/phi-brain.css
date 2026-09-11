@@ -7,7 +7,36 @@
   existing custom properties. Re-skin by editing theme.css §1, not here.
 */
 
-.shell{width:min(720px,calc(100% - 48px));margin:0 auto;padding:56px 0 0}
+/* ---- header: logo + wordmark, search, profile ---- */
+.toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px;border-bottom:1px solid var(--c-border)}
+.brand-lockup{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.brand-logo{height:50px;width:50px;display:block}
+.brand-word{font-weight:800;font-size:34px;line-height:50px;color:var(--c-ink);letter-spacing:-.01em;white-space:nowrap}
+.profile-trigger{margin-left:auto}
+
+/* ---- app body: left nav + main content ---- */
+.app-body{display:flex;align-items:flex-start;gap:8px;max-width:1040px;margin:0 auto;padding:0 32px}
+
+.side-nav{width:236px;flex:0 0 236px;padding:32px 14px 40px 0}
+.nav-group{display:flex;flex-direction:column;gap:14px}
+.nav-group+.nav-group{margin-top:20px}
+.nav-heading{font-weight:700;font-size:12px;color:var(--c-ink);letter-spacing:-.16px;padding:5px 0 5px 10px;border-left:1px solid transparent}
+.nav-list{display:flex;flex-direction:column}
+.nav-link{display:block;width:100%;font-size:12px;color:var(--c-body);text-align:left;padding:5px 0 5px 24px;border-left:1px solid transparent;border-radius:10px;transition:background 140ms,color 140ms}
+.nav-list-course .nav-link{padding-top:8px;padding-bottom:8px}
+.nav-link:hover,.nav-link:focus-visible{color:var(--c-ink)}
+.nav-link.active{background:var(--c-surface);color:var(--c-ink)}
+.nav-code{font-weight:700}
+
+@media(max-width:860px){
+  .app-body{flex-direction:column;padding:0 24px}
+  .side-nav{width:100%;flex:none;padding:20px 0}
+  .nav-group{flex-direction:row;flex-wrap:wrap;gap:6px}
+  .nav-heading{width:100%;padding-left:0}
+  .nav-link{width:auto;padding:6px 10px;border-left:0}
+}
+
+.shell{flex:1;min-width:0;max-width:680px;padding:32px 0 100px}
 
 .eyebrow{font-size:var(--fs-xs);color:var(--c-muted);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
 .prototype-note{font-size:var(--fs-xs);color:var(--c-placeholder);margin:2px 0 0}
