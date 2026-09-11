@@ -11,6 +11,9 @@
    12pt/10pt/8pt scale — all three tokens collapse to the same value) */
 :root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
 
+/* nav hover fill — the one value here that isn't already in theme.css */
+:root{--c-nav-hover:#ebebeb}
+
 /* ---- header: logo + wordmark, search, profile ---- */
 .toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px}
 .brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
@@ -30,15 +33,24 @@
 /* ---- app body: nav flush to the left edge, content follows ---- */
 .app-body{display:flex;align-items:flex-start}
 
-.side-nav{width:260px;flex:0 0 260px;padding:32px 24px 40px 32px}
+/* 288px, not 260: the 40px fixed-height hover rows can't wrap, and the
+   longest course label ("IAE_Interviewing as Exploration") needs ~187px
+   of text width inside the row's 24px/12px padding. */
+.side-nav{width:288px;flex:0 0 288px;padding:32px 24px 40px 32px}
 .nav-group{display:flex;flex-direction:column;gap:14px}
 .nav-group+.nav-group{margin-top:20px}
 .nav-heading{font-weight:700;font-size:var(--fs-base);color:var(--c-ink);letter-spacing:-.16px;padding:5px 0 5px 10px;border-left:1px solid transparent}
 .nav-list{display:flex;flex-direction:column}
-.nav-link{display:block;width:100%;font-size:var(--fs-base);color:var(--c-body);text-align:left;padding:5px 0 5px 24px;border-left:1px solid transparent;border-radius:10px;transition:background 140ms,color 140ms}
-.nav-list-course .nav-link{padding-top:8px;padding-bottom:8px}
-.nav-link:hover,.nav-link:focus-visible{color:var(--c-ink)}
-.nav-link.active{background:var(--c-surface);color:var(--c-ink)}
+/*
+  40px-tall hover target with a 10px squircle corner. CSS has no direct
+  equivalent of Figma's "corner smoothing %" — `corner-shape: squircle`
+  is superellipse(4), the closest native match to Figma's 60% (iOS)
+  preset. Browsers without corner-shape fall back to the plain 10px
+  radius from border-radius, which is the same box minus the smoothing.
+*/
+.nav-link{display:flex;align-items:center;height:40px;width:100%;font-size:var(--fs-base);color:var(--c-body);text-align:left;padding:0 12px 0 24px;border-left:1px solid transparent;border-radius:10px;corner-shape:squircle;transition:background 140ms,color 140ms}
+.nav-link:hover,.nav-link:focus-visible{background:var(--c-nav-hover);color:var(--c-ink)}
+.nav-link.active{background:var(--c-nav-hover);color:var(--c-ink)}
 .nav-code{font-weight:700}
 
 @media(max-width:860px){
@@ -46,7 +58,7 @@
   .side-nav{width:100%;flex:none;padding:20px 24px}
   .nav-group{flex-direction:row;flex-wrap:wrap;gap:6px}
   .nav-heading{width:100%;padding-left:0}
-  .nav-link{width:auto;padding:6px 10px;border-left:0}
+  .nav-link{width:auto;height:32px;padding:0 12px;border-left:0}
 }
 
 /* sidebar stays pinned at its fixed width; this column takes the rest
