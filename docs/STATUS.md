@@ -124,3 +124,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-11 | Claude Code | 사용자 제공 스타일 키트를 `design/style-kit/`에 반영, 홈 화면 정적 프로토타입(`design/prototypes/`) 작성, `docs/DESIGN.md` 갱신 | 사용자 피드백 대기. 나머지 화면 초안·앱 구현은 아직 시작 안 함 |
 | 2026-09-12 | Claude Code | 홈 화면 반복 수정(헤더·사이드바·푸터·10pt·4색 토큰·호버 인터랙션), Pages 배포, `docs/DESIGN.md`에 확정 사항·최소화 원칙 기록 | 나머지 화면·앱 구현은 아직 시작 안 함 |
 | 2026-09-12 | Claude Code | Pretendard CDN(dynamic subset) 로드로 미설치 기기 대응, General에 "Assignment Manage" Tab2 추가 | Assignment Manage 화면 내용은 미정 |
+| 2026-09-12 | Claude Code | Journaling 본문 프로토타입(맥락·통합 편집기·초안 자동 저장·정리하기 상태·이어 쓰기), `--radius` 토큰 추가, `docs/DESIGN.md`에 구성 기록 | 브라우저 localStorage 저장만 있음(서버 없음). AI 정리·검토 화면·다른 탭 본문은 미구현 |

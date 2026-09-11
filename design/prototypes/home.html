@@ -37,7 +37,7 @@
 <div class="app-body">
 <nav class="side-nav" aria-label="주요 탐색">
   <div class="nav-group">
-    <button type="button" class="nav-tab tab1">Journaling</button>
+    <button type="button" class="nav-tab tab1 active" aria-current="page">Journaling</button>
   </div>
   <div class="nav-group">
     <button type="button" class="nav-tab tab1">General</button>
@@ -69,17 +69,80 @@
 
 <main class="shell">
 
-  <section class="section">
-    <p class="eyebrow">2026년 9월 11일 · 금요일</p>
-    <p class="prototype-note">디자인 프로토타입 — 아래 기록은 예시 데이터이며 저장 기능은 아직 연결되지 않았습니다.</p>
+  <p class="prototype-note">디자인 프로토타입 — AI 정리는 아직 연결되지 않았고, 작성한 내용은 이 브라우저에만 저장됩니다.</p>
 
-    <div class="entry-field" style="margin-top:28px">
-      <textarea class="entry-input" placeholder="[fact]&#10;BI&#10;영준님의 BI수업을 들었다. 과제를 하며 어떤 프로세스로 했는지 도식화해서 보여주셨고,&#10;그 과정을 따라가며 앞으로 내가 적용할 지점을 메모할 수 있었다.&#10;&#10;AOR&#10;AOR수업을 들었다. 사전과제에서 했던 내용들을 각자 디벨롭하며 공유하는 시간을 가졌다.&#10;&#10;[feeling]&#10;…"></textarea>
-      <div class="entry-actions">
-        <p class="entry-hint">정리하기를 누르면 과목과 4F(Fact·Feeling·Finding·Future Item)로 나눠 정리합니다.</p>
-        <button type="button" class="btn-primary">정리하기</button>
+  <!-- 1. context: date, optional title, optional courses -->
+  <section class="journal" aria-labelledby="journal-heading">
+    <header class="journal-head">
+      <h1 class="journal-heading" id="journal-heading">오늘의 저널</h1>
+      <span class="date-field">
+        <button type="button" class="pill pill-end" id="date-button" aria-label="날짜 바꾸기">
+          <span id="date-label">9월 12일</span><span class="caret" aria-hidden="true">▾</span>
+        </button>
+        <input type="date" class="date-input" id="date-input" tabindex="-1" aria-hidden="true">
+      </span>
+    </header>
+
+    <input type="text" class="title-input" id="title-input" placeholder="9월 12일 저널" aria-label="제목 (선택 — 비우면 날짜로 저장)">
+
+    <details class="courses" id="courses">
+      <summary class="courses-row">
+        <span class="field-label">다룬 과목</span>
+        <span class="courses-chosen" id="courses-chosen"></span>
+        <span class="pill pill-inline" id="courses-toggle">+ 선택</span>
+      </summary>
+      <div class="accordion-content">
+        <div class="course-chips" id="course-chips"></div>
+        <p class="field-hint">고르지 않아도 괜찮아요. 정리할 때 AI가 과목을 나누는 힌트로만 씁니다.</p>
       </div>
+    </details>
+
+    <!-- 2. one document: 4F headings live inside it, not in separate boxes -->
+    <div class="editor-bar">
+      <div class="editor-tools" role="toolbar" aria-label="서식">
+        <button type="button" class="pill pill-start" data-cmd="template">4F 템플릿</button>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button type="button" class="pill" data-cmd="heading">제목</button>
+        <button type="button" class="pill" data-cmd="list">목록</button>
+        <button type="button" class="pill" data-cmd="check">체크리스트</button>
+      </div>
+      <button type="button" class="pill pill-end" id="help-toggle" aria-expanded="false" aria-controls="help-panel">작성 도움</button>
     </div>
+    <div class="help-panel" id="help-panel" hidden>
+      <dl class="help-list">
+        <div><dt>Fact</dt><dd>오늘 무엇을 배우거나 경험했나요?</dd></div>
+        <div><dt>Feeling</dt><dd>무엇이 인상적이거나 불편했나요?</dd></div>
+        <div><dt>Finding</dt><dd>새롭게 깨달은 것은 무엇인가요?</dd></div>
+        <div><dt>Future Item</dt><dd>다음에 구체적으로 무엇을 해볼 건가요?</dd></div>
+      </dl>
+    </div>
+
+    <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="저널 본문" data-placeholder="기존 저널을 붙여넣거나 바로 써보세요. 4F 템플릿으로 소제목을 넣을 수 있어요."></div>
+
+    <!-- 3. draft autosave ≠ confirmed archive: saving never files anything into a course -->
+    <footer class="journal-foot">
+      <p class="save-status" id="save-status" aria-live="polite"></p>
+      <button type="button" class="btn-primary" id="organize">정리하기</button>
+    </footer>
+  </section>
+
+  <!-- 4. pick up where you left off -->
+  <section class="resume" aria-label="이어 쓰기">
+    <details class="resume-row">
+      <summary class="resume-summary"><span>이어서 작성하기</span><span class="resume-count" id="count-drafts">0</span><span class="caret" aria-hidden="true">▾</span></summary>
+      <div class="accordion-content"><ul class="resume-list" id="list-drafts"></ul></div>
+    </details>
+    <details class="resume-row">
+      <summary class="resume-summary"><span>검토가 필요한 저널</span><span class="resume-count" id="count-review">0</span><span class="caret" aria-hidden="true">▾</span></summary>
+      <div class="accordion-content"><ul class="resume-list" id="list-review"></ul></div>
+    </details>
+    <details class="resume-row">
+      <summary class="resume-summary"><span>지난 할 일 돌아보기</span><span class="resume-count" id="count-todo">0</span><span class="caret" aria-hidden="true">▾</span></summary>
+      <div class="accordion-content">
+        <ul class="resume-list todo-list" id="list-todo"></ul>
+        <p class="field-hint resume-hint">아직 하지 않은 Future Item이에요. 오늘 실천한 게 있다면 떠올려 보세요.</p>
+      </div>
+    </details>
   </section>
 
 </main>
@@ -120,6 +183,8 @@
     input: document.getElementById('search-input'),
     options: document.getElementById('search-options'),
   });
+  document.querySelectorAll('.courses, .resume-row').forEach(d => StyleKit.createAccordion(d));
 </script>
+<script src="journal.js"></script>
 </body>
 </html>

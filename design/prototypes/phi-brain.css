@@ -39,6 +39,10 @@
   --text-start:calc(var(--nav-gutter) + var(--tab-pad-x));
 }
 
+/* Shape — one radius for every soft control (nav tabs, pills, rows, the
+   primary button). On these ~31px boxes it reads as a full pill. */
+:root{--radius:20px}
+
 /* ---------- 2. Header: logo + wordmark, search, profile ---------- */
 .toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
 .brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
@@ -70,9 +74,10 @@
   Hover follows the style kit's reveal-list: the tab slides 10px right,
   an arrow fades in to the left of the label, and a fill box hugs the
   label through its own padding. The squircle corner falls back to a
-  plain 20px radius where corner-shape isn't supported.
+  plain --radius where corner-shape isn't supported. Also reused for
+  link rows in the content column (resume lists).
 */
-.nav-tab{position:relative;display:block;white-space:nowrap;text-align:left;padding:6px var(--tab-pad-x);border-radius:20px;corner-shape:squircle;transition:transform 340ms var(--ease-out),background 140ms,color 140ms}
+.nav-tab{position:relative;display:block;white-space:nowrap;text-align:left;padding:6px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;transition:transform 340ms var(--ease-out),background 140ms,color 140ms}
 .nav-tab::before{content:'→';position:absolute;right:100%;top:50%;margin-right:8px;color:var(--ink);opacity:0;transform:translate(-3px,-50%);transition:opacity 140ms,transform 140ms}
 .nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:translateX(10px);background:var(--fill);color:var(--ink)}
 .nav-tab:hover::before,.nav-tab:focus-visible::before,.nav-tab.active::before{opacity:1;transform:translate(0,-50%)}
@@ -95,21 +100,96 @@
 /* sidebar stays pinned at its fixed width; this column takes the rest
    of the row and centers its own (max-width-capped) content within it */
 .shell{flex:1;min-width:0;max-width:680px;margin:0 auto;padding:40px 32px 100px}
-.section{padding:0 0 48px}
+.prototype-note{color:var(--gray);margin:0 0 32px}
 
-.eyebrow{color:var(--gray);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
-.prototype-note{color:var(--gray);margin:2px 0 0}
+/*
+  Pill — the content column's quiet control: gray text, fill on hover,
+  same radius as the nav. Pills sit with their *text* on the column edge;
+  .pill-start / .pill-end pull the box out by its padding so the fill
+  bleeds past the edge instead of indenting the label.
+*/
+.pill{display:inline-flex;align-items:center;gap:4px;padding:6px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;color:var(--gray);white-space:nowrap;transition:background 140ms,color 140ms}
+.pill:hover,.pill:focus-visible,.pill[aria-pressed="true"],.pill[aria-expanded="true"]{background:var(--fill);color:var(--ink)}
+.pill-start{margin-left:calc(-1 * var(--tab-pad-x))}
+.pill-end{margin-right:calc(-1 * var(--tab-pad-x))}
+.caret{color:var(--gray);transition:transform 340ms var(--ease-out)}
+.field-label{color:var(--gray)}
+.field-hint{color:var(--gray);margin:10px 0 0}
 
-.entry-input{width:100%;min-height:220px;resize:vertical;border:1px solid var(--line);border-radius:3px;background:var(--fill);padding:18px 20px;color:var(--ink);line-height:1.75;transition:border-color 140ms,background 140ms}
-.entry-input::placeholder{color:var(--gray);white-space:pre-line}
-.entry-input:focus-visible{outline:0;border-color:var(--gray);background:var(--bg)}
-.entry-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:16px}
-.entry-hint{margin-right:auto;color:var(--gray)}
+/* ---- journal: context ---- */
+.journal-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.journal-heading{margin:0;font-weight:700;color:var(--ink)}
+.date-field{position:relative}
+.date-input{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none}
+
+.title-input{display:block;width:100%;margin:14px 0 0;padding:6px 0;border:0;background:none;color:var(--ink)}
+.title-input::placeholder{color:var(--gray)}
+.title-input:focus-visible{outline:0}
+
+.courses summary{list-style:none;cursor:pointer}
+.courses summary::-webkit-details-marker{display:none}
+.courses-row{display:flex;align-items:center;gap:10px;padding:2px 0}
+.courses-row:hover .pill,.courses-row:focus-visible .pill,.courses[open] .courses-row .pill{background:var(--fill);color:var(--ink)}
+.courses-chosen{color:var(--ink)}
+.courses-chosen:empty{display:none}
+.course-chips{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 0 calc(-1 * var(--tab-pad-x))}
+.course-chips .pill[aria-pressed="true"]{font-weight:700}
+
+/* ---- journal: the one document ---- */
+.editor-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:10px;border-top:1px solid var(--line)}
+.editor-tools{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.tool-sep{width:1px;height:12px;background:var(--line);margin:0 6px}
+
+.help-panel{overflow:hidden}
+.help-list{margin:8px 0 0;padding:14px 0;border-top:1px solid var(--line)}
+.help-list div{display:flex;gap:16px;padding:3px 0}
+.help-list dt{flex:0 0 88px;font-weight:700;color:var(--ink)}
+.help-list dd{margin:0;color:var(--gray)}
+
+.editor{position:relative;min-height:300px;padding:18px 0 28px;color:var(--ink);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+.editor:focus-visible{outline:0}
+.editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:18px;left:0;color:var(--gray);pointer-events:none}
+.editor h3{margin:22px 0 4px;font-weight:700;color:var(--ink)}
+.editor>h3:first-child{margin-top:0}
+.editor p{position:relative;margin:0}
+/* a 4F section still waiting for text shows its guiding question */
+.editor p[data-q]:has(>br:only-child)::before{content:attr(data-q);position:absolute;left:0;color:var(--gray);pointer-events:none}
+.editor ul{margin:0;padding-left:18px}
+.editor ul.checklist{list-style:none;padding-left:22px}
+.editor ul.checklist>li{position:relative}
+.editor ul.checklist>li::before{content:'';position:absolute;left:-22px;top:.45em;width:12px;height:12px;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
+.editor ul.checklist>li[data-done]{color:var(--gray);text-decoration:line-through}
+.editor ul.checklist>li[data-done]::before{background:var(--ink);border-color:var(--ink)}
+
+/* ---- journal: save state + next action ---- */
+.journal-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;border-top:1px solid var(--line)}
+.save-status{margin:0;color:var(--gray);display:flex;align-items:center;gap:8px}
+.save-status.is-busy::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gray);animation:pulse 1s var(--ease-inout) infinite alternate}
+.save-status.is-error{color:var(--ink)}
+@keyframes pulse{from{opacity:.25}to{opacity:1}}
 
 /* the one deliberately filled control on the page — everything else stays quiet */
-.btn-primary{background:var(--ink);color:var(--bg);padding:11px 22px;border-radius:3px;white-space:nowrap;transition:transform 200ms var(--ease-out),opacity 140ms}
+.btn-primary{background:var(--ink);color:var(--bg);padding:8px 18px;border-radius:var(--radius);corner-shape:squircle;white-space:nowrap;transition:transform 200ms var(--ease-out),opacity 140ms}
 .btn-primary:hover{opacity:.85}
 .btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;cursor:default;transform:none}
+
+/* ---- resume: small disclosure rows under the editor ---- */
+.resume{margin-top:56px}
+.resume-row summary{list-style:none;cursor:pointer}
+.resume-row summary::-webkit-details-marker{display:none}
+.resume-summary{display:flex;align-items:center;gap:10px;padding:6px var(--tab-pad-x);margin:0 calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;color:var(--ink);transition:background 140ms}
+.resume-summary:hover,.resume-summary:focus-visible{background:var(--fill)}
+.resume-summary>span:first-child{margin-right:auto}
+.resume-count{color:var(--gray);font-variant-numeric:tabular-nums}
+.resume-row[open] .caret{transform:rotate(180deg)}
+/* room on the left for the nav-tab hover arrow inside the clipped accordion */
+.resume-list{list-style:none;margin:0;padding:4px 0 10px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.resume-list .ri-title{color:var(--ink)}
+.resume-list .ri-meta{color:var(--gray);margin-left:8px}
+.todo-list li{padding:6px var(--tab-pad-x);color:var(--gray)}
+.todo-list .nav-code{color:var(--ink);margin-right:8px}
+.resume-hint{padding-left:calc(24px + var(--tab-pad-x));margin:0 0 12px}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
