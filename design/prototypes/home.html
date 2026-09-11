@@ -75,11 +75,22 @@
   <section class="journal" aria-labelledby="journal-heading">
     <header class="journal-head">
       <h1 class="journal-heading" id="journal-heading">오늘의 저널</h1>
-      <span class="date-field">
-        <button type="button" class="pill pill-end" id="date-button" aria-label="날짜 바꾸기">
+      <span class="date-field" id="date-field">
+        <button type="button" class="pill pill-end" id="date-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="datepicker">
           <span id="date-label">9월 12일</span><span class="caret" aria-hidden="true">▾</span>
         </button>
-        <input type="date" class="date-input" id="date-input" tabindex="-1" aria-hidden="true">
+        <div class="datepicker" id="datepicker" role="dialog" aria-label="날짜 선택" hidden>
+          <div class="dp-head">
+            <span class="dp-title" id="dp-title"></span>
+            <span class="dp-steps">
+              <button type="button" class="pill dp-step" id="dp-prev" aria-label="이전 달">‹</button>
+              <button type="button" class="pill dp-step" id="dp-next" aria-label="다음 달">›</button>
+            </span>
+          </div>
+          <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+          <div class="dp-grid" id="dp-grid"></div>
+          <div class="dp-foot"><button type="button" class="pill pill-end" id="dp-today">오늘</button></div>
+        </div>
       </span>
     </header>
 
@@ -106,15 +117,6 @@
         <button type="button" class="pill" data-cmd="list">목록</button>
         <button type="button" class="pill" data-cmd="check">체크리스트</button>
       </div>
-      <button type="button" class="pill pill-end" id="help-toggle" aria-expanded="false" aria-controls="help-panel">작성 도움</button>
-    </div>
-    <div class="help-panel" id="help-panel" hidden>
-      <dl class="help-list">
-        <div><dt>Fact</dt><dd>오늘 무엇을 배우거나 경험했나요?</dd></div>
-        <div><dt>Feeling</dt><dd>무엇이 인상적이거나 불편했나요?</dd></div>
-        <div><dt>Finding</dt><dd>새롭게 깨달은 것은 무엇인가요?</dd></div>
-        <div><dt>Future Item</dt><dd>다음에 구체적으로 무엇을 해볼 건가요?</dd></div>
-      </dl>
     </div>
 
     <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="저널 본문" data-placeholder="기존 저널을 붙여넣거나 바로 써보세요. 4F 템플릿으로 소제목을 넣을 수 있어요."></div>

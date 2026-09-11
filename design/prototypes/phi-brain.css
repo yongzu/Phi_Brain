@@ -120,7 +120,23 @@
 .journal-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .journal-heading{margin:0;font-weight:700;color:var(--ink)}
 .date-field{position:relative}
-.date-input{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none}
+
+/* date picker — a floating card in the page's own vocabulary: pill
+   steps, circular day cells that fill on hover, ink for the chosen day */
+.datepicker{position:absolute;top:calc(100% + 8px);right:calc(-1 * var(--tab-pad-x));z-index:30;width:264px;padding:14px 12px 10px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 8px}
+.dp-title{font-weight:700;color:var(--ink)}
+.dp-steps{display:flex;gap:2px}
+.dp-step{width:28px;height:28px;justify-content:center;padding:0}
+.dp-step:disabled{opacity:.35;cursor:default;background:none}
+.dp-week,.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);justify-items:center}
+.dp-week span{color:var(--gray);padding:4px 0}
+.dp-day{width:32px;height:32px;margin:1px 0;border-radius:50%;color:var(--ink);font-variant-numeric:tabular-nums;transition:background 140ms,color 140ms}
+.dp-day:hover,.dp-day:focus-visible{background:var(--fill);outline:0}
+.dp-day[data-today]{font-weight:700}
+.dp-day[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.dp-day:disabled{color:var(--gray);opacity:.45;cursor:default;background:none}
+.dp-foot{display:flex;justify-content:flex-end;margin-top:6px;padding-right:var(--tab-pad-x)}
 
 .title-input{display:block;width:100%;margin:14px 0 0;padding:6px 0;border:0;background:none;color:var(--ink)}
 .title-input::placeholder{color:var(--gray)}
@@ -140,20 +156,18 @@
 .editor-tools{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
 .tool-sep{width:1px;height:12px;background:var(--line);margin:0 6px}
 
-.help-panel{overflow:hidden}
-.help-list{margin:8px 0 0;padding:14px 0;border-top:1px solid var(--line)}
-.help-list div{display:flex;gap:16px;padding:3px 0}
-.help-list dt{flex:0 0 88px;font-weight:700;color:var(--ink)}
-.help-list dd{margin:0;color:var(--gray)}
-
 .editor{position:relative;min-height:300px;padding:18px 0 28px;color:var(--ink);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
 .editor:focus-visible{outline:0}
 .editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:18px;left:0;color:var(--gray);pointer-events:none}
-.editor h3{margin:22px 0 4px;font-weight:700;color:var(--ink)}
+/* headings are fill pills (same shape as the controls) so the 4F
+   structure reads apart from the writing; the text lines up with the
+   body copy and the fill bleeds left by the pill padding */
+.editor h3{position:relative;width:fit-content;margin:22px 0 6px calc(-1 * var(--tab-pad-x));padding:4px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;background:var(--fill);color:var(--ink)}
 .editor>h3:first-child{margin-top:0}
-.editor p{position:relative;margin:0}
-/* a 4F section still waiting for text shows its guiding question */
-.editor p[data-q]:has(>br:only-child)::before{content:attr(data-q);position:absolute;left:0;color:var(--gray);pointer-events:none}
+/* hovering a 4F pill brings its guiding question in from a blur, to the right */
+.editor h3[data-guide]::after{content:attr(data-guide);position:absolute;left:100%;top:50%;margin-left:12px;transform:translateY(-50%);white-space:nowrap;color:var(--gray);opacity:0;filter:blur(6px);pointer-events:none;transition:opacity 340ms var(--ease-out),filter 340ms var(--ease-out)}
+.editor h3[data-guide]:hover::after{opacity:1;filter:blur(0)}
+.editor p{margin:0}
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}

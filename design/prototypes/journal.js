@@ -5,16 +5,18 @@
     draft: nothing is filed into a course until 정리하기 → review →
     confirm, which needs the AI step that isn't connected yet. So
     정리하기 shows its real states (정리 중 → 실패 → 다시 시도) honestly.
-  - The editor is one document; 4F are headings inside it.
+  - The editor is one document; 4F are headings (fill pills) inside it,
+    each carrying its guiding question for the hover hint.
 */
 (() => {
   const $ = s => document.querySelector(s);
   const editor = $('#editor'), titleInput = $('#title-input');
-  const dateBtn = $('#date-button'), dateInput = $('#date-input'), dateLabel = $('#date-label');
+  const dateField = $('#date-field'), dateBtn = $('#date-button'), dateLabel = $('#date-label');
+  const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
   const coursesEl = $('#courses'), chipsEl = $('#course-chips'), chosenEl = $('#courses-chosen'), coursesToggle = $('#courses-toggle');
-  const helpBtn = $('#help-toggle'), helpPanel = $('#help-panel');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const EASE = 'cubic-bezier(.22,1,.36,1)';
 
   const COURSES = [
     ['AL', 'Aesthetic Literacy'], ['AOR', 'Art of Reading'], ['BI', 'Beautiful Interface'],
@@ -49,7 +51,8 @@
   };
 
   // ---- example data (shown until the user edits; never auto-saved) ----
-  const section = (f, body) => `<h3>${f}</h3>` + (body ?? `<p data-q="${FOUR_F.find(x => x[0] === f)[1]}"><br></p>`);
+  const guideFor = text => FOUR_F.find(([f]) => f.toLowerCase() === text.trim().toLowerCase())?.[1];
+  const section = (f, body) => `<h3 data-guide="${guideFor(f)}">${f}</h3>` + (body ?? '<p><br></p>');
   const EXAMPLES = {
     [today]: {
       courses: ['AOR', 'BI'],
@@ -77,6 +80,12 @@
 
   const isEmpty = () => editor.textContent.trim() === '' && !editor.querySelector('h3, li');
   const refreshEmpty = () => editor.classList.toggle('is-empty', isEmpty());
+  // any heading whose text is a 4F name gets that F's question — typed,
+  // pasted, renamed or template-made alike
+  const syncGuides = () => editor.querySelectorAll('h3').forEach(h => {
+    const g = guideFor(h.textContent);
+    g ? h.setAttribute('data-guide', g) : h.removeAttribute('data-guide');
+  });
 
   function setStatus(text, kind = '') {
     status.textContent = text;
@@ -92,7 +101,7 @@
     editor.innerHTML = data.html || '';
     chosen = new Set(data.courses || []);
     dirty = false;
-    renderDate(); renderCourses(); refreshEmpty(); resetOrganize();
+    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); resetOrganize();
     setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
@@ -119,19 +128,75 @@
   function renderDate() {
     const label = monthDay(current);
     dateLabel.textContent = label;
-    dateInput.value = current;
-    dateInput.max = today;
     heading.textContent = current === today ? '오늘의 저널' : '지난 저널';
     titleInput.placeholder = `${label} 저널`;
   }
-  dateBtn.addEventListener('click', () => {
-    try { dateInput.showPicker(); } catch { dateInput.focus(); }
-  });
-  dateInput.addEventListener('change', () => {
-    if (!dateInput.value || dateInput.value === current) return;
+
+  // ---- date picker: today or earlier only ----
+  let viewY = 0, viewM = 0; // month on screen (0-based month)
+  const fromIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  function renderPicker(focusDate) {
+    dpTitle.textContent = `${viewY}년 ${viewM + 1}월`;
+    const [ty, tm] = today.split('-').map(Number);
+    dpNext.disabled = viewY > ty || (viewY === ty && viewM >= tm - 1);
+    const lead = new Date(viewY, viewM, 1).getDay();
+    const days = new Date(viewY, viewM + 1, 0).getDate();
+    const focusable = focusDate || (current.startsWith(`${viewY}-${pad(viewM + 1)}`) ? current : iso(new Date(viewY, viewM, 1)));
+    let html = '<span></span>'.repeat(lead);
+    for (let d = 1; d <= days; d++) {
+      const date = `${viewY}-${pad(viewM + 1)}-${pad(d)}`;
+      html += `<button type="button" class="dp-day" data-date="${date}" tabindex="${date === focusable ? 0 : -1}"`
+        + `${date === current ? ' aria-selected="true"' : ''}${date === today ? ' data-today' : ''}${date > today ? ' disabled' : ''}`
+        + ` aria-label="${viewM + 1}월 ${d}일${date === today ? ', 오늘' : ''}">${d}</button>`;
+    }
+    dpGrid.innerHTML = html;
+  }
+  function openPicker() {
+    const d = fromIso(current);
+    viewY = d.getFullYear(); viewM = d.getMonth();
+    renderPicker();
+    picker.hidden = false;
+    dateBtn.setAttribute('aria-expanded', 'true');
+    dpGrid.querySelector('[tabindex="0"]')?.focus();
+    if (!reduce.matches) picker.animate(
+      [{ opacity: 0, filter: 'blur(6px)', transform: 'translateY(-4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
+      { duration: 280, easing: EASE });
+  }
+  function closePicker(refocus = true) {
+    if (picker.hidden) return;
+    dateBtn.setAttribute('aria-expanded', 'false');
+    if (refocus) dateBtn.focus();
+    if (reduce.matches) { picker.hidden = true; return; }
+    picker.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(6px)' }], { duration: 180, easing: EASE })
+      .onfinish = () => { picker.hidden = true; };
+  }
+  function pick(date) {
+    closePicker();
+    if (date === current) return;
     save();
-    load(dateInput.value);
+    load(date);
+  }
+  const stepMonth = n => { const d = new Date(viewY, viewM + n, 1); viewY = d.getFullYear(); viewM = d.getMonth(); renderPicker(); };
+  dateBtn.addEventListener('click', () => (picker.hidden ? openPicker() : closePicker()));
+  dpPrev.addEventListener('click', () => stepMonth(-1));
+  dpNext.addEventListener('click', () => stepMonth(1));
+  $('#dp-today').addEventListener('click', () => pick(today));
+  dpGrid.addEventListener('click', e => { const b = e.target.closest('.dp-day'); if (b && !b.disabled) pick(b.dataset.date); });
+  dpGrid.addEventListener('keydown', e => { // arrows move by day / week, across months
+    const b = e.target.closest('.dp-day');
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!b || !step) return;
+    e.preventDefault();
+    const d = fromIso(b.dataset.date);
+    d.setDate(d.getDate() + step);
+    const next = iso(d);
+    if (next > today) return;
+    if (d.getMonth() !== viewM || d.getFullYear() !== viewY) { viewY = d.getFullYear(); viewM = d.getMonth(); }
+    renderPicker(next);
+    dpGrid.querySelector(`[data-date="${next}"]`)?.focus();
   });
+  picker.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closePicker(); } });
+  document.addEventListener('pointerdown', e => { if (!dateField.contains(e.target)) closePicker(false); });
 
   // ---- courses (optional hint for the AI) ----
   chipsEl.innerHTML = COURSES.map(([code, name]) =>
@@ -150,22 +215,6 @@
   });
   coursesEl.addEventListener('toggle', renderCourses);
   titleInput.addEventListener('input', scheduleSave);
-
-  // ---- help panel: same slide + blur as the kit's accordion ----
-  function slide(el, open) {
-    el.getAnimations().forEach(a => a.cancel());
-    if (open) el.hidden = false;
-    if (reduce.matches || !el.animate) { el.hidden = !open; return; }
-    const h = el.scrollHeight;
-    const shut = { height: '0px', opacity: 0, filter: 'blur(8px)' }, full = { height: h + 'px', opacity: 1, filter: 'blur(0px)' };
-    const a = el.animate(open ? [shut, full] : [full, shut], { duration: open ? 380 : 280, easing: 'cubic-bezier(.22,1,.36,1)' });
-    if (!open) a.onfinish = () => { el.hidden = true; };
-  }
-  helpBtn.addEventListener('click', () => {
-    const open = helpBtn.getAttribute('aria-expanded') !== 'true';
-    helpBtn.setAttribute('aria-expanded', String(open));
-    slide(helpPanel, open);
-  });
 
   // ---- editor ----
   const blockOf = node => {
@@ -200,8 +249,11 @@
     if (isEmpty()) editor.innerHTML = '';
     editor.insertAdjacentHTML('beforeend', missing.map(([f]) => section(f)).join(''));
     editor.focus();
-    const firstOpen = [...editor.querySelectorAll('p[data-q]')].find(p => p.textContent === '');
-    if (firstOpen) caretIn(firstOpen);
+    // caret into the first 4F section that has nothing written under it yet
+    const open = [...editor.querySelectorAll('h3[data-guide]')]
+      .map(h => h.nextElementSibling)
+      .find(el => el && el.tagName === 'P' && el.textContent.trim() === '');
+    if (open) caretIn(open);
     afterEdit();
   }
 
@@ -229,7 +281,7 @@
     btn.addEventListener('click', () => btn.dataset.cmd === 'template' ? insertTemplate() : format(btn.dataset.cmd));
   });
 
-  function afterEdit() { refreshEmpty(); scheduleSave(); }
+  function afterEdit() { syncGuides(); refreshEmpty(); scheduleSave(); }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
