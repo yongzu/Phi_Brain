@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>style kit demo</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  main{width:min(680px,calc(100% - 48px));margin:60px auto 100px}
+  h1{font-size:16pt;color:var(--c-ink);margin:0 0 8px}
+  .lede{margin:0 0 50px;color:var(--c-body)}
+  .toolbar{display:flex;align-items:center;gap:20px;padding:20px 32px}
+  .brand{color:var(--c-ink);font-weight:600}
+  .profile-trigger{margin-left:auto;color:var(--c-body)}
+</style>
+</head>
+<body>
+
+<header class="toolbar">
+  <span class="brand">style kit</span>
+  <div class="search-shell">
+    <form class="search-field" id="search-form">
+      <input type="search" class="search-input" id="search-input" placeholder="search">
+    </form>
+    <div class="search-options" id="search-options" hidden>
+      <div class="search-chips"><span>quick</span><button type="button">one</button><button type="button">two</button></div>
+    </div>
+  </div>
+  <button class="profile-trigger" id="drawer-trigger" aria-haspopup="dialog" aria-expanded="false">profile</button>
+</header>
+
+<main>
+  <h1>reveal list + accordion + drawer demo</h1>
+  <p class="lede">hover a row (desktop), or click/tab to pin it open. click the "more" summary below to see the slide+blur accordion.</p>
+
+  <ul class="reveal-list">
+    <li><details class="reveal">
+      <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">first row</span></summary>
+      <div class="reveal-content"><div class="reveal-copy"><p>Copy revealed on hover, pin, or focus.</p></div></div>
+    </details></li>
+    <li><details class="reveal">
+      <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">second row</span></summary>
+      <div class="reveal-content"><div class="reveal-copy"><p>Only one unpinned row stays open at a time.</p><p>Click a row to pin it — it then stays open until clicked again.</p></div></div>
+    </details></li>
+    <li><details class="reveal">
+      <summary class="reveal-trigger"><span class="reveal-bullet" aria-hidden="true"></span><span class="reveal-label">third row</span></summary>
+      <div class="reveal-content"><div class="reveal-copy"><p>Reduced-motion users get an instant toggle instead.</p></div></div>
+    </details></li>
+  </ul>
+
+  <details class="accordion-block" style="margin-top:40px">
+    <summary class="accordion-trigger">more</summary>
+    <div class="accordion-content">
+      <p style="padding:12px 0 24px;color:var(--c-copy)">This section slides open with a height + opacity + blur animation driven by interactions.js, not a CSS transition — so it stays correct even if the content's true height isn't known until a tick after opening (fonts, images, nested layout).</p>
+    </div>
+  </details>
+</main>
+
+<dialog class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <h2 style="font:inherit;margin:0;color:var(--c-ink)">Drawer</h2>
+      <p style="margin:4px 0 0;color:var(--c-muted)">slides in, backdrop blurs</p>
+    </div>
+    <button id="drawer-close" aria-label="close">✕</button>
+  </div>
+  <p>Any content goes here.</p>
+</dialog>
+
+<footer class="site-footer">
+  <div class="footer-identity">
+    <p>style kit</p>
+    <p class="footer-copyright">extracted from yongzu.github.io</p>
+  </div>
+  <div class="footer-social"><a href="#">link</a><a href="#">link</a></div>
+</footer>
+
+<script src="interactions.js"></script>
+<script>
+  StyleKit.createHoverReveal(document.querySelector('.reveal-list'));
+  document.querySelectorAll('.accordion-block').forEach(StyleKit.createAccordion);
+  StyleKit.createDrawer({
+    trigger: document.getElementById('drawer-trigger'),
+    panel: document.getElementById('drawer'),
+    closeBtn: document.getElementById('drawer-close'),
+  });
+  StyleKit.createSearchDropdown({
+    shell: document.querySelector('.search-shell'),
+    input: document.getElementById('search-input'),
+    options: document.getElementById('search-options'),
+  });
+</script>
+</body>
+</html>

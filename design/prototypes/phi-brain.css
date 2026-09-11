@@ -1,0 +1,46 @@
+/*
+  Phi Brain — additive styles on top of ../style-kit/theme.css
+
+  Only new component rules for things the style kit doesn't cover
+  (journal textarea, the one filled action, course tags, future-item
+  rows). No new color tokens — every value below is one of theme.css's
+  existing custom properties. Re-skin by editing theme.css §1, not here.
+*/
+
+.shell{width:min(720px,calc(100% - 48px));margin:0 auto;padding:56px 0 0}
+
+.eyebrow{font-size:var(--fs-xs);color:var(--c-muted);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}
+.prototype-note{font-size:var(--fs-xs);color:var(--c-placeholder);margin:2px 0 0}
+
+.section{padding:48px 0;border-top:1px solid var(--c-border)}
+.section:first-of-type{border-top:0;padding-top:0}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 20px}
+.section-head h2{font-size:var(--fs-base);font-weight:600;color:var(--c-ink);margin:0}
+.section-head .count{font-size:var(--fs-xs);color:var(--c-muted)}
+
+/* ---- today / journal entry ---- */
+.entry-date{font-size:var(--fs-sm);color:var(--c-muted);margin:0 0 16px}
+.entry-field{position:relative}
+.entry-input{width:100%;min-height:220px;resize:vertical;border:1px solid var(--c-border);border-radius:3px;background:var(--c-surface);padding:18px 20px;color:var(--c-ink);line-height:1.75;transition:border-color 140ms,background 140ms}
+.entry-input::placeholder{color:var(--c-placeholder);white-space:pre-line}
+.entry-input:hover{border-color:var(--c-border-panel)}
+.entry-input:focus-visible{outline:0;border-color:var(--c-body);background:#fff}
+.entry-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:16px}
+.entry-hint{margin-right:auto;font-size:var(--fs-xs);color:var(--c-muted)}
+
+/* the one deliberately filled control on the page — everything else stays quiet */
+.btn-primary{background:var(--c-ink);color:#fff;padding:11px 22px;border-radius:3px;font-size:var(--fs-sm);transition:transform 200ms var(--ease-out),background 140ms}
+.btn-primary:hover{background:#000}
+.btn-primary:active{transform:scale(.98)}
+
+/* ---- course reveal rows: stat line + tag inside .reveal-copy ---- */
+.course-stat{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);color:var(--c-muted);margin-top:2px}
+.course-stat .n{color:var(--c-copy);font-variant-numeric:tabular-nums}
+.course-empty{color:var(--c-placeholder)}
+
+/* ---- future items: plain rows, not cards ---- */
+.action-list{list-style:none;margin:0;padding:0}
+.action-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-top:1px solid var(--c-border-soft)}
+.action-row:first-child{border-top:0}
+.action-tag{flex:0 0 auto;background:var(--c-chip-bg);color:var(--c-copy);font-size:var(--fs-xs);padding:3px 9px;border-radius:2px;line-height:1.4;margin-top:1px}
+.action-text{color:var(--c-copy);font-size:var(--fs-sm);line-height:1.6;word-break:keep-all}

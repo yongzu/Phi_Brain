@@ -1,0 +1,187 @@
+/*
+  yongzu style kit — theme.css
+  Extracted from the "조용주" self-introduction site.
+
+  A quiet, editorial, minimal-motion aesthetic: warm grays, generous
+  whitespace, Pretendard type, and slow ease-out reveals instead of
+  snap transitions. Everything is exposed as CSS custom properties on
+  :root so a new project can re-skin colors/timing without touching
+  the component rules below.
+
+  Usage: link this file, optionally supply your own Pretendard
+  @font-face (see bottom of file), then use the component classes —
+  .reveal-list / .reveal, .accordion-trigger / .accordion-content,
+  .search-field, .drawer, .tooltip-float, .site-footer — documented
+  inline. Pair with interactions.js for the JS-driven parts (hover
+  reveal, accordion slide, drawer open/close).
+*/
+
+/* ---------- 1. Design tokens ---------- */
+:root{
+  --font-sans:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --fs-base:12pt;
+  --fs-sm:10pt;
+  --fs-xs:8pt;
+
+  --c-ink:#333;      /* headings, active/hover text */
+  --c-body:#777;     /* default body/muted text (root color) */
+  --c-copy:#555;     /* paragraph copy inside revealed content */
+  --c-muted:#999;    /* secondary meta text */
+  --c-faint:#888;    /* footer / status text */
+  --c-faintest:#aaa; /* chart labels etc. */
+  --c-placeholder:#a0a0a0;
+
+  --c-border:#ededed;
+  --c-border-soft:#e9e9e9;
+  --c-border-panel:#e4e4e4;
+  --c-hover-bg:#f7f7f7;
+  --c-chip-bg:#f3f3f3;
+  --c-chip-bg-hover:#e5e5e5;
+  --c-surface:#fafafa;
+  --c-footer-bg:#f7f7f7;
+
+  --c-selection-bg:#e8e8e8;
+  --c-selection-fg:#222;
+
+  --shadow-float:0 10px 30px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);
+
+  --ease-out:cubic-bezier(.22,1,.36,1);   /* reveals, accordion slide */
+  --ease-inout:cubic-bezier(.65,0,.35,1); /* drawer slide + backdrop */
+  --ease-standard:cubic-bezier(.4,0,.2,1);/* small icon/scale hovers */
+}
+
+/* ---------- 2. Reset & base ---------- */
+*{box-sizing:border-box}
+:root{color-scheme:light;font-family:var(--font-sans);color:var(--c-body);background:#fff;font-synthesis:none}
+body{margin:0;line-height:1.45;-webkit-font-smoothing:antialiased;background:#fff}
+html,body,body *{font-family:var(--font-sans);font-size:var(--fs-base);font-weight:400}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scrollbar-gutter:stable}
+button,input,summary{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+a{color:inherit;text-decoration:none}
+button,a,summary{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:1px solid var(--c-body);outline-offset:5px}
+::selection{background:var(--c-selection-bg);color:var(--c-selection-fg)}
+[hidden]{display:none!important}
+
+/* ---------- 3. Hover-reveal list ----------
+   A list of collapsed <details> rows that expand on hover (desktop),
+   click-to-pin (touch/keyboard), or focus. Markup:
+   <ul class="reveal-list">
+     <li><details class="reveal">
+       <summary class="reveal-trigger">
+         <span class="reveal-bullet" aria-hidden="true"></span>
+         <span class="reveal-label">Title</span>
+       </summary>
+       <div class="reveal-content"><div class="reveal-copy"><p>…</p></div></div>
+     </details></li>
+   </ul>
+   JS: interactions.js -> createHoverReveal(listEl)
+*/
+.reveal-list{list-style:none;padding:20px 0 20px 28px;margin:0}
+.reveal{position:relative}
+.reveal-trigger{position:relative;display:flex;align-items:center;gap:10px;min-height:40px;padding:5px 0;list-style:none;cursor:pointer;width:fit-content;max-width:100%;font-size:var(--fs-sm);transition:transform 340ms var(--ease-out),color 260ms}
+.reveal-trigger::-webkit-details-marker{display:none}
+.reveal-trigger:hover,.reveal-trigger:focus-visible,.reveal[open]>.reveal-trigger{transform:translateX(10px);color:var(--c-ink)}
+.reveal-label{position:relative;margin-left:2px}
+.reveal-label::before{content:'';position:absolute;inset:-4px -8px;border-radius:10px;background:#fff;box-shadow:var(--shadow-float);opacity:0;transition:opacity 200ms;z-index:-1;pointer-events:none}
+.reveal-trigger:hover .reveal-label::before,.reveal-trigger:focus-visible .reveal-label::before,.reveal[open]>.reveal-trigger .reveal-label::before{opacity:1}
+.reveal-bullet{width:14px;flex:0 0 14px;position:relative;align-self:center}
+.reveal-bullet::before{content:'';position:absolute;left:4px;top:50%;transform:translateY(-50%);display:block;width:5px;height:5px;background:#444;border-radius:50%;opacity:1;transition:opacity 140ms,transform 340ms}
+.reveal-bullet::after{content:'→';position:absolute;left:-4px;top:50%;transform:translateY(-50%) translateX(-3px);color:var(--c-ink);opacity:0;transition:opacity 140ms,transform 140ms}
+.reveal-trigger:hover .reveal-bullet::before,.reveal-trigger:focus-visible .reveal-bullet::before,.reveal[open]>.reveal-trigger .reveal-bullet::before{opacity:0}
+.reveal-trigger:hover .reveal-bullet::after,.reveal-trigger:focus-visible .reveal-bullet::after,.reveal[open]>.reveal-trigger .reveal-bullet::after{opacity:1;transform:translateY(-50%)}
+.reveal-content{overflow:hidden}
+.reveal-copy{padding:8px 0 24px 24px;color:var(--c-copy);font-size:var(--fs-sm);line-height:1.75}
+.reveal-copy p{margin:0;word-break:keep-all;overflow-wrap:anywhere}
+.reveal-copy p+p{margin-top:12px}
+/* desktop: opened row spreads title/copy side by side */
+@media(min-width:701px){
+  .reveal-list .reveal[open]{display:grid;grid-template-columns:190px minmax(0,410px);column-gap:20px;align-items:start}
+  .reveal-list .reveal[open]>summary{width:auto}
+  .reveal-list .reveal[open] .reveal-copy{padding:2px 0 10px}
+}
+
+/* ---------- 4. Accordion (slide + fade + blur) ----------
+   A single collapsible section (not hover-driven — click only).
+   Markup:
+   <details class="accordion-block">
+     <summary class="accordion-trigger">…</summary>
+     <div class="accordion-content">…</div>
+   </details>
+   JS: interactions.js -> createAccordion(detailsEl) drives the
+   height/opacity/blur animation; this CSS only needs overflow:hidden
+   as the resting state (no CSS transition is used — WAAPI in JS
+   handles it so the animation stays correct even if content height
+   changes mid-flight, e.g. late-loading fonts/images).
+*/
+.accordion-trigger{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;list-style:none;width:fit-content;transition:transform 340ms var(--ease-out),color 260ms}
+.accordion-trigger::-webkit-details-marker{display:none}
+.accordion-trigger:hover,.accordion-trigger:focus-visible{transform:translateX(10px);color:var(--c-ink)}
+.accordion-block[open] .accordion-trigger{color:var(--c-ink)}
+.accordion-content{overflow:hidden}
+
+/* ---------- 5. Search field ----------
+   <div class="search-shell">
+     <form class="search-field"><input type="search" class="search-input">…</form>
+     <div class="search-options" hidden>…quick chips…</div>
+   </div>
+*/
+.search-shell{position:relative;flex:1;max-width:280px;min-width:0}
+.search-field{margin:0;display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;padding:0 10px;border-radius:2px;transition:background 140ms,border-color 140ms}
+.search-field:hover,.search-shell:focus-within .search-field{background:var(--c-hover-bg);border-color:var(--c-border-soft)}
+.search-input{min-width:0;width:100%;border:0;background:none;padding:8px 0;outline-offset:1px;appearance:none;color:var(--c-ink)}
+.search-input::placeholder{color:var(--c-body)}
+.search-input::-webkit-search-cancel-button{appearance:none}
+.search-shell,.search-shell *{font-size:var(--fs-xs)}
+.search-options{position:absolute;z-index:20;top:calc(100% - 1px);left:0;right:0;border:1px solid var(--c-border-soft);background:var(--c-surface);color:var(--c-body);font-size:var(--fs-base)}
+.search-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 10px}
+.search-chips button{background:var(--c-chip-bg);padding:3px 9px;min-height:32px;border-radius:2px;color:var(--c-copy)}
+.search-chips button:hover{background:var(--c-chip-bg-hover)}
+.search-chips>span{margin-right:8px;white-space:nowrap;background:#fff;padding:0 5px}
+
+/* ---------- 6. Drawer / side panel ----------
+   A <dialog> that slides in from the right with a blurring backdrop.
+   <dialog class="drawer"> … <button class="drawer-close">…
+   JS: interactions.js -> createDrawer({trigger, panel, closeBtn})
+*/
+.drawer{position:fixed;inset:0 0 0 auto;margin:0;border:0;border-left:1px solid var(--c-border-panel);background:#fff;color:var(--c-copy);padding:48px 32px;width:min(420px,100%);height:100%;max-height:100%;overflow:auto;font:inherit;transform:translateX(100%);transition:transform 520ms var(--ease-inout)}
+.drawer.open{transform:translateX(0)}
+.drawer::backdrop{background:#00000000;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);transition:background 520ms var(--ease-inout),backdrop-filter 520ms var(--ease-inout),-webkit-backdrop-filter 520ms var(--ease-inout)}
+.drawer.open::backdrop{background:#00000012;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.drawer p{margin:0 0 24px;word-break:keep-all}
+.drawer-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:36px;color:var(--c-ink)}
+.drawer-header button{min-width:44px;min-height:44px}
+@media(max-width:560px){.drawer{padding:32px 24px}}
+
+/* ---------- 7. Floating tooltip ---------- */
+.tooltip-float{position:absolute;z-index:10;background:#fff;border-radius:10px;box-shadow:var(--shadow-float);padding:10px 14px;width:max-content;max-width:220px;color:var(--c-copy);pointer-events:none}
+.tooltip-float p{margin:0;word-break:keep-all;font-size:var(--fs-sm)}
+.tooltip-float p+p{margin-top:6px}
+.tooltip-float p.tooltip-title{margin:0 0 4px;color:var(--c-ink);font-size:var(--fs-base)}
+
+/* ---------- 8. Footer ---------- */
+.site-footer{margin-top:auto;padding:54px max(32px,6vw);background:var(--c-footer-bg);color:var(--c-faint)}
+.site-footer,.site-footer *{font-size:var(--fs-base)}
+.footer-identity{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.footer-identity p{margin:0;color:var(--c-ink)}
+.footer-identity .footer-copyright{color:var(--c-faint);margin-top:4px}
+.footer-social{display:flex;gap:24px;flex-wrap:wrap;margin-top:4px}
+.footer-social a:hover{color:#222;text-decoration:underline;text-underline-offset:4px}
+@media(max-width:700px){.site-footer{padding:40px 24px}}
+
+/* ---------- 9. Motion ---------- */
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- 10. Optional: self-hosted Pretendard ----------
+   The original site embeds Pretendard-Regular.woff2 as base64 so the
+   page has zero external requests. Do the same in your project (or
+   swap in the public CDN) by uncommenting and filling in a source:
+
+   @font-face{
+     font-family:'Pretendard';
+     src:url('./Pretendard-Regular.woff2') format('woff2');
+     font-weight:400;
+     font-display:swap;
+   }
+*/

@@ -4,9 +4,8 @@
 
 ## 현재 단계
 
-설계·스타일 논의 중. 앱 구현 시작 지시는 아직 없다.
-Claude Code가 Codex의 공통 문서(`AGENTS.md`, `CLAUDE.md`, `docs/PRODUCT.md`, `docs/DESIGN.md`, `docs/STATUS.md`)를 읽고
-자신이 진행한 논의·구현 이력과 대조했다. 아래 "Claude Code 교차 검토" 절 참고.
+설계·스타일 단계. 사용자가 실제 스타일 키트(`yongzu.github.io`에서 추출한 CSS/JS)를 제공했고, Claude Code가 이를
+반영해 홈 화면 정적 프로토타입을 만들었다. 앱(백엔드/DB 연동) 구현 시작 지시는 아직 없다.
 
 ## 완료
 
@@ -15,10 +14,15 @@ Claude Code가 Codex의 공통 문서(`AGENTS.md`, `CLAUDE.md`, `docs/PRODUCT.md
 - (Claude Code) 로컬 변경 없음 확인 후 origin/main fast-forward 병합(커밋 `fd53677`까지). `PROJECT_CONTEXT.md`는 변경 없음 확인.
 - (Claude Code) `CLAUDE.md`, `AGENTS.md`, `PROJECT_CONTEXT.md`, `docs/PRODUCT.md`, `docs/DESIGN.md`, `docs/STATUS.md`를 읽고
   Claude Code 쪽에서 사용자와 논의·확정한 내용 및 이미 만들었다가 되돌린 구현 이력과 대조.
+- (Claude Code) 사용자가 제공한 스타일 키트(`theme.css`, `interactions.js`, `README.md`, `example.html`)를
+  `design/style-kit/`에 원본 그대로 보존.
+- (Claude Code) 스타일 키트를 적용한 홈 화면 정적 프로토타입 작성: `design/prototypes/home.html` +
+  `design/prototypes/phi-brain.css`(새 컴포넌트 전용 추가 스타일, 새 색상 토큰 없음). 브라우저에서 로컬 정적 서버로
+  렌더링·hover-reveal 인터랙션까지 확인 완료. `docs/DESIGN.md`에 반영 내용 기록.
 
 ## 진행 중
 
-없음. 교차 검토 및 인계 기록 완료.
+없음. 이번 작업 세션 인계 기록 완료.
 
 ## Claude Code 교차 검토 (2026-09-11)
 
@@ -89,11 +93,14 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 
 1. ~~Claude Code에서 이 저장소의 `CLAUDE.md`와 공통 문서를 읽는다.~~ 완료 (2026-09-11, Claude Code).
 2. ~~Claude Code 쪽의 기존 논의를 사용자 확정/제안으로 구분해 반영한다.~~ 완료 — 위 "Claude Code 교차 검토" 절 참고.
-3. 사용자가 위 "다른 내용"·"미결정 사항"을 검토하고 방향을 정한다 (특히: LLM 이중 제공자·백엔드/DB 결정을
+3. ~~저널 첫 화면 배치를 구체화하고 스타일을 확정한다.~~ 부분 완료 — 홈 화면(`design/prototypes/home.html`)만 초안 나옴.
+   과목 상세, 정리 결과 검토(원문 비교), 실행 목록 전체 페이지는 아직.
+4. 사용자가 홈 화면 프로토타입을 검토하고 방향(레이아웃·문구·과목 리스트 표현 방식)에 대한 피드백을 준다.
+5. 사용자가 위 "다른 내용"·"미결정 사항"을 검토하고 방향을 정한다 (특히: LLM 이중 제공자·백엔드/DB 결정을
    Codex 쪽에도 확정 사항으로 반영할지, 데이터 모델은 단순 안/감사 추적 안 중 무엇으로 갈지, 4F 하나 vs 여러 개).
-4. 저널 첫 화면과 작성 화면 배치를 구체화하고 스타일을 확정한다(레퍼런스 사이트의 실제 인터랙션 동작 확인 포함).
-5. 공유 폴더 경로와 기기 간 작업 방식을 정한다.
-6. 사용자의 구현 시작 지시 후 기술 구성과 앱 구현을 진행한다.
+6. 나머지 화면(정리 결과 검토, 과목 상세, 실행 목록)도 같은 스타일 키트로 초안 작성.
+7. 공유 폴더 경로와 기기 간 작업 방식을 정한다.
+8. 사용자의 구현 시작 지시 후 기술 구성과 앱 구현을 진행한다.
 
 ## 교차 작업 규칙
 
@@ -110,3 +117,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-11 | Codex | 공통 제품·디자인·상태 문서와 양쪽 진입 지침 생성 | Claude Code 쪽 맥락 대조 필요, 앱 구현 대기 |
 | 2026-09-11 | Codex | 사용자 요청에 따라 공통 문서 GitHub 게시용 상태 갱신 | 원격 main을 받아 CLAUDE.md부터 읽기 |
 | 2026-09-11 | Claude Code | origin/main 병합(fd53677) 후 공통 문서 교차 검토, 일치/차이/미결정 정리, 기존 구현·되돌림 이력 기록 | 사용자가 위 "다른 내용"·"미결정 사항" 검토 후 방향 확정 필요. 구현 아직 시작 안 함 |
+| 2026-09-11 | Claude Code | 사용자 제공 스타일 키트를 `design/style-kit/`에 반영, 홈 화면 정적 프로토타입(`design/prototypes/`) 작성, `docs/DESIGN.md` 갱신 | 사용자 피드백 대기. 나머지 화면 초안·앱 구현은 아직 시작 안 함 |
