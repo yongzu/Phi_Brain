@@ -122,4 +122,5 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-11 | Codex | 사용자 요청에 따라 공통 문서 GitHub 게시용 상태 갱신 | 원격 main을 받아 CLAUDE.md부터 읽기 |
 | 2026-09-11 | Claude Code | origin/main 병합(fd53677) 후 공통 문서 교차 검토, 일치/차이/미결정 정리, 기존 구현·되돌림 이력 기록 | 사용자가 위 "다른 내용"·"미결정 사항" 검토 후 방향 확정 필요. 구현 아직 시작 안 함 |
 | 2026-09-11 | Claude Code | 사용자 제공 스타일 키트를 `design/style-kit/`에 반영, 홈 화면 정적 프로토타입(`design/prototypes/`) 작성, `docs/DESIGN.md` 갱신 | 사용자 피드백 대기. 나머지 화면 초안·앱 구현은 아직 시작 안 함 |
-| 2026-09-12 | Claude Code | 홈 화면 반복 수정(헤더·사이드바·푸터·10pt·4색 토큰·호버 인터랙션), Pages 배포, `docs/DESIGN.md`에 확정 사항·최소화 원칙 기록 | Pretendard 미로드 문제 결정 필요. 나머지 화면·앱 구현은 아직 시작 안 함 |
+| 2026-09-12 | Claude Code | 홈 화면 반복 수정(헤더·사이드바·푸터·10pt·4색 토큰·호버 인터랙션), Pages 배포, `docs/DESIGN.md`에 확정 사항·최소화 원칙 기록 | 나머지 화면·앱 구현은 아직 시작 안 함 |
+| 2026-09-12 | Claude Code | Pretendard CDN(dynamic subset) 로드로 미설치 기기 대응, General에 "Assignment Manage" Tab2 추가 | Assignment Manage 화면 내용은 미정 |
