@@ -1,0 +1,103 @@
+// Phi Brain — Phase 1 data model (see PROJECT_CONTEXT.md §16)
+// SQLite for local/personal use. Swapping `provider` to "postgresql" and
+// pointing DATABASE_URL at a hosted Postgres is the intended upgrade path
+// when this is actually deployed (see OPERATIONS.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  description     String?
+  agentInstruction String?
+  archived        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  fragmentCourses FragmentCourse[]
+  insights        Insight[]
+  futureItems     FutureItem[]
+}
+
+model Journal {
+  id        String   @id @default(cuid())
+  date      String
+  rawText   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fragments JournalFragment[]
+
+  @@index([date])
+}
+
+model JournalFragment {
+  id            String   @id @default(cuid())
+  journalId     String
+  journal       Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  rawText       String
+  startPosition Int
+  endPosition   Int
+  createdAt     DateTime @default(now())
+
+  courses     FragmentCourse[]
+  fourF       FourFClassification[]
+  insights    Insight[]
+  futureItems FutureItem[]
+}
+
+model FragmentCourse {
+  id            String          @id @default(cuid())
+  fragmentId    String
+  fragment      JournalFragment @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  courseId      String
+  course        Course          @relation(fields: [courseId], references: [id])
+  confidence    Float
+  source        String // "ai" | "user"
+  userCorrected Boolean         @default(false)
+
+  @@unique([fragmentId, courseId])
+}
+
+model FourFClassification {
+  id         String          @id @default(cuid())
+  fragmentId String
+  fragment   JournalFragment @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  type       String // fact | feeling | finding | future
+  confidence Float
+  source     String // "ai" | "user"
+
+  @@unique([fragmentId, type])
+}
+
+model Insight {
+  id         String          @id @default(cuid())
+  courseId   String
+  course     Course          @relation(fields: [courseId], references: [id])
+  fragmentId String
+  fragment   JournalFragment @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  title      String?
+  content    String
+  importance Float?
+  createdAt  DateTime        @default(now())
+}
+
+model FutureItem {
+  id         String          @id @default(cuid())
+  courseId   String
+  course     Course          @relation(fields: [courseId], references: [id])
+  fragmentId String
+  fragment   JournalFragment @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  content    String
+  status     String          @default("created")
+  dueDate    DateTime?
+  appliedAt  DateTime?
+  createdAt  DateTime        @default(now())
+}
