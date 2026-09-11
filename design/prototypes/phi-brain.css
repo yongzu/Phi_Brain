@@ -237,19 +237,78 @@
 .todo-list .nav-code{color:var(--ink);margin-right:8px}
 .resume-hint{padding-left:calc(24px + var(--tab-pad-x));margin:0 0 12px}
 
-/* ---- Future Item (temporary view): one group per course ---- */
-.future-hint{margin:6px 0 28px}
-.fi-empty{color:var(--gray);margin:0}
-.fi-group+.fi-group{margin-top:28px}
-.fi-course{display:flex;align-items:center;gap:10px;margin:0 0 8px calc(-1 * var(--tab-pad-x) - 1px);font-weight:400}
-.fi-list{list-style:none;margin:0;padding:0}
-.fi-item{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
-.fi-check{flex:0 0 12px;width:12px;height:12px;align-self:center;border:1px solid var(--gray);border-radius:50%;transition:background 140ms,border-color 140ms}
+/* ---------- Future Items ---------- */
+.view-future{position:relative}
+.future-hint{margin:6px 0 0}
+
+/* filters: All / General / 임시 | course codes — one pressed at a time, and drop targets while dragging */
+.fi-filters{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:18px 0 0 calc(-1 * var(--tab-pad-x))}
+.fi-filter[aria-pressed="true"]{font-weight:700}
+.f-count{margin-left:5px;color:var(--gray);font-weight:400;font-variant-numeric:tabular-nums}
+
+/* composer: one soft field — action, membership, add */
+.fi-composer{display:flex;align-items:center;gap:4px;margin:14px 0 28px;padding:4px 4px 4px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
+.fi-composer:focus-within{border-color:var(--gray)}
+.fi-input{flex:1;min-width:0;padding:6px 0;border:0;background:none;color:var(--ink)}
+.fi-input::placeholder{color:var(--gray)}
+.fi-input:focus-visible{outline:0}
+
+/* boxes: a hairline frame, no shadow; 임시 is dashed because it's not a place yet */
+.fi-list{display:flex;flex-direction:column;gap:12px}
+.fi-section-label{margin:12px 0 -4px;color:var(--gray)}
+.fi-box{padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
+.fi-box.is-temp{border-style:dashed}
+.fi-box-head{display:flex;align-items:center;gap:10px;min-height:28px}
+.fi-box-title{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.fi-fav{margin-left:auto;margin-right:-6px}
+.fi-fav[aria-pressed="true"]{color:var(--ink)}
+.fi-box-hint,.fi-box-empty{margin:2px 0 6px;color:var(--gray)}
+.fi-all-empty{margin:0}
+
+.fi-rows{list-style:none;margin:0;padding:0}
+.fi-row{display:flex;align-items:center;gap:10px;min-height:32px}
+.fi-row[draggable="true"]{cursor:grab}
+.fi-row.is-drag-src{opacity:.4}
+.fi-check{appearance:none;flex:0 0 14px;width:14px;height:14px;margin:0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .fi-check:hover{background:var(--fill)}
-.fi-text{color:var(--ink)}
-.fi-meta{margin-left:auto;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
-.fi-item.is-done .fi-check{background:var(--ink);border-color:var(--ink)}
-.fi-item.is-done .fi-text{color:var(--gray);text-decoration:line-through}
+.fi-check:checked{background:var(--ink);border-color:var(--ink)}
+.fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
+.fi-text{flex:1;min-width:0;color:var(--ink);overflow-wrap:anywhere}
+.fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
+.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
+.fi-edit:focus-visible{outline:0}
+.fi-more{flex:0 0 auto;margin-right:-6px}
+
+.fi-done{margin-top:4px}
+.fi-done summary{list-style:none;cursor:pointer}
+.fi-done summary::-webkit-details-marker{display:none}
+.fi-done-summary{display:inline-flex;align-items:center;gap:8px;padding:4px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;color:var(--gray);transition:background 140ms,color 140ms}
+.fi-done-summary:hover,.fi-done-summary:focus-visible{background:var(--fill);color:var(--ink)}
+.fi-done[open] .caret{transform:rotate(180deg)}
+
+/* drag: every valid destination is outlined; the one under the pointer fills */
+.is-dragging [data-drop].drop-ok{outline:1px dashed var(--gray);outline-offset:2px}
+.is-dragging [data-drop].drop-over{outline:1px solid var(--ink);background:var(--fill)}
+
+/* menu extras (the card itself is .course-menu) */
+.cm-head{margin:4px 10px 4px;color:var(--gray)}
+.cm-note{margin-left:6px;color:var(--gray)}
+.cm-sep{height:1px;margin:4px 8px;background:var(--line)}
+.cm-item[aria-checked="true"]{color:var(--ink);font-weight:700}
+
+/* toast: bottom-centre card for undo / retry / where it went */
+.toast-wrap{position:fixed;left:0;right:0;bottom:24px;z-index:50;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
+.toast{display:flex;align-items:center;gap:10px;max-width:100%;padding:6px 6px 6px 18px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float);color:var(--ink);pointer-events:auto}
+.toast.is-error .toast-msg{font-weight:700}
+.toast-act{color:var(--ink);background:var(--fill)}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media(max-width:560px){
+  .fi-composer{flex-wrap:wrap;padding:8px 8px 8px 14px}
+  .fi-input{flex:1 1 100%}
+  .fi-scope{margin-left:-8px}
+  .fi-composer .btn-primary{margin-left:auto}
+}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start

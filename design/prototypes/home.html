@@ -160,16 +160,25 @@
   </section>
   </div>
 
-  <!-- Future Item — temporary view until the real tab is designed -->
-  <div class="view" id="view-future" hidden>
+  <!-- Future Item: concrete actions, managed like a to-do list (future.js) -->
+  <div class="view view-future" id="view-future" hidden>
     <section aria-labelledby="future-heading">
       <header class="journal-head">
         <h1 class="journal-heading" id="future-heading">Future Item</h1>
-        <span class="field-label">임시 화면</span>
       </header>
-      <p class="field-hint future-hint">저널의 Future Item에서 등록한 항목이 과목별로 모여요.</p>
-      <div class="fi-groups" id="fi-groups"></div>
+      <p class="field-hint future-hint">실행할 행동을 적고, 과목별로 나눠 실천하고, 완료로 옮겨요. 과제 제출 상태(Assignment Manage)와는 따로 관리돼요.</p>
+
+      <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
+
+      <form class="fi-composer" id="fi-composer" autocomplete="off">
+        <input type="text" class="fi-input" id="fi-input" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done">
+        <button type="button" class="pill fi-scope" id="fi-scope" aria-haspopup="menu"><span id="fi-scope-label">미지정</span><span class="caret" aria-hidden="true">▾</span></button>
+        <button type="submit" class="btn-primary">추가</button>
+      </form>
+
+      <div class="fi-list" id="fi-list"></div>
     </section>
+    <div class="course-menu fi-menu" id="fi-menu" role="menu" aria-label="항목 메뉴" hidden></div>
   </div>
 
 </main>
@@ -197,6 +206,10 @@
     <a href="https://github.com/yongzu/Phi_Brain">GitHub ↗</a>
   </div>
 </footer>
+
+<!-- toast: undo / retry / where an item went. The live region is separate so screen readers hear it. -->
+<div class="toast-wrap"><div class="toast" id="toast" hidden><span class="toast-msg"></span><button type="button" class="pill toast-act"></button></div></div>
+<p class="sr-only" id="toast-live" aria-live="polite"></p>
 
 <script src="../style-kit/interactions.js"></script>
 <script>

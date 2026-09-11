@@ -16,26 +16,8 @@
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
   const coursesEl = $('#courses'), chipsEl = $('#course-chips'), chosenEl = $('#courses-chosen'), coursesToggle = $('#courses-toggle');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  const EASE = 'cubic-bezier(.22,1,.36,1)';
-
-  // floating cards (date picker, course menu) come in from a blur and leave into one
-  const popIn = el => {
-    el.getAnimations().forEach(a => a.cancel());
-    el.dataset.open = '1'; // a late finish from an earlier close must not hide it again
-    el.hidden = false;
-    if (!reduce.matches) el.animate(
-      [{ opacity: 0, filter: 'blur(6px)', transform: 'translateY(-4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
-      { duration: 280, easing: EASE });
-  };
-  const popOut = el => {
-    el.getAnimations().forEach(a => a.cancel());
-    delete el.dataset.open;
-    if (reduce.matches) { el.hidden = true; return; }
-    el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(6px)' }], { duration: 180, easing: EASE })
-      .onfinish = () => { if (!el.dataset.open) el.hidden = true; };
-  };
-
-  const { COURSES, future } = window.PhiBrain; // from future.js
+  // shared with future.js: course list, Future Item store, floating-card animation
+  const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
   const FOUR_F = [
     ['Fact', '오늘 무엇을 배우거나 경험했나요?'],
     ['Feeling', '무엇이 인상적이거나 불편했나요?'],
@@ -445,7 +427,8 @@
   // Course for each line, until the AI does this properly: the course box
   // above it in the section, else a leading code ("BI — …"), else the one
   // course picked in 다룬 과목, else unassigned.
-  const CODE_LEAD = new RegExp(`^(${COURSES.map(c => c[0]).sort((a, b) => b.length - a.length).join('|')})(?:\\s*[—–:\\-·_]\\s*|\\s+)`);
+  const LEAD_CODES = [...COURSES.map(c => c[0]), ...Object.keys(ALIASES)].sort((a, b) => b.length - a.length);
+  const CODE_LEAD = new RegExp(`^(${LEAD_CODES.join('|')})(?:\\s*[—–:\\-·_]\\s*|\\s+)`);
   function collectFutureItems(head) {
     const fallback = chosen.size === 1 ? [...chosen][0] : '';
     const entries = [];
@@ -457,7 +440,7 @@
         if (!text) return;
         let course = boxCourse;
         const m = text.match(CODE_LEAD);
-        if (m && text.length > m[0].length) { course = m[1]; text = text.slice(m[0].length).trim(); }
+        if (m && text.length > m[0].length) { course = ALIASES[m[1]] || m[1]; text = text.slice(m[0].length).trim(); }
         entries.push({ course: course || fallback, text });
       });
     }
@@ -476,8 +459,9 @@
     const entries = collectFutureItems(head);
     if (!entries.length) { flashFi('등록할 내용이 없어요'); return; }
     save();
+    // adds only lines not registered before, so edits and moves made in Future Item are never undone
     const n = future.register(current, entries);
-    flashFi(n < 0 ? '이 브라우저에서는 저장할 수 없어요' : `${n}개 등록됨`);
+    flashFi(n < 0 ? '저장하지 못했어요' : n ? `${n}개 등록됨` : '이미 모두 등록됐어요');
     renderResume();
   });
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
@@ -522,10 +506,11 @@
     $('#count-drafts').textContent = drafts.length;
     $('#list-review').innerHTML = REVIEW.map(r => item(`${monthDay(r.date)} 저널`, r.meta)).join('');
     $('#count-review').textContent = REVIEW.length;
-    // 지난 할 일: registered Future Items from other days, not yet done
-    const open = future.all().filter(i => !i.done && i.date !== current);
+    // 지난 할 일: open Future Items, except the ones this journal itself registered
+    const open = future.all().filter(i => !i.done && i.source?.journalDate !== current).sort((a, b) => b.placedAt - a.placedAt);
+    const tag = i => (i.scope === 'course' ? i.courseId : i.scope === 'general' ? 'General' : '');
     $('#list-todo').innerHTML = open.length
-      ? open.map(i => `<li>${i.course ? `<span class="nav-code">${i.course}</span>` : ''}${esc(i.text)}</li>`).join('')
+      ? open.map(i => `<li>${tag(i) ? `<span class="nav-code">${tag(i)}</span>` : ''}${esc(i.text)}</li>`).join('')
       : '<li>아직 없어요</li>';
     $('#count-todo').textContent = open.length;
   }
@@ -536,6 +521,14 @@
     load(b.dataset.open);
     scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
   });
+  // Future Item's ⋯ → 원문 저널 열기
+  window.PhiBrain.openJournal = date => {
+    save();
+    load(date);
+    window.PhiBrain.show('journal');
+    scrollTo({ top: 0 });
+  };
+
   addEventListener('pagehide', save);
   load(today);
 })();
