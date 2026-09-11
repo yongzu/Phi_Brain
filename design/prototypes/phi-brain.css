@@ -7,11 +7,24 @@
   existing custom properties. Re-skin by editing theme.css §1, not here.
 */
 
+/* one uniform type size across the whole page (overrides theme.css's
+   12pt/10pt/8pt scale — all three tokens collapse to the same value) */
+:root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
+
 /* ---- header: logo + wordmark, search, profile ---- */
 .toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px;border-bottom:1px solid var(--c-border)}
-.brand-lockup{display:flex;align-items:center;gap:12px;flex:0 0 auto}
-.brand-logo{height:50px;width:50px;display:block}
-.brand-word{height:50px;width:auto;display:block}
+.brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.brand-logo{height:25px;width:25px;display:block}
+/*
+  wordmark.png has ~2.4% top / ~12.7% bottom padding baked into its own
+  canvas (measured from the source pixels), while logo.png has none — so
+  matching CSS heights alone would NOT align their visible ink top/bottom.
+  brand-word-wrap clips a slightly taller, upward-shifted render of the
+  wordmark so its actual glyph ink fills the same 25px box edge-to-edge
+  as the logo, per the reference lockup.
+*/
+.brand-word-wrap{height:25px;overflow:hidden;display:block}
+.brand-word{height:29.43px;width:auto;display:block;margin-top:-0.7px}
 .profile-trigger{margin-left:auto}
 
 /* ---- app body: nav flush to the left edge, content follows ---- */
@@ -20,9 +33,9 @@
 .side-nav{width:260px;flex:0 0 260px;padding:32px 24px 40px 32px}
 .nav-group{display:flex;flex-direction:column;gap:14px}
 .nav-group+.nav-group{margin-top:20px}
-.nav-heading{font-weight:700;font-size:12px;color:var(--c-ink);letter-spacing:-.16px;padding:5px 0 5px 10px;border-left:1px solid transparent}
+.nav-heading{font-weight:700;font-size:var(--fs-base);color:var(--c-ink);letter-spacing:-.16px;padding:5px 0 5px 10px;border-left:1px solid transparent}
 .nav-list{display:flex;flex-direction:column}
-.nav-link{display:block;width:100%;font-size:12px;color:var(--c-body);text-align:left;padding:5px 0 5px 24px;border-left:1px solid transparent;border-radius:10px;transition:background 140ms,color 140ms}
+.nav-link{display:block;width:100%;font-size:var(--fs-base);color:var(--c-body);text-align:left;padding:5px 0 5px 24px;border-left:1px solid transparent;border-radius:10px;transition:background 140ms,color 140ms}
 .nav-list-course .nav-link{padding-top:8px;padding-bottom:8px}
 .nav-link:hover,.nav-link:focus-visible{color:var(--c-ink)}
 .nav-link.active{background:var(--c-surface);color:var(--c-ink)}
