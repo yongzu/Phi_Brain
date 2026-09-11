@@ -12,10 +12,18 @@
 :root{--fs-base:10pt;--fs-sm:10pt;--fs-xs:10pt}
 
 /* nav hover fill — the one value here that isn't already in theme.css */
-:root{--c-nav-hover:#ebebeb}
+:root{--c-nav-hover:#f4f4f4}
+
+/*
+  One left edge for the whole page. The nav tab label is the anchor: its
+  x is the sidebar's own gutter plus the Tab1 inset, and the header logo
+  and the footer are padded to that same x so all three line up.
+*/
+:root{--nav-gutter:32px;--tab1-inset:12px;--tab2-inset:28px;
+      --text-start:calc(var(--nav-gutter) + var(--tab1-inset))}
 
 /* ---- header: logo + wordmark, search, profile ---- */
-.toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px}
+.toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
 .brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .brand-logo{height:25px;width:25px;display:block}
 /*
@@ -33,32 +41,39 @@
 /* ---- app body: nav flush to the left edge, content follows ---- */
 .app-body{display:flex;align-items:flex-start}
 
-/* 288px, not 260: the 40px fixed-height hover rows can't wrap, and the
+/* 300px, not 260: the 40px fixed-height hover rows can't wrap, and the
    longest course label ("IAE_Interviewing as Exploration") needs ~187px
-   of text width inside the row's 24px/12px padding. */
-.side-nav{width:288px;flex:0 0 288px;padding:32px 24px 40px 32px}
-.nav-group{display:flex;flex-direction:column;gap:14px}
-.nav-group+.nav-group{margin-top:20px}
-.nav-heading{font-weight:700;font-size:var(--fs-base);color:var(--c-ink);letter-spacing:-.16px;padding:5px 0 5px 10px;border-left:1px solid transparent}
+   of text width inside the Tab2 inset and the row's right padding. */
+.side-nav{width:300px;flex:0 0 300px;padding:32px 24px 40px var(--nav-gutter)}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-group+.nav-group{margin-top:16px}
 .nav-list{display:flex;flex-direction:column}
+
 /*
-  40px-tall hover target with a 10px squircle corner. CSS has no direct
-  equivalent of Figma's "corner smoothing %" — `corner-shape: squircle`
-  is superellipse(4), the closest native match to Figma's 60% (iOS)
-  preset. Browsers without corner-shape fall back to the plain 10px
-  radius from border-radius, which is the same box minus the smoothing.
+  Two nav levels, one hover target. Tab1 is a section (Journaling /
+  General / Course), Tab2 an item under it; they differ only in weight,
+  color and indent, so the 40px hover box is defined once on .nav-tab.
+
+  CSS has no direct equivalent of Figma's "corner smoothing %" —
+  `corner-shape: squircle` is the superellipse the iOS/60% preset
+  approximates. Browsers without corner-shape fall back to the plain
+  10px radius, i.e. the same box minus the smoothing.
 */
-.nav-link{display:flex;align-items:center;height:40px;width:100%;font-size:var(--fs-base);color:var(--c-body);text-align:left;padding:0 12px 0 24px;border-left:1px solid transparent;border-radius:10px;corner-shape:squircle;transition:background 140ms,color 140ms}
-.nav-link:hover,.nav-link:focus-visible{background:var(--c-nav-hover);color:var(--c-ink)}
-.nav-link.active{background:var(--c-nav-hover);color:var(--c-ink)}
+.nav-tab{display:flex;align-items:center;height:40px;width:100%;font-size:var(--fs-base);text-align:left;border-radius:10px;corner-shape:squircle;transition:background 140ms,color 140ms}
+.nav-tab:hover,.nav-tab:focus-visible{background:var(--c-nav-hover)}
+.nav-tab.active{background:var(--c-nav-hover)}
+
+.tab1{font-weight:700;color:var(--c-ink);letter-spacing:-.16px;padding:0 12px 0 var(--tab1-inset)}
+.tab2{color:var(--c-body);padding:0 12px 0 var(--tab2-inset)}
+.tab2:hover,.tab2:focus-visible,.tab2.active{color:var(--c-ink)}
 .nav-code{font-weight:700}
 
 @media(max-width:860px){
   .app-body{flex-direction:column}
   .side-nav{width:100%;flex:none;padding:20px 24px}
   .nav-group{flex-direction:row;flex-wrap:wrap;gap:6px}
-  .nav-heading{width:100%;padding-left:0}
-  .nav-link{width:auto;height:32px;padding:0 12px;border-left:0}
+  .nav-tab{width:auto;height:32px;padding:0 12px}
+  .tab1{width:100%}
 }
 
 /* sidebar stays pinned at its fixed width; this column takes the rest
@@ -91,9 +106,9 @@
 
 /* ---- footer: flush left with the header lockup ---- */
 /* theme.css uses max(32px,6vw) inline padding, which on wide screens
-   indents the footer further than the 32px toolbar — pin it to 32px so
-   "Phi Brain" lines up with the logo above it. */
-.site-footer{padding-left:32px;padding-right:32px}
+   indents the footer further than the header — pin it to the same
+   --text-start so "Phi Brain" lines up with the logo and the nav tabs. */
+.site-footer{padding-left:var(--text-start);padding-right:32px}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
 
 /* ---- course reveal rows: stat line + tag inside .reveal-copy ---- */
