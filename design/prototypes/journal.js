@@ -14,7 +14,7 @@
   const dateField = $('#date-field'), dateBtn = $('#date-button'), dateLabel = $('#date-label');
   const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
-  const chipsEl = $('#course-chips');
+  const chipsEl = $('#course-chips'), formatBar = $('.format-bar');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
   const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
@@ -379,6 +379,9 @@
   function refreshFormatState() {
     const s = getSelection();
     const inside = s.rangeCount > 0 && editor.contains(s.anchorNode);
+    // the format bar only means anything once text is actually selected —
+    // the page opens with nothing arranged, no toolbar floating over a blank editor
+    formatBar.hidden = !(inside && !s.isCollapsed);
     fmtButtons.forEach(b => {
       const f = b.dataset.fmt;
       let on = false;

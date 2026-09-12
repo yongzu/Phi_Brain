@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260913-2">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-3">
 </head>
 <body>
 
@@ -79,8 +79,7 @@
 
     <input type="text" class="title-input" id="title-input" placeholder="9월 12일 저널" aria-label="제목 (선택 — 비우면 날짜로 저장)">
 
-    <div class="courses" id="courses">
-      <span class="field-label">다룬 과목</span>
+    <div class="courses" id="courses" aria-label="다룬 과목">
       <div class="course-chips" id="course-chips"></div>
     </div>
 
@@ -111,8 +110,8 @@
         <button type="button" class="pill" data-cmd="check">체크리스트</button>
       </div>
     </div>
-    <!-- acts on the dragged selection -->
-    <div class="format-bar" role="toolbar" aria-label="글자 서식">
+    <!-- acts on the dragged selection — hidden until there is one (see journal.js refreshFormatState) -->
+    <div class="format-bar" role="toolbar" aria-label="글자 서식" hidden>
       <button type="button" class="pill pill-icon" data-fmt="bold" aria-pressed="false" aria-label="굵게" title="굵게"><b>B</b></button>
       <button type="button" class="pill pill-icon" data-fmt="italic" aria-pressed="false" aria-label="기울임" title="기울임"><i>I</i></button>
       <button type="button" class="pill pill-icon" data-fmt="underline" aria-pressed="false" aria-label="밑줄" title="밑줄"><u>U</u></button>
@@ -314,7 +313,7 @@
   })();
 </script>
 <script src="future.js?v=20260913-2"></script>
-<script src="journal.js?v=20260913-1"></script>
+<script src="journal.js?v=20260913-2"></script>
 <script src="assignment.js?v=2"></script>
 </body>
 </html>

@@ -141,6 +141,8 @@
 /* ---- journal: context ---- */
 .journal-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .journal-heading{margin:0;font-weight:700;color:var(--ink)}
+/* Journaling's own title only (Future Item/Assignment Manage share .journal-heading) — 2pt larger, true black */
+#journal-heading{font-size:12pt;color:#000}
 .date-field{position:relative;display:inline-block}
 #date-field{margin:14px 0 0}
 
