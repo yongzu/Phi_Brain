@@ -379,6 +379,7 @@
    grid benefits from even more room, so it gets a wider cap of its own. */
 .shell:has(.view-assignment:not([hidden])){max-width:920px}
 .shell:has(.view-future:not([hidden])){max-width:1100px}
+.shell:has(.view-archive:not([hidden])){max-width:900px}
 
 /* ---------- Assignment Manage ---------- */
 /* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
@@ -432,9 +433,16 @@
 
 /* ---------- Journal Archive ---------- */
 .archive-hint{margin:6px 0 16px}
-/* not nested in a <details>, so drop resume-list's accordion indent */
-.archive-list{padding-left:0}
+/* each row is its own <details> dropdown, not nested in a section-level one —
+   drop resume-list's accordion indent and stretch rows to the full width so
+   the summary's title/meta/caret spacing (margin-right:auto trick) works */
+.archive-list{padding-left:0;align-items:stretch}
 .archive-empty{color:var(--gray);padding:6px 0}
+.archive-entry .accordion-content{padding:0 0 12px}
+/* reuses .editor's heading/list/quote/code styling for the saved body, minus
+   the live editor's own height reservation and inner padding */
+.archive-preview{min-height:0;padding:0 0 10px}
+.archive-open{margin:0}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start

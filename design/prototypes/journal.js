@@ -510,6 +510,7 @@
   // ---- Journal Archive: read-only browse over every real saved draft, no
   // fabricated data (EXAMPLES/REVIEW are for the homepage resume lists only) ----
   let archiveFilter = 'all';
+  const openArchive = new Set(); // dates currently dropped open — stays pinned across filter/view changes
   const archiveHashFor = f => (f === 'all' ? '#journal-archive' : `#journal-archive/${f}`);
   const archiveFilterFromHash = h => {
     if (!h.startsWith('#journal-archive')) return 'all';
@@ -523,7 +524,7 @@
     return store.dates().map(date => {
       const d = store.get(date);
       if (!d) return null;
-      return { date, title: (d.title || '').trim() || `${monthDay(date)} 저널`, courses: d.courses || [], savedAt: d.savedAt || 0 };
+      return { date, title: (d.title || '').trim() || `${monthDay(date)} 저널`, courses: d.courses || [], savedAt: d.savedAt || 0, html: d.html || '' };
     }).filter(Boolean).sort((a, b) => b.date.localeCompare(a.date));
   }
   function renderArchiveFilters(entries) {
@@ -532,15 +533,30 @@
       + `${label}${count(k) ? `<span class="f-count" aria-hidden="true">${count(k)}</span>` : ''}</button>`;
     archiveFiltersEl.innerHTML = pill('all', 'All') + pill('general', 'General') + COURSES.map(([code]) => pill(code, code)).join('');
   }
+  // click a row's summary to drop its content open in place — it stays open
+  // (pinned) across filter/view changes until clicked again; "Journaling에서
+  // 열기" is the separate action for actually editing that date
+  const archiveRowHTML = e => {
+    const courseLabel = e.courses.map(c => (c === 'general' ? 'General' : c)).join(' · ');
+    const meta = [courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
+    return `<li>
+      <details class="resume-row archive-entry" data-date="${e.date}"${openArchive.has(e.date) ? ' open' : ''}>
+        <summary class="resume-summary"><span class="ri-title">${esc(e.title)}</span><span class="ri-meta">${esc(meta)}</span><span class="caret" aria-hidden="true">▾</span></summary>
+        <div class="accordion-content">
+          <div class="editor archive-preview">${e.html}</div>
+          <button type="button" class="pill archive-open" data-open="${e.date}">Journaling에서 열기</button>
+        </div>
+      </details>
+    </li>`;
+  };
   function renderArchiveList(entries) {
+    // snapshot which rows are currently dropped open before the rebuild wipes them
+    archiveListEl.querySelectorAll('.archive-entry').forEach(d => (d.open ? openArchive.add(d.dataset.date) : openArchive.delete(d.dataset.date)));
     if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
     const filtered = archiveFilter === 'all' ? entries : entries.filter(e => e.courses.includes(archiveFilter));
     if (!filtered.length) { archiveListEl.innerHTML = '<li class="archive-empty">이 과목이 들어간 저널이 아직 없어요</li>'; return; }
-    archiveListEl.innerHTML = filtered.map(e => {
-      const courseLabel = e.courses.map(c => (c === 'general' ? 'General' : c)).join(' · ');
-      const meta = [courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
-      return item(esc(e.title), meta, `data-open="${e.date}"`);
-    }).join('');
+    archiveListEl.innerHTML = filtered.map(archiveRowHTML).join('');
+    archiveListEl.querySelectorAll('.archive-entry').forEach(d => window.StyleKit?.createAccordion(d));
   }
   function renderArchive() {
     archiveFilter = archiveFilterFromHash(location.hash);
