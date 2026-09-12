@@ -485,7 +485,7 @@
   };
 
   // ---- view switch (only the built views; other nav tabs stay inert) ----
-  const views = { journal: $('#view-journal'), future: view };
+  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment') };
   const navTabs = $$('.side-nav [data-view]');
   let currentView = 'journal';
   function show(name, { filter: f } = {}) {
@@ -502,15 +502,20 @@
     else history.replaceState(null, '', location.pathname + location.search);
     if (!reduce.matches) views[name].animate(
       [{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 320, easing: EASE });
+    // other view modules (assignment.js, ...) load after this and need to know
+    // when they're shown — the hash is gone by then (replaceState above clears
+    // it for every non-future view), so a DOM event is the only reliable signal.
+    document.dispatchEvent(new CustomEvent('phibrain:view', { detail: { name } }));
   }
   navTabs.forEach(t => t.addEventListener('click', () => show(t.dataset.view)));
 
-  window.PhiBrain = { COURSES, ALIASES, future, show, ui: { popIn, popOut, toast } };
+  window.PhiBrain = { COURSES, ALIASES, future, show, getCurrentView: () => currentView, ui: { popIn, popOut, toast } };
   // the hash is the address of a view/filter: first load, an edited URL, back/forward
   // (our own replaceState calls don't fire hashchange, so this never loops)
   const route = () => {
     const h = location.hash;
-    show(h.startsWith('#future-item') ? 'future' : 'journal', { filter: filterFromHash(h) });
+    const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment' : 'journal';
+    show(name, { filter: filterFromHash(h) });
   };
   addEventListener('hashchange', route);
   route();

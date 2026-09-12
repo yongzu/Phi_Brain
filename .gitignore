@@ -1,0 +1,4 @@
+# Assignment Manage backend — local runtime state, never committed.
+server/data/
+server/.env
+node_modules/

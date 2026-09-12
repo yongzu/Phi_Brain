@@ -53,7 +53,7 @@ AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널
 
 ## 진행 중
 
-없음. Future Items 구현 인계 기록 완료(아래).
+없음. Assignment Manage 구현 인계 기록 완료(아래).
 
 ## Future Items 구현 인계 (Claude Code, 2026-09-12)
 
@@ -78,7 +78,58 @@ AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널
     **버튼·체크박스의 Enter/Space 활성화 자체는 자동 검증 못함**(브라우저 도구가 문자 없는 키 이벤트만 보냄) — 모두 기본
     `<button>`·`<input type=checkbox>`라 브라우저 기본 동작에 의존. 실제 기기에서 한 번 확인 필요.
 - **남은 일:** 서버 저장·계정·기기 간 동기화 / 터치 드래그(모바일은 ⋯ 메뉴로만 이동) / 되돌리기는 가장 최근 동작 하나만 /
-  데이터 모델 충돌 결정(`PRODUCT.md`) / Assignment Manage 화면 미구현 / 실제 기기 키보드·스크린리더 점검.
+  데이터 모델 충돌 결정(`PRODUCT.md`) / 실제 기기 키보드·스크린리더 점검.
+
+## Assignment Manage 구현 인계 (Claude Code, 2026-09-12)
+
+- **범위:** 사용자 요구사항(10개 절) 중 화면·백엔드·규칙 엔진·테스트를 전부 구현했다. **실제 Google OAuth 연동과 실제
+  Gmail 계정으로 검증한 적은 없다** — Google Cloud 자격 증명이 없어서다(아래 "필요한 설정" 참고). 제품 결정은
+  `docs/PRODUCT.md` "Assignment Manage", 화면 규칙은 `docs/DESIGN.md` "Assignment Manage 페이지" 참고.
+- **구성:**
+  - 프런트엔드: `design/prototypes/assignment.js` + `home.html`의 `#view-assignment`, `phi-brain.css`의 `.am-*`.
+    사이드바 "Assignment Manage"에 `data-view="assignment"`를 달아 `future.js`의 뷰 전환에 편승시켰다. `future.js`는
+    `show()`가 뷰를 바꿀 때 `phibrain:view` 커스텀 이벤트를 쏘도록, `PhiBrain.getCurrentView()`를 노출하도록 각각 한 줄
+    추가했다(해시가 뷰 전환 때 지워지는 기존 동작과 충돌해서 필요했음 — 아래 "실제 버그" 참고).
+  - 백엔드: `server/`(Node 내장 모듈만 사용, npm 의존성 0개) — `db.js`(SQLite, `node:sqlite`), `matching.js`(규칙 기반 판별,
+    순수 함수), `service.js`(상태 계산·수동 확인·이메일 반영), `googleOAuth.js`·`gmail.js`(OAuth2 웹서버 플로우·Gmail API,
+    둘 다 raw `https`), `sync.js`(동기화 오케스트레이션), `index.js`(REST API, CORS, OAuth 라우트).
+  - 과목·URL 시드 데이터는 사용자가 준 참고 자료(`Assignmetn Manage.pdf`)의 표를 그대로 옮겼다(주소 패턴을 추측하지 않음).
+  - 학기 1주차(09.06~09.12)는 참고 자료의 예시와 "오늘"(2026-09-12, 1주차 마지막 날)이 정확히 맞아떨어져 그대로 시드했다
+    (`server/db.js`의 `SEMESTER_START`). 16주로 시드했고, 늘어나면 이 상수만 바꾸면 된다.
+- **데이터 모델(SQLite, `server/data/assignment-manage.sqlite` — Git 제외):** courses·weeks·submission_targets(과목×주차×
+  종류, 유니크 제약으로 "항목당 하나" 가정을 명시) · submission_evidence(메일 1건 = 1행, message_id 유니크로 중복 방지,
+  재제출은 새 행으로 쌓여 이력 보존) · manual_status(수동 확인, 메일 근거를 지우지 않음) · review_queue(판별 모호 메일) ·
+  gmail_connection(토큰·동기화 상태, 싱글턴 행).
+- **판별 규칙(`server/matching.js`):** 발신자 고정, 제목/폼 제목의 대괄호 과목 태그, 본문 라벨의 주차·트랙(안내문 예시 줄은
+  제외), EWA 검증 필드(작동하는 작업·TIL 리포트·AI 대화) 추출. **검증된 조합은 `ewa:assignment` 하나뿐** — 그 외 모든
+  과목과 모든 셀프피드백은 파싱이 "성공"해도 자동 확인하지 않고 검토 대기열로 보낸다(형식이 같다고 가정하지 않음).
+- **검증(Node 내장 테스트 러너, `node --test server/*.test.js` — 23개 전부 통과):**
+  - `matching.test.js`(11개): EWA 표본 매칭·링크 추출, 없는 필드는 생략, "(예: 0주차)" 오인 방지, 메일 수신일이 아니라
+    본문 주차로 연결(늦게 온 메일도), EAI→EWA 별칭, 미검증 과목·셀프피드백은 검토로, 발신자 불일치·다른 학기 메일은
+    무관 처리, 모르는 과목 태그·주차 추출 실패는 검토로.
+  - `service.test.js`(7개): 매칭→상태 반영, 같은 message_id 중복 반영 안 함, 재제출은 이력으로 쌓임, 수동 "해당 없음"이
+    확인메일과 충돌하면 저장 거부 후 강제 옵션으로만 반영(근거는 안 지워짐), 완료 개수 계산(해당 없음 분모 제외).
+  - `gmail.test.js`(5개): text/plain 우선, text/html만 있으면 태그 제거 후 사용, 중첩 multipart 순회, 검색 쿼리 구성.
+  - **프런트엔드 수동 확인(로컬 백엔드 + `tools/dev-server.js`):** 표 렌더링, 상세 패널 열기/닫기, 직접 확인 표시 시
+    표·진행률 즉시 갱신, 미확인만 보기(양쪽 다 처리된 행만 숨김, 한쪽 처리는 옅게), 주차 이동, 동기화 버튼이 "연결 안 됨"을
+    정확히 알림(토스트), **백엔드를 끄면 표를 숨기고 정직하게 안내 문구만 표시**(가짜 데이터 없음).
+  - **실제 버그 발견·수정:** `future.js`의 `show()`가 'future'가 아닌 뷰에서는 해시를 지우는데(`history.replaceState`),
+    `assignment.js`는 이후 스크립트라 로드 시점엔 이미 해시가 비어 있어 `location.hash`로 자기 차례를 알 방법이 없었다 —
+    `phibrain:view` 이벤트 + `getCurrentView()`로 해결.
+- **미검증(그대로 보고):** 실제 Google OAuth 인가·토큰 교환·갱신, 실제 Gmail 메시지 조회·파싱, 다른 과목·셀프피드백의
+  실제 확인메일 제목/필드 구조(현재는 전부 검토 대기열행). 가상 데이터로 이 부분이 됐다고 보고하지 않는다.
+- **필요한 설정(사용자):**
+  1. Google Cloud 프로젝트 생성 → Gmail API 사용 설정.
+  2. OAuth 동의 화면 구성(테스트 사용자로 본인 계정 추가해도 충분 — 앱 게시 심사 불필요).
+  3. OAuth 클라이언트 ID 생성("웹 애플리케이션"), 승인된 리디렉션 URI에 `http://localhost:5600/auth/google/callback` 등록.
+  4. `server/.env.example`을 `server/.env`로 복사하고 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` 채우기(커밋 금지).
+  5. 다른 과목·셀프피드백 확인메일 실 표본(제목·폼 제목·필드 라벨) — `server/matching.js`의 `VERIFIED_FORMATS`와
+     라벨 상수에 매핑을 추가해야 자동 확인 범위가 넓어진다.
+- **실행 방법:** 백엔드 `node server/index.js`(포트 5600, `.claude/launch.json`에 `phi-brain-assignment-backend`로 등록) +
+  프런트 `tools/dev-server.js`(포트 5500, 기존과 동일) 둘 다 띄운 상태에서 `http://localhost:5500/prototypes/home.html#assignment`.
+  둘 중 하나라도 안 띄우면 화면이 정직하게 "백엔드에 연결할 수 없어요"만 보여준다.
+- **남은 일:** 실제 Gmail 연동 검증, 다른 과목·셀프피드백 매핑 확장, GitHub Pages(정적)에서는 이 백엔드가 동작하지
+  않으므로 배포하려면 별도 호스팅(Render 등, 과거 검토 이력 있음) 필요, 모바일 표 레이아웃 실기기 점검, 스크린리더 점검.
 
 ## Claude Code 교차 검토 (2026-09-11)
 
@@ -196,3 +247,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | 두 커서 크기를 16×17.82로 축소(핫스팟은 반올림하면 그대로 1 2), 캐시 무효화 버전 갱신 | 사용자 최종 확인 필요 |
 | 2026-09-12 | Claude Code | 사용자가 새로 만든 `cursor.svg`·`pointer.svg`(13×14)로 교체 — 이번엔 화살표가 흰 채움+짙은 회색 테두리, 포인터는 짙은 회색 단색(테두리색=채움색)으로 배색이 바뀜. 핫스팟 0 1, 캐시 무효화 버전 갱신 | 사용자 최종 확인 필요 |
 | 2026-09-12 | Claude Code | 사용자가 만든 `i-beam.svg`(1×14, 얇은 세로선)를 그대로 `cursor-text.svg`로 추가하고 `--phi-cursor-text` 토큰으로 텍스트 입력·contenteditable에 적용(핫스팟 0 7) | 사용자 최종 확인 필요 |
+| 2026-09-12 | Claude Code | **Assignment Manage 구현**(사용자 요구사항): `server/`에 Node 내장 모듈만으로 백엔드(SQLite·규칙 기반 Gmail 판별·OAuth2·REST API) 신규 작성, `design/prototypes/assignment.js`+`#view-assignment`로 화면 구현(표 형식, 기존 화면과 다른 레이아웃 유지), 테스트 23개(`node --test server/*.test.js`) 전부 통과, `future.js`에 `phibrain:view` 이벤트·`getCurrentView()` 추가 | 실제 Gmail/OAuth 미검증(Google Cloud 설정 필요) · 다른 과목·셀프피드백 매핑 확장 · 위 "Assignment Manage 구현 인계" 참고 |

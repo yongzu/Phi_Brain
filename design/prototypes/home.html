@@ -42,7 +42,7 @@
     <button type="button" class="nav-tab tab1">General</button>
     <div class="nav-list">
       <button type="button" class="nav-tab tab2" data-view="future">Future Item</button>
-      <button type="button" class="nav-tab tab2">Assignment Manage</button>
+      <button type="button" class="nav-tab tab2" data-view="assignment">Assignment Manage</button>
       <button type="button" class="nav-tab tab2">Journal Archive</button>
       <button type="button" class="nav-tab tab2">Insight Archive</button>
     </div>
@@ -179,6 +179,43 @@
     <div class="course-menu fi-menu" id="fi-menu" role="menu" aria-label="항목 메뉴" hidden></div>
   </div>
 
+  <!-- Assignment Manage: weekly submission status across 12 courses (assignment.js).
+       A table, not a card list — this screen tracks a grid, so it reads as one. -->
+  <div class="view view-assignment" id="view-assignment" hidden>
+    <section aria-labelledby="am-heading">
+      <header class="journal-head">
+        <h1 class="journal-heading" id="am-heading">Assignment Manage</h1>
+      </header>
+      <p class="field-hint">과제·셀프피드백 제출 여부만 관리해요. Future Item과는 따로예요 — 어느 쪽을 완료해도 서로의 상태를 바꾸지 않아요.</p>
+
+      <div class="am-toolbar">
+        <div class="am-week-nav">
+          <button type="button" class="pill" id="am-week-prev" aria-label="이전 주">‹</button>
+          <span class="am-week-label" id="am-week-label"></span>
+          <button type="button" class="pill" id="am-week-next" aria-label="다음 주">›</button>
+        </div>
+        <div class="am-status-line">
+          <span class="am-gmail-status" id="am-gmail-status"></span>
+          <button type="button" class="pill" id="am-gmail-connect" hidden>연결하기</button>
+          <button type="button" class="pill" id="am-gmail-disconnect" hidden>연결 해제</button>
+          <span class="am-sync-time" id="am-sync-time"></span>
+          <button type="button" class="pill" id="am-refresh">제출 상태 새로고침</button>
+        </div>
+        <label class="am-filter"><input type="checkbox" id="am-unconfirmed-only"> 미확인 항목만 보기</label>
+      </div>
+
+      <p class="am-progress" id="am-progress"></p>
+      <p class="am-backend-hint" id="am-backend-hint" hidden>백엔드에 연결할 수 없어요 — <code>node server/index.js</code>를 실행해주세요.</p>
+
+      <table class="am-table" id="am-table">
+        <thead><tr><th>과목</th><th>Assignment</th><th>Self-Feedback</th></tr></thead>
+        <tbody id="am-tbody"></tbody>
+      </table>
+    </section>
+
+    <div class="am-detail" id="am-detail" role="dialog" aria-label="제출 상세" hidden></div>
+  </div>
+
 </main>
 </div>
 
@@ -225,5 +262,6 @@
 </script>
 <script src="future.js?v=20260912-2"></script>
 <script src="journal.js?v=20260912-2"></script>
+<script src="assignment.js?v=1"></script>
 </body>
 </html>

@@ -319,6 +319,54 @@
   .fi-composer .btn-primary{margin-left:auto}
 }
 
+/* ---------- Assignment Manage ---------- */
+/* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
+.am-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:14px}
+.am-week-nav{display:flex;align-items:center;gap:8px}
+.am-week-label{color:var(--ink);font-variant-numeric:tabular-nums}
+.am-status-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--gray)}
+.am-filter{display:flex;align-items:center;gap:6px;color:var(--gray);cursor:pointer;margin-left:auto}
+.am-progress{margin:10px 0 0;color:var(--gray);font-variant-numeric:tabular-nums}
+.am-backend-hint{margin:16px 0;color:var(--ink)}
+.am-backend-hint code{background:var(--fill);border-radius:var(--radius-sm);padding:1px 5px}
+
+.am-table{width:100%;border-collapse:collapse;margin-top:14px}
+.am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
+.am-table td{padding:8px var(--tab-pad-x);border-bottom:1px solid var(--line);vertical-align:middle}
+.am-table tr:last-child td{border-bottom:none}
+.am-course-link{color:var(--ink)}
+.am-course-link:hover{text-decoration:underline}
+
+.am-cell{display:inline-flex;align-items:center;gap:6px}
+.am-cell.am-cell-dim{opacity:.35}
+.am-status{display:inline-flex;align-items:center;gap:6px;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
+.am-status:hover{background:var(--fill);color:var(--ink)}
+.am-dot{width:9px;height:9px;border-radius:50%;border:1px solid var(--gray);flex:0 0 9px}
+.am-dot-confirmed_mail,.am-dot-confirmed_manual{background:var(--ink);border-color:var(--ink)}
+.am-dot-not_applicable{border-style:dashed}
+.am-dot-conflict{background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 2px var(--fill)}
+.am-shortcut{color:var(--gray);padding:2px 4px;border-radius:var(--radius-sm)}
+.am-shortcut:hover{color:var(--ink);background:var(--fill)}
+
+.am-detail{position:fixed;right:32px;bottom:32px;width:320px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;padding:18px;box-shadow:var(--shadow-float);z-index:20}
+.am-detail-close{position:absolute;top:10px;right:10px;color:var(--gray)}
+.am-detail-title{margin:0 18px 8px 0;font-size:1em;color:var(--ink)}
+.am-detail-status{display:flex;align-items:center;gap:6px;margin:0 0 10px;color:var(--ink)}
+.am-conflict{color:var(--ink);background:var(--fill);border-radius:var(--radius-sm);padding:8px 10px;margin:0 0 10px}
+.am-detail-fields{margin:0 0 10px;font-size:.95em}
+.am-detail-fields dt{color:var(--gray);margin-top:6px}
+.am-detail-fields dd{margin:0;color:var(--ink)}
+.am-links{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:4px}
+.am-detail-actions{display:flex;flex-wrap:wrap;gap:6px}
+
+@media(max-width:640px){
+  .am-table,.am-table thead,.am-table tbody,.am-table tr,.am-table td{display:block}
+  .am-table thead{display:none}
+  .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
+  .am-table td{border-bottom:none;padding:2px 0}
+  .am-detail{left:16px;right:16px;bottom:16px;width:auto;max-width:none}
+}
+
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
    on the page's own white, all three lines in the secondary tone */
