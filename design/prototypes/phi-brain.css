@@ -322,18 +322,21 @@
 .fi-box-add-input:focus-visible{outline:0}
 
 .fi-rows{list-style:none;margin:0;padding:0}
-.fi-row{display:flex;align-items:center;gap:10px;min-height:32px}
+.fi-row{display:flex;flex-direction:column;gap:4px;min-height:32px;padding:2px 0}
 .fi-row[draggable="true"]{cursor:grab}
 .fi-row.is-drag-src{opacity:.4}
+.fi-row-main{display:flex;align-items:center;gap:10px}
 .fi-check{appearance:none;flex:0 0 10px;width:10px;height:10px;margin:0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .fi-check:hover{background:var(--fill)}
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
 .fi-text{flex:1;min-width:0;color:var(--ink);overflow-wrap:anywhere}
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
-.fi-due{flex:0 0 auto;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
-.fi-row.is-overdue .fi-due{color:var(--ink);font-weight:700}
-.fi-due-edit{flex:0 0 auto;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
+/* deadline: a small boxed badge on its own line, indented to sit under the
+   text (checkbox width 10px + .fi-row-main gap 10px = 20px) */
+.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fi-row.is-overdue .fi-due{color:var(--ink);border-color:var(--ink);font-weight:700}
+.fi-due-edit{margin-left:20px;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-due-edit:focus-visible{outline:0}
 .fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-edit:focus-visible{outline:0}

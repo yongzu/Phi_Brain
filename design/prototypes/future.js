@@ -207,16 +207,21 @@
 
   const rowHTML = i => {
     const overdue = !i.done && i.dueAt && dueMs(i.dueAt) < Date.now();
+    // the item text gets the row's full width on its own line; the deadline
+    // (if any) sits as a small boxed badge on a second line below it, instead
+    // of squeezing onto the same line and wrapping the text mid-word
     return `
     <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${i.id === editingId || i.id === editingDueId ? '' : ' draggable="true"'}>
-      <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
-      ${i.id === editingId
-        ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
-        : `<span class="fi-text">${esc(i.text)}</span>`}
+      <div class="fi-row-main">
+        <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
+        ${i.id === editingId
+          ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
+          : `<span class="fi-text">${esc(i.text)}</span>`}
+        <button type="button" class="pill pill-icon fi-more" aria-haspopup="menu" aria-label="항목 메뉴: ${esc(i.text)}">⋯</button>
+      </div>
       ${i.id === editingDueId
         ? `<input type="datetime-local" class="fi-due-edit" value="${esc(i.dueAt || '')}" aria-label="마감 시간 — Enter 저장, Esc 취소">`
         : i.dueAt ? `<span class="fi-due">마감 ${dueLabel(i.dueAt)}</span>` : ''}
-      <button type="button" class="pill pill-icon fi-more" aria-haspopup="menu" aria-label="항목 메뉴: ${esc(i.text)}">⋯</button>
     </li>`;
   };
 
