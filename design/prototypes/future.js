@@ -515,4 +515,3 @@
   addEventListener('hashchange', route);
   route();
 })();
-

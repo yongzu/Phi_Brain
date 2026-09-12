@@ -168,4 +168,3 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | 4F 템플릿 토글(다시 누르면 박스만 제거, 내용 유지), 코드 글꼴 Unifont 적용 | — (다음 작업에서 Unifont 제외) |
 | 2026-09-12 | Claude Code | Unifont 제거(코드도 Pretendard, `--font-mono` 토큰 삭제), "Future Item에 등록하기" + 임시 Future Item 탭(과목별 묶음·완료 표시), 지난 할 일을 실제 등록 항목으로 연결 | Future Item 탭 정식 디자인, 과목 판별은 AI 연결 시 교체 |
 | 2026-09-12 | Claude Code | **Future Items 페이지 구현**(사용자 요구사항): 필터·작성줄·박스·즐겨찾기·드래그/메뉴 이동·되돌리기·완료/수정/삭제·저장 실패 복구·v2 데이터(v1 전환)·주소 라우팅, 저널 등록을 "새 줄만 추가"로 변경, 기존 EAI→EWA 호환 별칭, `PRODUCT.md`에 확정 사항·데이터 모델 충돌 기록 | 위 "Future Items 구현 인계"의 남은 일. localStorage 전용 |
-

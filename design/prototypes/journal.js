@@ -519,4 +519,3 @@
   addEventListener('pagehide', save);
   load(today);
 })();
-

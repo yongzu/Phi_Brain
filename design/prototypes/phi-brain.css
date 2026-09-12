@@ -320,4 +320,3 @@
 .site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--gray)}
 .footer-social a:hover{color:var(--ink)}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
-
