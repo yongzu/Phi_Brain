@@ -82,7 +82,6 @@
     <div class="courses" id="courses">
       <span class="field-label">다룬 과목</span>
       <div class="course-chips" id="course-chips"></div>
-      <p class="field-hint">고르지 않아도 괜찮아요. 정리할 때 AI가 과목을 나누는 힌트로만 씁니다.</p>
     </div>
 
     <span class="date-field" id="date-field">
@@ -172,7 +171,7 @@
         <div class="course-chips fi-scope-chips" id="fi-scope-chips" role="radiogroup" aria-label="소속 선택"></div>
 
         <div class="fi-due-row">
-          <label class="fi-due-toggle"><input type="checkbox" id="fi-due-enable"> 마감</label>
+          <label class="fi-due-toggle"><input type="checkbox" class="fi-check" id="fi-due-enable" aria-label="마감 설정"> 마감</label>
           <span class="date-field" id="fi-due-date-field" hidden>
             <button type="button" class="pill pill-end" id="fi-due-date-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-due-datepicker">
               <span id="fi-due-date-label"></span><span class="caret" aria-hidden="true">▾</span>
