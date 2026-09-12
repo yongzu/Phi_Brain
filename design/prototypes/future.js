@@ -23,7 +23,6 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const EASE = 'cubic-bezier(.22,1,.36,1)';
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const monthDay = s => { const [, m, d] = s.split('-').map(Number); return `${m}월 ${d}일`; };
   // dueAt is stored as whatever <input type="datetime-local"> gives (local
   // wall-clock time, no timezone) — parsed as local time for display/sorting too
   const dueLabel = iso => {
@@ -209,19 +208,22 @@
     const overdue = !i.done && i.dueAt && dueMs(i.dueAt) < Date.now();
     // the item text gets the row's full width on its own line; the deadline
     // (if any) sits as a small boxed badge on a second line below it, instead
-    // of squeezing onto the same line and wrapping the text mid-word
+    // of squeezing onto the same line and wrapping the text mid-word.
+    // 행동·마감은 더블클릭으로 수정(아래 onListDblClick) — ⋯ 메뉴는 없고,
+    // 삭제만 별도의 작은 ✕ 버튼으로 남는다.
     return `
     <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${i.id === editingId || i.id === editingDueId ? '' : ' draggable="true"'}>
       <div class="fi-row-main">
         <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
         ${i.id === editingId
           ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
-          : `<span class="fi-text">${esc(i.text)}</span>`}
-        <button type="button" class="pill pill-icon fi-more" aria-haspopup="menu" aria-label="항목 메뉴: ${esc(i.text)}">⋯</button>
+          : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}
+        <button type="button" class="pill pill-icon fi-delete" aria-label="삭제: ${esc(i.text)}">✕</button>
       </div>
       ${i.id === editingDueId
         ? `<input type="datetime-local" class="fi-due-edit" value="${esc(i.dueAt || '')}" aria-label="마감 시간 — Enter 저장, Esc 취소">`
-        : i.dueAt ? `<span class="fi-due">마감 ${dueLabel(i.dueAt)}</span>` : ''}
+        : i.dueAt ? `<span class="fi-due" title="더블클릭해서 수정">마감 ${dueLabel(i.dueAt)}</span>`
+        : `<span class="fi-due fi-due-add" title="더블클릭해서 마감 설정">+ 마감</span>`}
     </li>`;
   };
 
@@ -230,8 +232,10 @@
     const open = items.filter(i => !i.done), done = items.filter(i => i.done);
     const temp = key === 'unassigned';
     // 임시/General live in the fixed top row, not the reorderable course grid —
-    // they're never draggable and have no ⋯ menu (nothing to favorite/rename/delete).
+    // they're never draggable and have no 즐겨찾기 별표(고정 자리라 즐겨찾기할
+    // 대상이 아님)나 ⋯ 메뉴(과목은 이름바꾸기·삭제할 게 없고, 커스텀 박스만 있다).
     const inGrid = key !== 'unassigned' && key !== 'general';
+    const isCustom = key.startsWith('custom:'), isFav = state.favorites.includes(key);
     const empty = open.length ? '' : `<p class="fi-box-empty">${
       done.length ? '남은 항목이 없어요.' : temp ? '소속을 정하지 않은 항목이 여기에 모여요.' : '아직 없어요. 위에서 실행할 행동을 추가해 보세요.'}</p>`;
     return `
@@ -241,9 +245,10 @@
             ? `<input type="text" class="fi-box-name-edit" value="${esc(customName(key.slice(7)))}" aria-label="박스 이름 수정 — Enter 저장, Esc 취소" maxlength="24">`
             : `<h2 class="fi-box-title" title="${esc(temp ? '소속을 정하지 않은 항목' : fullLabel(key))}">${titleHTML(key)}</h2>`}
           <span class="resume-count" aria-label="미완료 ${open.length}개">${open.length}</span>
-          ${inGrid && key !== editingBoxId ? `<button type="button" class="pill pill-icon fi-box-more" data-box-menu="${key}" aria-haspopup="menu" aria-label="${esc(shortLabel(key))} 박스 메뉴">⋯</button>` : ''}
+          ${inGrid ? `<button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-box-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(shortLabel(key))}">★</button>` : ''}
+          ${inGrid && isCustom && key !== editingBoxId ? `<button type="button" class="pill pill-icon fi-box-more" data-box-menu="${key}" aria-haspopup="menu" aria-label="${esc(shortLabel(key))} 박스 메뉴">⋯</button>` : ''}
         </header>
-        ${temp && (forced || open.length) ? '<p class="fi-box-hint">박스나 위 필터로 끌어다 놓거나, ⋯ 메뉴의 ‘소속 변경’으로 자리를 정해 주세요.</p>' : ''}
+        ${temp && (forced || open.length) ? '<p class="fi-box-hint">박스나 위 필터로 끌어다 놓아 자리를 정해 주세요.</p>' : ''}
         ${open.length ? `<ul class="fi-rows">${open.map(rowHTML).join('')}</ul>` : empty}
         ${done.length ? `
           <details class="fi-done" data-done="${key}"${openDone.has(key) ? ' open' : ''}>
@@ -330,11 +335,11 @@
       const it = s.items.find(i => i.id === id);
       const now = Date.now();
       Object.assign(it, scopeOf(key), { placedAt: now, updatedAt: now }); // arrives as the newest in its new box
-    }, { focus: stillHere ? `[data-id="${id}"] .fi-more` : null });
+    }, { focus: stillHere ? `[data-id="${id}"] .fi-delete` : null });
     if (!r.ok) return;
     toast(`${toPhrase(key)} 옮겼어요`, {
       label: '되돌리기',
-      run: () => commit(s => { const it = s.items.find(i => i.id === id); if (it) Object.assign(it, prev); }, { focus: `[data-id="${id}"] .fi-more` }),
+      run: () => commit(s => { const it = s.items.find(i => i.id === id); if (it) Object.assign(it, prev); }, { focus: `[data-id="${id}"] .fi-delete` }),
     }, '', !stillHere); // item left this view → hand keyboard focus to 되돌리기
   }
 
@@ -359,20 +364,20 @@
     if (editingId !== id) return;
     editingId = null;
     const item = find(id), text = (value || '').trim();
-    if (cancel || !item || !text || text === item.text) { render(`[data-id="${id}"] .fi-more`); return; }
+    if (cancel || !item || !text || text === item.text) { render(`[data-id="${id}"] .fi-delete`); return; }
     commit(s => { const it = s.items.find(i => i.id === id); it.text = text; it.updatedAt = Date.now(); },
-      { focus: `[data-id="${id}"] .fi-more` });
+      { focus: `[data-id="${id}"] .fi-delete` });
   }
 
   function setDue(id, value, cancel = false) {
     if (editingDueId !== id) return;
     editingDueId = null;
     const item = find(id);
-    if (cancel || !item) { render(`[data-id="${id}"] .fi-more`); return; }
+    if (cancel || !item) { render(`[data-id="${id}"] .fi-delete`); return; }
     const dueAt = saneDue(value) || null;
-    if (dueAt === item.dueAt) { render(`[data-id="${id}"] .fi-more`); return; }
+    if (dueAt === item.dueAt) { render(`[data-id="${id}"] .fi-delete`); return; }
     commit(s => { const it = s.items.find(i => i.id === id); it.dueAt = dueAt; it.updatedAt = Date.now(); },
-      { focus: `[data-id="${id}"] .fi-more` });
+      { focus: `[data-id="${id}"] .fi-delete` });
   }
 
   function remove(id) {
@@ -384,7 +389,7 @@
     toast('삭제했어요', {
       label: '되돌리기',
       run: () => commit(s => { if (!s.items.some(i => i.id === id)) s.items.splice(Math.min(index, s.items.length), 0, copy); },
-        { focus: `[data-id="${id}"] .fi-more` }),
+        { focus: `[data-id="${id}"] .fi-delete` }),
     }, '', true);
   }
 
@@ -468,6 +473,28 @@
     commit(s => { s.boxOrder = without; }, { focus: `[data-box="${srcKey}"] .fi-box-title` });
   }
 
+  // ---- reordering activities within a box (드래그로 순서 변경) ----
+  // Same trick as reorderBox, applied to placedAt instead of a boxOrder array:
+  // there's no separate "manual order" field, so re-stamping every open item's
+  // placedAt in the new order (strictly decreasing) both encodes the order and
+  // keeps sorting by placedAt DESC working everywhere else unchanged.
+  function reorderItem(srcId, targetId) {
+    if (srcId === targetId) return;
+    const src = find(srcId), target = find(targetId);
+    if (!src || !target || src.done || target.done) return;
+    const box = keyOf(src);
+    if (keyOf(target) !== box) return;
+    const order = itemsIn(box).filter(i => !i.done).sort((a, b) => b.placedAt - a.placedAt).map(i => i.id);
+    const srcIdx = order.indexOf(srcId), tgtIdx = order.indexOf(targetId);
+    if (srcIdx < 0 || tgtIdx < 0) return;
+    const without = order.filter(id => id !== srcId);
+    const insertAt = without.indexOf(targetId) + (srcIdx < tgtIdx ? 1 : 0);
+    without.splice(insertAt, 0, srcId);
+    const now = Date.now();
+    commit(s => { without.forEach((id, i) => { const it = s.items.find(x => x.id === id); if (it) it.placedAt = now - i; }); },
+      { focus: `[data-id="${srcId}"] .fi-delete` });
+  }
+
   // ---- sorting the whole course/custom grid at once (정렬 버튼) ----
   // A one-shot rearrangement, not a persistent "mode": it just rewrites
   // boxOrder, so the user can keep fine-tuning by drag afterward. Sorting
@@ -483,7 +510,9 @@
     commit(s => { s.boxOrder = gridOrder().sort(cmp); });
   }
 
-  // ---- menus (item ⋯ and membership picker share one floating card) ----
+  // ---- menus: box ⋯(커스텀 박스 전용: 이름바꾸기·삭제)와 정렬 메뉴가 하나의
+  // 플로팅 카드를 공유한다. 항목(activity)은 더블클릭·✕·드래그로 다 되니
+  // 별도 메뉴가 없다(item ⋯ 메뉴와 소속 선택 메뉴는 그래서 삭제됨) ----
   let menuAnchor = null;
   function openMenu(anchor, html) {
     menuAnchor = anchor;
@@ -503,74 +532,31 @@
     popOut(menu);
     if (refocus && a.isConnected) a.focus();
   }
-  const scopeListHTML = (current, { unassignedLabel }) =>
-    [['unassigned', unassignedLabel], ['general', 'General'], ...COURSES.map(([c, n]) => [`course:${c}`, `<span class="nav-code">${c}</span>_${n}`]),
-      ...state.customBoxes.map(b => [`custom:${b.id}`, esc(b.name)])]
-      .map(([k, label]) => `<button type="button" class="cm-item" role="menuitemradio" data-key="${k}" aria-checked="${k === current}">${label}</button>`)
-      .join('');
-
-  let pickScope = null; // what a membership pick does for the open menu
-  function openScopeMenu(anchor, current, onPick, unassignedLabel) {
-    pickScope = onPick;
-    openMenu(anchor, `<p class="cm-head">소속</p>${scopeListHTML(current, { unassignedLabel })}`);
-    $('.cm-item[aria-checked="true"]', menu)?.focus({ preventScroll: true });
-  }
   function openBoxMenu(btn, key) {
-    const fav = state.favorites.includes(key), isCustom = key.startsWith('custom:');
-    pickScope = null;
     openMenu(btn, `
-      <button type="button" class="cm-item" role="menuitem" data-box-act="fav" data-box="${key}">${fav ? '즐겨찾기 해제' : '즐겨찾기'}</button>
-      ${isCustom ? `<button type="button" class="cm-item" role="menuitem" data-box-act="rename" data-box="${key}">이름 바꾸기</button>
+      <button type="button" class="cm-item" role="menuitem" data-box-act="rename" data-box="${key}">이름 바꾸기</button>
       <div class="cm-sep" role="separator"></div>
-      <button type="button" class="cm-item" role="menuitem" data-box-act="delete" data-box="${key}">삭제</button>` : ''}`);
+      <button type="button" class="cm-item" role="menuitem" data-box-act="delete" data-box="${key}">삭제</button>`);
   }
   function openSortMenu(btn) {
-    pickScope = null;
     openMenu(btn, `
       <button type="button" class="cm-item" role="menuitem" data-sort-act="recent">최신 추가순</button>
       <button type="button" class="cm-item" role="menuitem" data-sort-act="due">마감 급한순</button>
       <button type="button" class="cm-item" role="menuitem" data-sort-act="alpha">알파벳순</button>`);
   }
-  function openItemMenu(btn) {
-    const id = btn.closest('.fi-row').dataset.id, item = find(id);
-    if (!item) return;
-    pickScope = null;
-    openMenu(btn, `
-      <button type="button" class="cm-item" role="menuitem" data-act="edit" data-id="${id}">수정</button>
-      <button type="button" class="cm-item" role="menuitem" data-act="due" data-id="${id}">${item.dueAt ? '마감 변경' : '마감 설정'} ${item.dueAt ? `<span class="cm-note">${dueLabel(item.dueAt)}</span>` : ''}</button>
-      <button type="button" class="cm-item" role="menuitem" data-act="scope" data-id="${id}">소속 변경 <span class="cm-note">${esc(shortLabel(keyOf(item)))}</span></button>
-      ${item.source?.journalDate ? `<button type="button" class="cm-item" role="menuitem" data-act="journal" data-id="${id}">원문 저널 열기 <span class="cm-note">${monthDay(item.source.journalDate)}</span></button>` : ''}
-      <div class="cm-sep" role="separator"></div>
-      <button type="button" class="cm-item" role="menuitem" data-act="delete" data-id="${id}">삭제</button>`);
-  }
 
   menu.addEventListener('click', e => {
     const b = e.target.closest('.cm-item');
     if (!b) return;
-    if (b.dataset.key) { const run = pickScope; closeMenu(!run?.keepFocus); run?.(b.dataset.key); return; }
     if (b.dataset.boxAct) {
       const key = b.dataset.box;
       switch (b.dataset.boxAct) {
-        case 'fav': closeMenu(false); toggleFavorite(key); break;
         case 'rename': closeMenu(false); editingBoxId = key; render(); break;
         case 'delete': closeMenu(false); deleteBox(key); break;
       }
       return;
     }
-    if (b.dataset.sortAct) { closeMenu(false); applySort(b.dataset.sortAct); return; }
-    const id = b.dataset.id, anchor = menuAnchor;
-    switch (b.dataset.act) {
-      case 'edit': closeMenu(false); editingId = id; render(); break;
-      case 'due': closeMenu(false); editingDueId = id; render(); break;
-      case 'scope': {
-        const pick = key => move(id, key);
-        pick.keepFocus = true;
-        openScopeMenu(anchor, keyOf(find(id)), pick, '임시 (미지정)');
-        break;
-      }
-      case 'journal': closeMenu(false); window.PhiBrain.openJournal?.(find(id).source.journalDate); break;
-      case 'delete': closeMenu(false); remove(id); break;
-    }
+    if (b.dataset.sortAct) { closeMenu(false); applySort(b.dataset.sortAct); }
   });
   menu.addEventListener('keydown', e => {
     if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); closeMenu(); return; }
@@ -750,13 +736,23 @@
     if (chip) { draftKey = chip.dataset.scopeChip; renderScopeChips(); input.focus(); return; }
     const f = e.target.closest('.fi-filter');
     if (f) { setFilter(f.dataset.filter, true); return; }
-    const more = e.target.closest('.fi-more');
-    if (more) { menuAnchor === more ? closeMenu() : openItemMenu(more); return; }
+    const del = e.target.closest('.fi-delete');
+    if (del) { remove(del.closest('.fi-row').dataset.id); return; }
+    const boxFav = e.target.closest('.fi-box-fav');
+    if (boxFav) { toggleFavorite(boxFav.dataset.boxFav); return; }
     const boxMore = e.target.closest('.fi-box-more');
     if (boxMore) { menuAnchor === boxMore ? closeMenu() : openBoxMenu(boxMore, boxMore.dataset.boxMenu); return; }
     const addBtn = e.target.closest('#fi-box-add-btn');
     if (addBtn) { addingBox = true; render(); }
   });
+  // 행동 텍스트·마감을 더블클릭하면 그 자리에서 바로 수정(마감이 없으면 "+ 마감"을
+  // 눌러 새로 정한다) — 클릭 한 번으로 여는 메뉴 없이 곧바로 편집 상태로 들어간다
+  function onListDblClick(e) {
+    const text = e.target.closest('.fi-text');
+    if (text) { editingId = text.closest('.fi-row').dataset.id; render(); return; }
+    const due = e.target.closest('.fi-due');
+    if (due) { editingDueId = due.closest('.fi-row').dataset.id; render(); }
+  }
   // General/임시 live in their own #fi-top-row-slot, outside #fi-list, but their
   // rows (checkbox, edit, due, ⋯) need the exact same handling — attach each
   // listener to both containers rather than duplicating the logic.
@@ -806,6 +802,7 @@
     el.addEventListener('change', onListChange);
     el.addEventListener('keydown', onListKeydown);
     el.addEventListener('focusout', onListFocusout);
+    el.addEventListener('dblclick', onListDblClick);
   });
 
   // ---- drag to change an item's membership (filters except All, boxes, 임시) ----
@@ -817,8 +814,16 @@
     dragId = null;
     dragBoxKey = null;
     view.classList.remove('is-dragging', 'is-dragging-box');
-    $$('.drop-ok, .drop-over, .is-drag-src, .box-drag-src, .box-drop-over', view)
-      .forEach(el => el.classList.remove('drop-ok', 'drop-over', 'is-drag-src', 'box-drag-src', 'box-drop-over'));
+    $$('.drop-ok, .drop-over, .is-drag-src, .box-drag-src, .box-drop-over, .row-drop-over', view)
+      .forEach(el => el.classList.remove('drop-ok', 'drop-over', 'is-drag-src', 'box-drag-src', 'box-drop-over', 'row-drop-over'));
+  };
+  // dropping an item ON another row reorders within that row's box (only when
+  // it's the same box the dragged item is already in and both are open items)
+  const rowDropTarget = e => {
+    const row = e.target.closest?.('.fi-row');
+    if (!row || row.dataset.id === dragId) return null;
+    const src = find(dragId), target = find(row.dataset.id);
+    return src && target && !src.done && !target.done && keyOf(src) === keyOf(target) ? row : null;
   };
   view.addEventListener('dragstart', e => {
     const row = e.target.closest?.('.fi-row');
@@ -851,16 +856,30 @@
       t.classList.add('box-drop-over');
       return;
     }
+    if (dragId) {
+      const row = rowDropTarget(e);
+      if (row) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        $$('.row-drop-over', view).forEach(el => el !== row && el.classList.remove('row-drop-over'));
+        $$('.drop-over', view).forEach(el => el.classList.remove('drop-over'));
+        row.classList.add('row-drop-over');
+        return;
+      }
+    }
     const t = dragId && e.target.closest?.('[data-drop].drop-ok');
     if (!t) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    $$('.row-drop-over', view).forEach(el => el.classList.remove('row-drop-over'));
     $$('.drop-over', view).forEach(el => el !== t && el.classList.remove('drop-over'));
     t.classList.add('drop-over');
   });
   view.addEventListener('dragleave', e => {
     const t = e.target.closest?.('[data-drop]');
     if (t && !t.contains(e.relatedTarget)) t.classList.remove('drop-over', 'box-drop-over');
+    const row = e.target.closest?.('.fi-row');
+    if (row && !row.contains(e.relatedTarget)) row.classList.remove('row-drop-over');
   });
   view.addEventListener('drop', e => {
     if (dragBoxKey) {
@@ -874,6 +893,16 @@
       }
       clearDrag();
       return;
+    }
+    if (dragId) {
+      const row = rowDropTarget(e);
+      if (row) {
+        e.preventDefault();
+        const id = dragId;
+        clearDrag();
+        reorderItem(id, row.dataset.id);
+        return;
+      }
     }
     const t = dragId && e.target.closest?.('[data-drop].drop-ok');
     if (!t) return;

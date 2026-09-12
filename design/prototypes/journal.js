@@ -621,22 +621,27 @@
   const favKey = (date, course) => `${date}::${course}`;
   const favorites = {
     all() { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY)) || []); } catch { return new Set(); } },
-    has(date, course) { return favorites.all().has(favKey(date, course)); },
     toggle(date, course) {
       const s = favorites.all(), k = favKey(date, course);
       s.has(k) ? s.delete(k) : s.add(k);
       try { localStorage.setItem(FAV_KEY, JSON.stringify([...s])); } catch {}
     },
   };
-  const archiveCardHTML = (e, course, favSet) => `
-    <div class="archive-card${favSet.has(favKey(e.date, course)) ? ' is-fav' : ''}" data-date="${e.date}">
+  // 즐겨찾기는 Future Item 과목 박스와 같은 별표(.fi-box-fav, 항상 ★ 모양이고
+  // 즐겨찾기된 것만 --ink로 칠함)를 그대로 재사용 — 카드 헤더에 두면 CSS도 공짜
+  const archiveCardHTML = (e, course, favSet) => {
+    const isFav = favSet.has(favKey(e.date, course));
+    return `
+    <div class="archive-card${isFav ? ' is-fav' : ''}" data-date="${e.date}">
       <header class="fi-box-head archive-card-head">
         <h2 class="fi-box-title">${esc(e.title)}</h2>
         <span class="resume-count">${e.savedAt ? clock(e.savedAt) : ''}</span>
-        <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" data-course="${course}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
+        <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-fav="${e.date}" data-fav-course="${course}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(e.title)}">★</button>
+        <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
       </header>
       <div class="editor archive-preview archive-card-body">${courseExcerptHtml(e.html, course)}</div>
     </div>`;
+  };
 
   function wireArchiveMoreButtons(container) {
     // bound directly to each button (not delegated on the container) so
@@ -644,7 +649,12 @@
     // handler (StyleKit.createAccordion) toggles that row open/closed
     container.querySelectorAll('.archive-more').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation();
-      archiveMenuAnchor === b ? closeArchiveMenu() : openArchiveMenu(b, b.dataset.more, b.dataset.course || null);
+      archiveMenuAnchor === b ? closeArchiveMenu() : openArchiveMenu(b, b.dataset.more);
+    }));
+    container.querySelectorAll('.fi-box-fav').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      favorites.toggle(b.dataset.fav, b.dataset.favCourse);
+      renderArchiveList(archiveEntries());
     }));
   }
   // All: 기존 목록. 특정 과목 필터: 그 과목이 들어간 날짜마다 그 과목 내용만
@@ -696,18 +706,14 @@
     renderArchive();
   }
   archiveBackBtn.addEventListener('click', exitArchiveEdit);
-  // ---- row/card ⋯ menu: "수정하기" always; "즐겨찾기"는 카드(과목 필터)에서만
-  // — 카드 자체가 "그 과목의 한 조각"이라 즐겨찾기 대상이 카드 단위다. 같은
-  // 팝업 컴포넌트를 Journaling의 본문 과목 메뉴(#course-menu)와 공유한다 ----
+  // ---- row/card ⋯ menu: 그냥 "수정하기" 하나뿐이다(즐겨찾기는 별표 버튼으로
+  // 옮겨감) — Journaling의 본문 과목 메뉴(#course-menu)와 같은 팝업 컴포넌트 ----
   const archiveMenu = $('#archive-menu');
   let archiveMenuAnchor = null;
-  function openArchiveMenu(btn, date, course) {
+  function openArchiveMenu(btn, date) {
     archiveMenuAnchor = btn;
     archiveMenu.dataset.date = date;
-    archiveMenu.dataset.course = course || '';
-    const isFav = course && favorites.has(date, course);
-    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>'
-      + (course ? `<button type="button" class="cm-item" role="menuitem" data-act="fav">${isFav ? '즐겨찾기 해제' : '즐겨찾기'}</button>` : '');
+    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>';
     const v = $('#view-archive').getBoundingClientRect(), a = btn.getBoundingClientRect();
     archiveMenu.hidden = false; // measure
     const w = archiveMenu.offsetWidth;
@@ -725,10 +731,10 @@
   }
   archiveMenu.addEventListener('click', e => {
     const b = e.target.closest('.cm-item');
-    if (!b) return;
-    const date = archiveMenu.dataset.date, course = archiveMenu.dataset.course || null;
-    if (b.dataset.act === 'edit') { closeArchiveMenu(false); enterArchiveEdit(date); }
-    else if (b.dataset.act === 'fav') { favorites.toggle(date, course); closeArchiveMenu(false); renderArchiveList(archiveEntries()); }
+    if (!b || b.dataset.act !== 'edit') return;
+    const date = archiveMenu.dataset.date;
+    closeArchiveMenu(false);
+    enterArchiveEdit(date);
   });
   archiveMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeArchiveMenu(); } });
   document.addEventListener('pointerdown', e => {

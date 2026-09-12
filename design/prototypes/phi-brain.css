@@ -322,7 +322,12 @@
 .fi-box-title{margin:0;color:var(--ink);overflow-wrap:anywhere}
 .fi-box-name-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-box-name-edit:focus-visible{outline:0}
-.fi-box-more{margin-left:auto;margin-right:-6px}
+/* 즐겨찾기 별표: 항상 같은 모양(★)으로 있고, 즐겨찾기된 것만 --ink로 칠한다 —
+   Journal Archive 카드의 즐겨찾기 별표도 이 클래스를 그대로 재사용한다 */
+.fi-box-fav{margin-left:auto;color:var(--gray);font-size:13px;line-height:1;transition:color 140ms}
+.fi-box-fav:hover{color:var(--ink)}
+.fi-box-fav.is-fav{color:var(--ink)}
+.fi-box-more{margin-right:-6px}
 .fi-box-hint,.fi-box-empty{margin:2px 0 6px;color:var(--gray)}
 
 /* the "+ 박스 추가" tile: a button when idle, a name field once clicked */
@@ -345,13 +350,18 @@
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* deadline: a small boxed badge on its own line, indented to sit under the
    text (checkbox width 10px + .fi-row-main gap 10px = 20px) */
-.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
 .fi-row.is-overdue .fi-due{color:var(--ink);font-weight:700}
+/* no deadline yet — a quieter version of the same badge, invites a double-click to add one */
+.fi-due-add{opacity:.6;transition:opacity 140ms}
+.fi-due-add:hover{opacity:1}
 .fi-due-edit{margin-left:20px;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-due-edit:focus-visible{outline:0}
 .fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-edit:focus-visible{outline:0}
-.fi-more{flex:0 0 auto;margin-right:-6px}
+.fi-delete{flex:0 0 auto;margin-right:-6px}
+/* dragging one activity onto another (same box) reorders instead of moving boxes */
+.fi-row.row-drop-over{outline:1px dashed var(--ink);outline-offset:2px}
 
 .fi-done{margin-top:4px}
 .fi-done summary{list-style:none;cursor:pointer}
@@ -447,6 +457,7 @@
 /* ---------- Journal Archive ---------- */
 .view-archive{position:relative} /* positions #archive-menu, same as .view-future */
 .archive-hint{margin:6px 0 16px}
+#archive-filters{margin-bottom:10px}
 /* each row is its own <details> dropdown, not nested in a section-level one —
    drop resume-list's accordion indent and stretch rows to the full width so
    the summary's title/meta/caret spacing (margin-right:auto trick) works */
