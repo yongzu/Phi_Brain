@@ -334,8 +334,8 @@
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* deadline: a small boxed badge on its own line, indented to sit under the
    text (checkbox width 10px + .fi-row-main gap 10px = 20px) */
-.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
-.fi-row.is-overdue .fi-due{color:var(--ink);border-color:var(--ink);font-weight:700}
+.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fi-row.is-overdue .fi-due{color:var(--ink);font-weight:700}
 .fi-due-edit{margin-left:20px;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-due-edit:focus-visible{outline:0}
 .fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
