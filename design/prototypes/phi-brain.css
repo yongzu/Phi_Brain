@@ -15,6 +15,7 @@
   --gray:#999;    /* all secondary text: Tab2, meta, hints, placeholder, footer */
   --line:#ededed; /* borders, text selection */
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
+  --phi-cursor:url("cursor-arrow.svg") 4 3;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
@@ -320,3 +321,10 @@
 .site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--gray)}
 .footer-social a:hover{color:var(--ink)}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
+
+/* Desktop pointer: preserve text, disabled and drag-specific system cursors. */
+@media (pointer:fine){
+  html,body{cursor:var(--phi-cursor),auto}
+  button:not(:disabled),a,summary,label,select:not(:disabled),input[type="checkbox"]:not(:disabled),[role="button"]{cursor:var(--phi-cursor),pointer}
+  input[type="text"],input[type="search"],textarea,[contenteditable="true"]{cursor:text}
+}
