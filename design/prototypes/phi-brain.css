@@ -22,8 +22,8 @@
      thin dark rim at cursor size no matter what was tried, which points at the
      browser/OS's cursor rasterizer rather than the artwork — a raster image
      sidesteps that step entirely. */
-  --phi-cursor:url("cursor-arrow.png?v=2") 4 3;
-  --phi-cursor-pointer:url("cursor-pointer.svg?v=6") 4 4;
+  --phi-cursor:url("cursor-arrow.png?v=3") 4 3;
+  --phi-cursor-pointer:url("cursor-pointer.svg?v=7") 2 3;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
