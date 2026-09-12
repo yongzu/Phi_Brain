@@ -4,11 +4,18 @@
 
 ## 현재 단계
 
+### Codex UI 수정 인계 (2026-09-12)
+
+- EAI 표기를 EWA로 수정. 기존 Future Items 항목·즐겨찾기 및 저널 과목 선택·본문 과목 박스의 EAI 호환 처리.
+- 다룬 과목 General 추가, AL 선택칸 음수 여백 제거, 등록 버튼을 정리하기 왼쪽 미체크 옵션으로 변경, 체크 원 크기 축소.
+- 로컬 브라우저에서 미체크 기본값·General 선택·4F 작성·체크 후 General 등록·Future Items EWA 필터를 확인했다.
+- JS 문법·차이 공백 검사 및 기존 EAI 데이터 변환의 순수 함수 검증 수행.
+- GitHub `main`에 UI 수정(`0e65aeff`)과 캐시 갱신(`4a123e28`)을 반영했다. GitHub Pages에서 General·EWA·AL 노출, 미체크 등록 옵션, Future Items EWA 필터를 다시 확인했다.
+
 프론트엔드 프로토타입 단계. Journaling 화면과 **Future Items 페이지(사용자 구현 지시, 2026-09-12)**가 정적 페이지로
 동작한다. 저장은 브라우저 localStorage뿐이며 서버·DB·계정·기기 간 동기화·AI 정리는 없다(백엔드 구현 지시 없음).
 
-**최신 확인:** `92d1808`을 원격에서 받아 로컬을 fast-forward로 갱신했다. 사용자가 Future Items 배포 완료 및 Assignment Manage 미구현을 명시했다.
-Codex는 Future Items 코드·페이지 연결·localStorage 저장과 Claude 인계 기록을 확인했다. 이번 확인에서 배포 화면의 브라우저 동작을 재검증한 것은 아니다.
+**최신 확인:** `4a123e28`까지 원격과 GitHub Pages에 반영했다. Codex는 Future Items 코드·페이지 연결·localStorage 저장과 Claude 인계 기록을 확인하고, 최신 배포 화면을 브라우저로 재검증했다.
 Assignment Manage는 메뉴만 있고 본문·Gmail 인증·제출 자동 확인은 아직 없다. 셀프피드백을 저널에 가져오는 기능은 제외한다.
 AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널 재등록 설명을 정리했다. 앱 코드는 수정하지 않았다.
 
@@ -51,7 +58,7 @@ AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널
   - 박스·필터·All 개수 즉시 일치, 과목 필터에서 바꾼 것이 All에 반영 ✓ / 새로고침 후 항목·완료·즐겨찾기·필터 유지 ✓
   - 저장 실패(저장소 쓰기 오류를 강제로 발생): 화면·저장 모두 원상 복구 + 오류 토스트 + 다시 시도로 적용, 추가 실패 시 입력 문장 유지 ✓
   - 375px 모바일: 가로 넘침 없음, 필터 줄바꿈, 메뉴·토스트 화면 안, 탭으로 소속 변경 ✓
-  - 저널 "Future Item에 등록하기" 재등록 시 중복·이동 덮어쓰기 없음, EWA→EAI, 원문 저널 열기 ✓
+  - 저널 "Future Item에 등록하기" 재등록 시 중복·이동 덮어쓰기 없음, 기존 EAI→EWA 호환, 원문 저널 열기 ✓
   - 키보드: 메뉴 화살표 이동·순환, Esc 닫기와 포커스 복귀, Enter 추가, 편집 Enter/Esc는 실제 키 이벤트로 확인 ✓.
     **버튼·체크박스의 Enter/Space 활성화 자체는 자동 검증 못함**(브라우저 도구가 문자 없는 키 이벤트만 보냄) — 모두 기본
     `<button>`·`<input type=checkbox>`라 브라우저 기본 동작에 의존. 실제 기기에서 한 번 확인 필요.
@@ -160,4 +167,5 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | 본문 과목 박스(+과목 메뉴), 제목·목록 버튼 제거, 서식 줄(B·I·U·S·인용·코드) 추가, `--radius-sm`·`--font-mono` 토큰 | 서식은 브라우저 execCommand 기반(프로토타입용). 실제 구현 시 에디터 라이브러리 검토 필요 |
 | 2026-09-12 | Claude Code | 4F 템플릿 토글(다시 누르면 박스만 제거, 내용 유지), 코드 글꼴 Unifont 적용 | — (다음 작업에서 Unifont 제외) |
 | 2026-09-12 | Claude Code | Unifont 제거(코드도 Pretendard, `--font-mono` 토큰 삭제), "Future Item에 등록하기" + 임시 Future Item 탭(과목별 묶음·완료 표시), 지난 할 일을 실제 등록 항목으로 연결 | Future Item 탭 정식 디자인, 과목 판별은 AI 연결 시 교체 |
-| 2026-09-12 | Claude Code | **Future Items 페이지 구현**(사용자 요구사항): 필터·작성줄·박스·즐겨찾기·드래그/메뉴 이동·되돌리기·완료/수정/삭제·저장 실패 복구·v2 데이터(v1 전환)·주소 라우팅, 저널 등록을 "새 줄만 추가"로 변경, EWA→EAI 별칭, `PRODUCT.md`에 확정 사항·데이터 모델 충돌 기록 | 위 "Future Items 구현 인계"의 남은 일. localStorage 전용 |
+| 2026-09-12 | Claude Code | **Future Items 페이지 구현**(사용자 요구사항): 필터·작성줄·박스·즐겨찾기·드래그/메뉴 이동·되돌리기·완료/수정/삭제·저장 실패 복구·v2 데이터(v1 전환)·주소 라우팅, 저널 등록을 "새 줄만 추가"로 변경, 기존 EAI→EWA 호환 별칭, `PRODUCT.md`에 확정 사항·데이터 모델 충돌 기록 | 위 "Future Items 구현 인계"의 남은 일. localStorage 전용 |
+
