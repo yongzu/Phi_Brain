@@ -627,8 +627,8 @@
       try { localStorage.setItem(FAV_KEY, JSON.stringify([...s])); } catch {}
     },
   };
-  // 즐겨찾기는 Future Item 과목 박스와 같은 별표(.fi-box-fav, 항상 ★ 모양이고
-  // 즐겨찾기된 것만 --ink로 칠함)를 그대로 재사용 — 카드 헤더에 두면 CSS도 공짜
+  // 즐겨찾기는 Future Item 과목 박스와 같은 별표(.fi-box-fav, CSS background로
+  // 옅은 회색/검정 SVG를 바꿔 끼우는 방식)를 그대로 재사용 — 카드 헤더에 두면 CSS도 공짜
   const archiveCardHTML = (e, course, favSet) => {
     const isFav = favSet.has(favKey(e.date, course));
     return `
@@ -636,7 +636,7 @@
       <header class="fi-box-head archive-card-head">
         <h2 class="fi-box-title">${esc(e.title)}</h2>
         <span class="resume-count">${e.savedAt ? clock(e.savedAt) : ''}</span>
-        <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-fav="${e.date}" data-fav-course="${course}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(e.title)}">★</button>
+        <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-fav="${e.date}" data-fav-course="${course}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(e.title)}"></button>
         <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
       </header>
       <div class="editor archive-preview archive-card-body">${courseExcerptHtml(e.html, course)}</div>

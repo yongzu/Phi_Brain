@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260913-11">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-12">
 </head>
 <body>
 
@@ -217,6 +217,49 @@
       <div class="fi-list" id="fi-list"></div>
     </section>
     <div class="course-menu fi-menu" id="fi-menu" role="menu" aria-label="항목 메뉴" hidden></div>
+
+    <!-- 시계 아이콘을 누르면 뜨는, 특정 활동 하나의 마감을 정하는 팝오버 —
+         작성 카드의 마감 선택창과 같은 .datepicker/.tp-col 컴포넌트를 쓰되
+         이건 클릭한 항목 옆에 뜨는 별도 인스턴스(같은 이유로 id를 따로 둔다) -->
+    <div class="fi-due-pop" id="fi-rowdue-pop" hidden>
+      <span class="date-field" id="fi-rowdue-date-field">
+        <button type="button" class="pill pill-end" id="fi-rowdue-date-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-rowdue-datepicker">
+          <span id="fi-rowdue-date-label">날짜 선택</span><span class="caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="datepicker" id="fi-rowdue-datepicker" role="dialog" aria-label="마감 날짜 선택" hidden>
+          <div class="dp-head">
+            <span class="dp-title" id="fi-rowdue-dp-title"></span>
+            <span class="dp-steps">
+              <button type="button" class="pill pill-icon" id="fi-rowdue-dp-prev" aria-label="이전 달">‹</button>
+              <button type="button" class="pill pill-icon" id="fi-rowdue-dp-next" aria-label="다음 달">›</button>
+            </span>
+          </div>
+          <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+          <div class="dp-grid" id="fi-rowdue-dp-grid"></div>
+          <div class="dp-foot">
+            <button type="button" class="pill pill-inline" id="fi-rowdue-clear">마감 없음</button>
+            <button type="button" class="pill pill-end" id="fi-rowdue-dp-today">오늘</button>
+          </div>
+        </div>
+      </span>
+      <span class="date-field" id="fi-rowdue-time-field">
+        <button type="button" class="pill pill-end" id="fi-rowdue-time-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-rowdue-timepicker">
+          <span id="fi-rowdue-time-label">시간 선택</span><span class="caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="datepicker tp-panel" id="fi-rowdue-timepicker" role="dialog" aria-label="마감 시간 선택" hidden>
+          <div class="dp-head"><span class="dp-title">시간 선택</span></div>
+          <div class="tp-cols">
+            <div class="tp-col" id="fi-rowdue-tp-meridiem" role="listbox" aria-label="오전/오후"></div>
+            <div class="tp-col" id="fi-rowdue-tp-hour" role="listbox" aria-label="시"></div>
+            <div class="tp-col" id="fi-rowdue-tp-minute" role="listbox" aria-label="분"></div>
+          </div>
+          <div class="dp-foot">
+            <button type="button" class="pill pill-inline" id="fi-rowdue-time-clear">지우기</button>
+            <button type="button" class="pill pill-end" id="fi-rowdue-time-now">지금</button>
+          </div>
+        </div>
+      </span>
+    </div>
   </div>
 
   <!-- Assignment Manage: weekly submission status across 12 courses (assignment.js).
@@ -340,8 +383,8 @@
     sync();
   })();
 </script>
-<script src="future.js?v=20260913-8"></script>
-<script src="journal.js?v=20260913-7"></script>
+<script src="future.js?v=20260913-9"></script>
+<script src="journal.js?v=20260913-8"></script>
 <script src="assignment.js?v=2"></script>
 </body>
 </html>

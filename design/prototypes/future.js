@@ -168,7 +168,6 @@
   let filter = 'all';
   let draftKey = 'unassigned'; // composer's membership; reset by each filter change
   let editingId = null;
-  let editingDueId = null; // item whose deadline is being set (mutually exclusive with editingId)
   let editingBoxId = null; // custom box key being renamed
   let addingBox = false; // the "+ 박스 추가" tile is showing its name input
   const openDone = new Set(); // which 완료한 항목 areas are expanded (kept across re-renders)
@@ -204,26 +203,30 @@
     scopeChipsEl.innerHTML = opts.map(([k, label]) => `<button type="button" class="pill" data-scope-chip="${k}" aria-pressed="${k === draftKey}" title="${esc(k === 'unassigned' ? '미지정 (임시로 추가)' : fullLabel(k))}">${esc(label)}</button>`).join('');
   }
 
+  // pencil(수정)·시계(마감) — 삭제(✕)와 같은 .pill.pill-icon 스타일, currentColor
+  // 선이라 호버·색 전환은 CSS 하나로 셋 다 똑같이 먹는다
+  const ICO_EDIT = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M9.7 2.3l2 2L4.8 11.2l-2.7.7.7-2.7L9.7 2.3z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  const ICO_CLOCK = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.4" stroke="currentColor" stroke-width="1.1"/><path d="M7 4.2V7l2 1.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const rowHTML = i => {
     const overdue = !i.done && i.dueAt && dueMs(i.dueAt) < Date.now();
     // the item text gets the row's full width on its own line; the deadline
     // (if any) sits as a small boxed badge on a second line below it, instead
     // of squeezing onto the same line and wrapping the text mid-word.
-    // 행동·마감은 더블클릭으로 수정(아래 onListDblClick) — ⋯ 메뉴는 없고,
-    // 삭제만 별도의 작은 ✕ 버튼으로 남는다.
+    // 수정(펜)·마감(시계)·삭제(✕) 순으로 항상 보이는 아이콘 3개 — 수정은 텍스트
+    // 더블클릭과 같은 동작, 마감은 아래 fi-due-pop 팝오버(작성 카드와 같은
+    // 날짜/시간 선택 컴포넌트)를 연다. 마감 없는 항목은 둘째 줄 자체가 없다.
     return `
-    <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${i.id === editingId || i.id === editingDueId ? '' : ' draggable="true"'}>
+    <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${i.id === editingId ? '' : ' draggable="true"'}>
       <div class="fi-row-main">
         <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
         ${i.id === editingId
           ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
           : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}
+        <button type="button" class="pill pill-icon fi-edit-btn" aria-label="수정: ${esc(i.text)}">${ICO_EDIT}</button>
+        <button type="button" class="pill pill-icon fi-due-btn" aria-label="마감 설정: ${esc(i.text)}">${ICO_CLOCK}</button>
         <button type="button" class="pill pill-icon fi-delete" aria-label="삭제: ${esc(i.text)}">✕</button>
       </div>
-      ${i.id === editingDueId
-        ? `<input type="datetime-local" class="fi-due-edit" value="${esc(i.dueAt || '')}" aria-label="마감 시간 — Enter 저장, Esc 취소">`
-        : i.dueAt ? `<span class="fi-due" title="더블클릭해서 수정">마감 ${dueLabel(i.dueAt)}</span>`
-        : `<span class="fi-due fi-due-add" title="더블클릭해서 마감 설정">+ 마감</span>`}
+      ${i.dueAt ? `<span class="fi-due" title="더블클릭해서 수정">마감 ${dueLabel(i.dueAt)}</span>` : ''}
     </li>`;
   };
 
@@ -245,7 +248,7 @@
             ? `<input type="text" class="fi-box-name-edit" value="${esc(customName(key.slice(7)))}" aria-label="박스 이름 수정 — Enter 저장, Esc 취소" maxlength="24">`
             : `<h2 class="fi-box-title" title="${esc(temp ? '소속을 정하지 않은 항목' : fullLabel(key))}">${titleHTML(key)}</h2>`}
           <span class="resume-count" aria-label="미완료 ${open.length}개">${open.length}</span>
-          ${inGrid ? `<button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-box-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(shortLabel(key))}">★</button>` : ''}
+          ${inGrid ? `<button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-box-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(shortLabel(key))}"></button>` : ''}
           ${inGrid && isCustom && key !== editingBoxId ? `<button type="button" class="pill pill-icon fi-box-more" data-box-menu="${key}" aria-haspopup="menu" aria-label="${esc(shortLabel(key))} 박스 메뉴">⋯</button>` : ''}
         </header>
         ${temp && (forced || open.length) ? '<p class="fi-box-hint">박스나 위 필터로 끌어다 놓아 자리를 정해 주세요.</p>' : ''}
@@ -290,7 +293,6 @@
     if (sortEl) sortEl.hidden = filter !== 'all';
     renderScopeChips();
     if (editingId) { const e = $('.fi-edit', listEl); if (e) { e.focus(); e.select(); } return; }
-    if (editingDueId) { const e = $('.fi-due-edit', listEl); if (e) e.focus(); return; }
     if (editingBoxId) { const e = $('.fi-box-name-edit', listEl); if (e) { e.focus(); e.select(); } return; }
     if (addingBox) { const e = $('.fi-box-add-input', listEl); if (e) e.focus(); return; }
     if (focus) (typeof focus === 'function' ? focus() : $(focus, view))?.focus();
@@ -369,15 +371,14 @@
       { focus: `[data-id="${id}"] .fi-delete` });
   }
 
-  function setDue(id, value, cancel = false) {
-    if (editingDueId !== id) return;
-    editingDueId = null;
+  // fi-rowdue-pop(아래)에서 날짜/시간을 고를 때마다 바로 호출된다 — 팝오버 자체는
+  // 별도 상태라 render()가 지우지 않으니, 여기선 그냥 값만 반영하면 된다
+  function setDue(id, value) {
     const item = find(id);
-    if (cancel || !item) { render(`[data-id="${id}"] .fi-delete`); return; }
     const dueAt = saneDue(value) || null;
-    if (dueAt === item.dueAt) { render(`[data-id="${id}"] .fi-delete`); return; }
+    if (!item || dueAt === item.dueAt) return;
     commit(s => { const it = s.items.find(i => i.id === id); it.dueAt = dueAt; it.updatedAt = Date.now(); },
-      { focus: `[data-id="${id}"] .fi-delete` });
+      { focus: `[data-id="${id}"] .fi-due-btn` });
   }
 
   function remove(id) {
@@ -719,6 +720,159 @@
   document.addEventListener('pointerdown', e => { if (!dueTimeField.contains(e.target)) closeTimePicker(false); });
   renderTimeLabel();
 
+  // ---- 행 마감 팝오버: 시계 아이콘을 누르면 뜨는, 이미 있는 항목 하나의 마감을
+  // 고르는 창. 작성 카드의 .datepicker/.tp-col 컴포넌트·pad2/isoDate/todayIso/
+  // dateFromIso/timeParts/to24h/timeLabel/MINUTE_STEP 순수 헬퍼는 그대로 재사용
+  // 하고, 렌더 대상(그리드/라벨)과 상태(rowDueDate/rowDueTime)만 별도로 둔다 —
+  // 골라질 때마다 setDue()로 바로 커밋되는, 네이티브 datetime-local 입력의 대체.
+  const rowDuePop = $('#fi-rowdue-pop');
+  const rowDueDateField = $('#fi-rowdue-date-field'), rowDueDateBtn = $('#fi-rowdue-date-btn'), rowDueDateLabel = $('#fi-rowdue-date-label');
+  const rowDueDatepicker = $('#fi-rowdue-datepicker'), rowDueDpGrid = $('#fi-rowdue-dp-grid'), rowDueDpTitle = $('#fi-rowdue-dp-title');
+  const rowDueTimeField = $('#fi-rowdue-time-field'), rowDueTimeBtn = $('#fi-rowdue-time-btn'), rowDueTimeLabelEl = $('#fi-rowdue-time-label');
+  const rowDueTimepicker = $('#fi-rowdue-timepicker');
+  const rowTpMeridiemEl = $('#fi-rowdue-tp-meridiem'), rowTpHourEl = $('#fi-rowdue-tp-hour'), rowTpMinuteEl = $('#fi-rowdue-tp-minute');
+  let rowDueId = null; // item the popover is currently open for
+  let rowDueDate = '', rowDueTime = ''; // '' date = 마감 없음
+  let rowDueViewY = 0, rowDueViewM = 0;
+
+  function rowDueCommitNow() {
+    if (!rowDueId) return;
+    setDue(rowDueId, rowDueDate ? (rowDueTime ? `${rowDueDate}T${rowDueTime}` : rowDueDate) : null);
+  }
+  function renderRowDueDateLabel() { rowDueDateLabel.textContent = rowDueDate ? dueLabel(rowDueDate) : '날짜 선택'; }
+  function renderRowDuePicker(focusDate) {
+    rowDueDpTitle.textContent = `${rowDueViewY}년 ${rowDueViewM + 1}월`;
+    const lead = new Date(rowDueViewY, rowDueViewM, 1).getDay();
+    const days = new Date(rowDueViewY, rowDueViewM + 1, 0).getDate();
+    const focusable = focusDate || (rowDueDate.startsWith(`${rowDueViewY}-${pad2(rowDueViewM + 1)}`) ? rowDueDate : isoDate(new Date(rowDueViewY, rowDueViewM, 1)));
+    const t = todayIso();
+    let html = '<span></span>'.repeat(lead);
+    for (let d = 1; d <= days; d++) {
+      const date = `${rowDueViewY}-${pad2(rowDueViewM + 1)}-${pad2(d)}`;
+      html += `<button type="button" class="dp-day" data-date="${date}" tabindex="${date === focusable ? 0 : -1}"`
+        + `${date === rowDueDate ? ' aria-selected="true"' : ''}${date === t ? ' data-today' : ''}`
+        + ` aria-label="${rowDueViewM + 1}월 ${d}일${date === t ? ', 오늘' : ''}">${d}</button>`;
+    }
+    rowDueDpGrid.innerHTML = html;
+  }
+  function openRowDueDatePicker() {
+    const base = rowDueDate ? dateFromIso(rowDueDate) : new Date();
+    rowDueViewY = base.getFullYear(); rowDueViewM = base.getMonth();
+    renderRowDuePicker();
+    popIn(rowDueDatepicker);
+    rowDueDateBtn.setAttribute('aria-expanded', 'true');
+    rowDueDpGrid.querySelector('[tabindex="0"]')?.focus();
+  }
+  function closeRowDueDatePicker(refocus = true) {
+    if (rowDueDatepicker.hidden || rowDueDateBtn.getAttribute('aria-expanded') === 'false') return;
+    rowDueDateBtn.setAttribute('aria-expanded', 'false');
+    if (refocus) rowDueDateBtn.focus();
+    popOut(rowDueDatepicker);
+  }
+  function pickRowDueDate(date) { closeRowDueDatePicker(); rowDueDate = date; renderRowDueDateLabel(); rowDueCommitNow(); }
+  function rowDueClear() { closeRowDueDatePicker(); rowDueDate = ''; rowDueTime = ''; renderRowDueDateLabel(); renderRowDueTimeLabel(); rowDueCommitNow(); }
+  const stepRowDueMonth = n => { const d = new Date(rowDueViewY, rowDueViewM + n, 1); rowDueViewY = d.getFullYear(); rowDueViewM = d.getMonth(); renderRowDuePicker(); };
+  rowDueDateBtn.addEventListener('click', () => (rowDueDatepicker.hidden ? openRowDueDatePicker() : closeRowDueDatePicker()));
+  $('#fi-rowdue-dp-prev').addEventListener('click', () => stepRowDueMonth(-1));
+  $('#fi-rowdue-dp-next').addEventListener('click', () => stepRowDueMonth(1));
+  $('#fi-rowdue-dp-today').addEventListener('click', () => pickRowDueDate(todayIso()));
+  $('#fi-rowdue-clear').addEventListener('click', () => rowDueClear());
+  rowDueDpGrid.addEventListener('click', e => { const b = e.target.closest('.dp-day'); if (b) pickRowDueDate(b.dataset.date); });
+  rowDueDpGrid.addEventListener('keydown', e => {
+    const b = e.target.closest('.dp-day');
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!b || !step) return;
+    e.preventDefault();
+    const d = dateFromIso(b.dataset.date);
+    d.setDate(d.getDate() + step);
+    const next = isoDate(d);
+    if (d.getMonth() !== rowDueViewM || d.getFullYear() !== rowDueViewY) { rowDueViewY = d.getFullYear(); rowDueViewM = d.getMonth(); }
+    renderRowDuePicker(next);
+    rowDueDpGrid.querySelector(`[data-date="${next}"]`)?.focus();
+  });
+  rowDueDatepicker.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeRowDueDatePicker(); } });
+
+  function renderRowDueTimeLabel() { rowDueTimeLabelEl.textContent = timeLabel(rowDueTime); }
+  function renderRowDueTimePicker() {
+    const p = timeParts(rowDueTime);
+    const cur = p || { meridiem: 'am', hour12: 12, minute: 0 };
+    rowTpMeridiemEl.innerHTML = [['am', '오전'], ['pm', '오후']]
+      .map(([k, label]) => `<button type="button" class="cm-item" role="option" data-meridiem="${k}" aria-selected="${!!p && cur.meridiem === k}">${label}</button>`).join('');
+    rowTpHourEl.innerHTML = Array.from({ length: 12 }, (_, i) => i + 1)
+      .map(h => `<button type="button" class="cm-item" role="option" data-hour="${h}" aria-selected="${!!p && cur.hour12 === h}">${h}</button>`).join('');
+    rowTpMinuteEl.innerHTML = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => i * MINUTE_STEP)
+      .map(m => `<button type="button" class="cm-item" role="option" data-minute="${m}" aria-selected="${!!p && cur.minute === m}">${pad2(m)}</button>`).join('');
+  }
+  function openRowDueTimePicker() {
+    renderRowDueTimePicker();
+    popIn(rowDueTimepicker);
+    rowDueTimeBtn.setAttribute('aria-expanded', 'true');
+    [rowTpMeridiemEl, rowTpHourEl, rowTpMinuteEl].forEach(col => col.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'center' }));
+  }
+  function closeRowDueTimePicker(refocus = true) {
+    if (rowDueTimepicker.hidden || rowDueTimeBtn.getAttribute('aria-expanded') === 'false') return;
+    rowDueTimeBtn.setAttribute('aria-expanded', 'false');
+    if (refocus) rowDueTimeBtn.focus();
+    popOut(rowDueTimepicker);
+  }
+  function setRowDueTimePart(kind, value) {
+    const p = timeParts(rowDueTime) || { meridiem: 'am', hour12: 12, minute: 0 };
+    p[kind] = value;
+    rowDueTime = to24h(p.meridiem, p.hour12, p.minute);
+    renderRowDueTimeLabel();
+    renderRowDueTimePicker();
+    rowDueCommitNow();
+  }
+  rowDueTimeBtn.addEventListener('click', () => (rowDueTimepicker.hidden ? openRowDueTimePicker() : closeRowDueTimePicker()));
+  rowDueTimepicker.addEventListener('click', e => {
+    const b = e.target.closest('[role="option"]');
+    if (!b) return;
+    if (b.dataset.meridiem) setRowDueTimePart('meridiem', b.dataset.meridiem);
+    else if (b.dataset.hour) setRowDueTimePart('hour12', Number(b.dataset.hour));
+    else if (b.dataset.minute !== undefined) setRowDueTimePart('minute', Number(b.dataset.minute));
+  });
+  $('#fi-rowdue-time-clear').addEventListener('click', () => { rowDueTime = ''; renderRowDueTimeLabel(); closeRowDueTimePicker(); rowDueCommitNow(); });
+  $('#fi-rowdue-time-now').addEventListener('click', () => {
+    const n = new Date();
+    rowDueTime = `${pad2(n.getHours())}:${pad2(Math.round(n.getMinutes() / MINUTE_STEP) * MINUTE_STEP % 60)}`;
+    renderRowDueTimeLabel();
+    closeRowDueTimePicker();
+    rowDueCommitNow();
+  });
+  rowDueTimepicker.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeRowDueTimePicker(); } });
+
+  function openRowDuePopover(btn, id) {
+    const item = find(id);
+    if (!item) return;
+    closeMenu(false);
+    rowDueId = id;
+    rowDueDate = item.dueAt ? item.dueAt.slice(0, 10) : '';
+    rowDueTime = item.dueAt && item.dueAt.length > 10 ? item.dueAt.slice(11, 16) : '';
+    renderRowDueDateLabel();
+    renderRowDueTimeLabel();
+    closeRowDueDatePicker(false);
+    closeRowDueTimePicker(false);
+    const v = view.getBoundingClientRect(), a = btn.getBoundingClientRect();
+    rowDuePop.hidden = false; // measure
+    const w = rowDuePop.offsetWidth;
+    rowDuePop.style.top = `${a.bottom - v.top + 6}px`;
+    rowDuePop.style.left = `${Math.max(0, Math.min(a.left - v.left, v.width - w))}px`;
+    popIn(rowDuePop);
+  }
+  function closeRowDuePopover() {
+    if (!rowDueId) return;
+    closeRowDueDatePicker(false);
+    closeRowDueTimePicker(false);
+    popOut(rowDuePop);
+    rowDueId = null;
+  }
+  document.addEventListener('pointerdown', e => { if (!rowDueDateField.contains(e.target)) closeRowDueDatePicker(false); });
+  document.addEventListener('pointerdown', e => { if (!rowDueTimeField.contains(e.target)) closeRowDueTimePicker(false); });
+  document.addEventListener('pointerdown', e => {
+    if (rowDueId && !rowDuePop.contains(e.target) && !e.target.closest('.fi-due-btn')) closeRowDuePopover();
+  });
+  rowDuePop.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeRowDuePopover(); } });
+
   // ---- 마감 켜기/끄기 — 체크 전에는 날짜/시간 선택창을 아예 숨겨서 "마감 없음"임을
   // 분명히 하고, 체크하면 그 순간 보이는 날짜(기본 오늘)+시간이 실제 마감이 된다
   const dueEnable = $('#fi-due-enable');
@@ -736,6 +890,14 @@
     if (chip) { draftKey = chip.dataset.scopeChip; renderScopeChips(); input.focus(); return; }
     const f = e.target.closest('.fi-filter');
     if (f) { setFilter(f.dataset.filter, true); return; }
+    const editBtn = e.target.closest('.fi-edit-btn');
+    if (editBtn) { editingId = editBtn.closest('.fi-row').dataset.id; render(); return; }
+    const dueBtn = e.target.closest('.fi-due-btn');
+    if (dueBtn) {
+      const id = dueBtn.closest('.fi-row').dataset.id;
+      rowDueId === id && !rowDuePop.hidden ? closeRowDuePopover() : openRowDuePopover(dueBtn, id);
+      return;
+    }
     const del = e.target.closest('.fi-delete');
     if (del) { remove(del.closest('.fi-row').dataset.id); return; }
     const boxFav = e.target.closest('.fi-box-fav');
@@ -751,7 +913,7 @@
     const text = e.target.closest('.fi-text');
     if (text) { editingId = text.closest('.fi-row').dataset.id; render(); return; }
     const due = e.target.closest('.fi-due');
-    if (due) { editingDueId = due.closest('.fi-row').dataset.id; render(); }
+    if (due) { const row = due.closest('.fi-row'); openRowDuePopover($('.fi-due-btn', row), row.dataset.id); }
   }
   // General/임시 live in their own #fi-top-row-slot, outside #fi-list, but their
   // rows (checkbox, edit, due, ⋯) need the exact same handling — attach each
@@ -766,13 +928,6 @@
       const id = ed.closest('.fi-row').dataset.id;
       if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); saveEdit(id, ed.value); }
       if (e.key === 'Escape') { e.preventDefault(); saveEdit(id, '', true); }
-      return;
-    }
-    const due = e.target.closest('.fi-due-edit');
-    if (due) {
-      const id = due.closest('.fi-row').dataset.id;
-      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); setDue(id, due.value); }
-      if (e.key === 'Escape') { e.preventDefault(); setDue(id, '', true); }
       return;
     }
     const boxName = e.target.closest('.fi-box-name-edit');
@@ -791,8 +946,6 @@
   function onListFocusout(e) {
     const ed = e.target.closest('.fi-edit');
     if (ed && ed.isConnected) { saveEdit(ed.closest('.fi-row').dataset.id, ed.value); return; }
-    const due = e.target.closest('.fi-due-edit');
-    if (due && due.isConnected) { setDue(due.closest('.fi-row').dataset.id, due.value); return; }
     const boxName = e.target.closest('.fi-box-name-edit');
     if (boxName && boxName.isConnected) { renameCustomBox(boxName.closest('.fi-box').dataset.box, boxName.value); return; }
     const addInput = e.target.closest('.fi-box-add-input');
@@ -826,6 +979,7 @@
     return src && target && !src.done && !target.done && keyOf(src) === keyOf(target) ? row : null;
   };
   view.addEventListener('dragstart', e => {
+    closeRowDuePopover();
     const row = e.target.closest?.('.fi-row');
     if (row && !editingId) {
       dragId = row.dataset.id;
@@ -962,6 +1116,7 @@
     if (!views[name]) name = 'journal';
     currentView = name;
     closeMenu(false);
+    closeRowDuePopover();
     Object.entries(views).forEach(([k, el]) => { el.hidden = k !== name; });
     navTabs.forEach(t => {
       const on = t.dataset.view === name;
