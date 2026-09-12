@@ -18,8 +18,8 @@
   /* ?v= busts the OS/browser's cursor-bitmap cache, which can keep showing an old
      image after this file's content changes even with the page cache cleared —
      bump this number whenever cursor-arrow.svg or cursor-pointer.svg changes. */
-  --phi-cursor:url("cursor-arrow.svg?v=1") 1 2;
-  --phi-cursor-pointer:url("cursor-pointer.svg?v=8") 1 2;
+  --phi-cursor:url("cursor-arrow.svg?v=2") 1 2;
+  --phi-cursor-pointer:url("cursor-pointer.svg?v=9") 1 2;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
