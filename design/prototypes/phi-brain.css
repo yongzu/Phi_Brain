@@ -91,6 +91,8 @@
 .nav-tab:hover::before,.nav-tab:focus-visible::before,.nav-tab.active::before{opacity:1;transform:translate(0,-50%)}
 
 .tab1{font-weight:700;color:var(--ink);letter-spacing:-.16px}
+/* the topmost sidebar label only (General/Course group headers stay at base size) */
+.nav-tab[data-view="journal"]{font-size:12pt}
 .tab2{color:var(--gray);margin-left:var(--tab2-indent)}
 .nav-code{font-weight:700}
 
@@ -161,8 +163,8 @@
 .dp-day:disabled{color:var(--gray);opacity:.45;cursor:default;background:none}
 .dp-foot{display:flex;justify-content:flex-end;margin-top:6px;padding-right:var(--tab-pad-x)}
 
-.title-input{display:block;width:100%;margin:14px 0 0;padding:6px 0;border:0;background:none;color:var(--ink)}
-.title-input::placeholder{color:var(--gray)}
+.title-input{display:block;width:100%;margin:14px 0 0;padding:6px 0 6px var(--tab-pad-x);border:0;background:none;color:#000}
+.title-input::placeholder{color:#000}
 .title-input:focus-visible{outline:0}
 
 .courses{margin:14px 0 0}
@@ -259,8 +261,9 @@
 .view-future{position:relative}
 .future-hint{margin:6px 0 0}
 
-/* toolbar: filters on the left, sort pinned to the far right, one row */
-.fi-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:18px 0 0 calc(-1 * var(--tab-pad-x))}
+/* toolbar: filters on the left, sort pinned to the far right, one row —
+   sits between the General/임시 top row and the course grid */
+.fi-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:0 0 16px calc(-1 * var(--tab-pad-x))}
 .fi-filters{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
 .fi-filter[aria-pressed="true"]{font-weight:700}
 .f-count{margin-left:5px;color:var(--gray);font-weight:400;font-variant-numeric:tabular-nums}
@@ -269,7 +272,7 @@
 
 /* composer: a card, not a single-line bar — membership chips (다룬 과목 style,
    but single-pick), an optional due date+time row, then the action field */
-.fi-composer{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:14px 0 28px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
+.fi-composer{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:14px 0 16px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
 .fi-composer:focus-within{border-color:var(--gray)}
 .fi-scope-chips{margin:0}
 .fi-input{min-height:calc(2 * 1.5em + 12px);padding:6px 0;border:0;background:none;color:var(--ink);font:inherit;resize:vertical}
@@ -289,13 +292,15 @@
 .tp-col .cm-item[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .fi-composer .btn-primary{align-self:flex-end}
 
+/* General+임시 share a fixed top row (half width each), rendered into their own
+   slot above the filter/sort toolbar — not part of the course grid below. */
+.fi-top-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 16px}
+
 /* boxes: a hairline frame, no shadow; 임시 is dashed because it's not a place yet.
-   General+임시 share a fixed top row (half width each); the section labels
-   and the "+ 박스 추가" tile always span the full row; the drag-orderable
-   course/custom boxes fall into a 4-per-row grid between them. */
+   The section labels and the "+ 박스 추가" tile always span the full row; the
+   drag-orderable course/custom boxes fall into a 4-per-row grid. */
 .fi-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
-.fi-list>.fi-top-row,.fi-list>.fi-section-label,.fi-list>.fi-box-add,.fi-list>.fi-box:only-child{grid-column:1/-1}
-.fi-top-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fi-list>.fi-section-label,.fi-list>.fi-box-add,.fi-list>.fi-box:only-child{grid-column:1/-1}
 .fi-section-label{margin:12px 0 -4px;color:var(--gray)}
 .fi-box{padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
 .fi-box.is-temp{border-style:dashed}

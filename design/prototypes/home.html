@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260913-3">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-4">
 </head>
 <body>
 
@@ -159,13 +159,6 @@
       </header>
       <p class="field-hint future-hint">실행할 행동을 적고, 과목별로 나눠 실천하고, 완료로 옮겨요. 과제 제출 상태(Assignment Manage)와는 따로 관리돼요.</p>
 
-      <div class="fi-toolbar">
-        <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
-        <div class="fi-sort" id="fi-sort">
-          <button type="button" class="pill" id="fi-sort-btn" aria-haspopup="menu" aria-label="박스 정렬">정렬<span class="caret" aria-hidden="true">▾</span></button>
-        </div>
-      </div>
-
       <form class="fi-composer" id="fi-composer" autocomplete="off">
         <div class="course-chips fi-scope-chips" id="fi-scope-chips" role="radiogroup" aria-label="소속 선택"></div>
 
@@ -211,6 +204,15 @@
 
         <button type="submit" class="btn-primary fi-submit">추가</button>
       </form>
+
+      <div id="fi-top-row-slot"></div>
+
+      <div class="fi-toolbar">
+        <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
+        <div class="fi-sort" id="fi-sort">
+          <button type="button" class="pill" id="fi-sort-btn" aria-haspopup="menu" aria-label="박스 정렬">정렬<span class="caret" aria-hidden="true">▾</span></button>
+        </div>
+      </div>
 
       <div class="fi-list" id="fi-list"></div>
     </section>
@@ -312,7 +314,7 @@
     sync();
   })();
 </script>
-<script src="future.js?v=20260913-2"></script>
+<script src="future.js?v=20260913-3"></script>
 <script src="journal.js?v=20260913-2"></script>
 <script src="assignment.js?v=2"></script>
 </body>

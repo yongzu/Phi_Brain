@@ -175,6 +175,7 @@
   const openDone = new Set(); // which 완료한 항목 areas are expanded (kept across re-renders)
 
   const view = $('#view-future'), filtersEl = $('#fi-filters'), listEl = $('#fi-list'), sortEl = $('#fi-sort'), sortBtn = $('#fi-sort-btn');
+  const topRowSlot = $('#fi-top-row-slot');
   const form = $('#fi-composer'), input = $('#fi-input'), scopeChipsEl = $('#fi-scope-chips');
   const menu = $('#fi-menu');
 
@@ -252,14 +253,17 @@
     : `<button type="button" class="fi-box fi-box-add" id="fi-box-add-btn">+ 박스 추가</button>`);
 
   function renderList() {
-    $$('.fi-done', listEl).forEach(d => (d.open ? openDone.add(d.dataset.done) : openDone.delete(d.dataset.done)));
+    [...$$('.fi-done', listEl), ...$$('.fi-done', topRowSlot)].forEach(d => (d.open ? openDone.add(d.dataset.done) : openDone.delete(d.dataset.done)));
     let html = '';
-    if (filter !== 'all') html = boxHTML(filter, { forced: true });
-    else {
+    if (filter !== 'all') {
+      html = boxHTML(filter, { forced: true });
+      topRowSlot.innerHTML = '';
+    } else {
       // General과 임시는 늘 이 상단 줄에 반반씩 — General은 "특정 과목이 아니라고
       // 정한" 항목이 모이는 곳, 임시는 아직 정하지 않은 항목이 모이는 곳이라
-      // 둘 다 아래 과목 그리드(드래그로 순서 바꾸는 곳)에는 속하지 않는다.
-      html += `<div class="fi-top-row">${boxHTML('general', { forced: true })}${boxHTML('unassigned', { forced: true })}</div>`;
+      // 둘 다 아래 과목 그리드(드래그로 순서 바꾸는 곳)에는 속하지 않는다. 필터·정렬
+      // 줄보다 위, 작성 카드 바로 아래에 오도록 별도 슬롯에 그린다.
+      topRowSlot.innerHTML = `<div class="fi-top-row">${boxHTML('general', { forced: true })}${boxHTML('unassigned', { forced: true })}</div>`;
       const order = gridOrder();
       const favs = order.filter(k => state.favorites.includes(k));
       const rest = order.filter(k => !state.favorites.includes(k));
@@ -267,7 +271,7 @@
       html += `${favs.length ? '<p class="fi-section-label">과목</p>' : ''}${rest.map(k => boxHTML(k)).join('')}${addBoxTileHTML()}`;
     }
     listEl.innerHTML = html;
-    $$('.fi-done', listEl).forEach(d => window.StyleKit?.createAccordion(d));
+    [...$$('.fi-done', listEl), ...$$('.fi-done', topRowSlot)].forEach(d => window.StyleKit?.createAccordion(d));
   }
 
   function render(focus) {
@@ -748,11 +752,14 @@
     const addBtn = e.target.closest('#fi-box-add-btn');
     if (addBtn) { addingBox = true; render(); }
   });
-  listEl.addEventListener('change', e => {
+  // General/임시 live in their own #fi-top-row-slot, outside #fi-list, but their
+  // rows (checkbox, edit, due, ⋯) need the exact same handling — attach each
+  // listener to both containers rather than duplicating the logic.
+  function onListChange(e) {
     const c = e.target.closest('.fi-check');
     if (c) toggleDone(c.closest('.fi-row').dataset.id);
-  });
-  listEl.addEventListener('keydown', e => {
+  }
+  function onListKeydown(e) {
     const ed = e.target.closest('.fi-edit');
     if (ed) {
       const id = ed.closest('.fi-row').dataset.id;
@@ -779,8 +786,8 @@
       if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addCustomBox(addInput.value); }
       if (e.key === 'Escape') { e.preventDefault(); cancelAddBox(); }
     }
-  });
-  listEl.addEventListener('focusout', e => {
+  }
+  function onListFocusout(e) {
     const ed = e.target.closest('.fi-edit');
     if (ed && ed.isConnected) { saveEdit(ed.closest('.fi-row').dataset.id, ed.value); return; }
     const due = e.target.closest('.fi-due-edit');
@@ -789,6 +796,11 @@
     if (boxName && boxName.isConnected) { renameCustomBox(boxName.closest('.fi-box').dataset.box, boxName.value); return; }
     const addInput = e.target.closest('.fi-box-add-input');
     if (addInput && addInput.isConnected) addCustomBox(addInput.value);
+  }
+  [listEl, topRowSlot].forEach(el => {
+    el.addEventListener('change', onListChange);
+    el.addEventListener('keydown', onListKeydown);
+    el.addEventListener('focusout', onListFocusout);
   });
 
   // ---- drag to change an item's membership (filters except All, boxes, 임시) ----
