@@ -17,9 +17,10 @@
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
   /* ?v= busts the OS/browser's cursor-bitmap cache, which can keep showing an old
      image after this file's content changes even with the page cache cleared —
-     bump this number whenever cursor-arrow.svg or cursor-pointer.svg changes. */
+     bump this number whenever cursor-arrow.svg, cursor-pointer.svg or cursor-text.svg changes. */
   --phi-cursor:url("cursor-arrow.svg?v=3") 0 1;
   --phi-cursor-pointer:url("cursor-pointer.svg?v=10") 0 1;
+  --phi-cursor-text:url("cursor-text.svg?v=1") 0 7;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
@@ -330,7 +331,7 @@
 @media (pointer:fine){
   html,body{cursor:var(--phi-cursor),auto}
   button:not(:disabled),a,summary,label,select:not(:disabled),input[type="checkbox"]:not(:disabled),[role="button"]{cursor:var(--phi-cursor-pointer),pointer}
-  input[type="text"],input[type="search"],textarea,[contenteditable="true"]{cursor:text}
+  input[type="text"],input[type="search"],textarea,[contenteditable="true"]{cursor:var(--phi-cursor-text),text}
   /* these repeat selectors that set a plain `cursor:pointer` elsewhere with
      higher specificity than the generic rule above (class beats element,
      or it's a ::before pseudo-element the rule above can't reach) */
