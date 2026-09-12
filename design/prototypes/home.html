@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260913-1">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-2">
 </head>
 <body>
 
@@ -75,38 +75,33 @@
   <section class="journal" aria-labelledby="journal-heading">
     <header class="journal-head">
       <h1 class="journal-heading" id="journal-heading">오늘의 저널</h1>
-      <span class="date-field" id="date-field">
-        <button type="button" class="pill pill-end" id="date-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="datepicker">
-          <span id="date-label">9월 12일</span><span class="caret" aria-hidden="true">▾</span>
-        </button>
-        <div class="datepicker" id="datepicker" role="dialog" aria-label="날짜 선택" hidden>
-          <div class="dp-head">
-            <span class="dp-title" id="dp-title"></span>
-            <span class="dp-steps">
-              <button type="button" class="pill pill-icon" id="dp-prev" aria-label="이전 달">‹</button>
-              <button type="button" class="pill pill-icon" id="dp-next" aria-label="다음 달">›</button>
-            </span>
-          </div>
-          <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
-          <div class="dp-grid" id="dp-grid"></div>
-          <div class="dp-foot"><button type="button" class="pill pill-end" id="dp-today">오늘</button></div>
-        </div>
-      </span>
     </header>
 
     <input type="text" class="title-input" id="title-input" placeholder="9월 12일 저널" aria-label="제목 (선택 — 비우면 날짜로 저장)">
 
-    <details class="courses" id="courses">
-      <summary class="courses-row">
-        <span class="field-label">다룬 과목</span>
-        <span class="courses-chosen" id="courses-chosen"></span>
-        <span class="pill pill-inline" id="courses-toggle">+ 선택</span>
-      </summary>
-      <div class="accordion-content">
-        <div class="course-chips" id="course-chips"></div>
-        <p class="field-hint">고르지 않아도 괜찮아요. 정리할 때 AI가 과목을 나누는 힌트로만 씁니다.</p>
+    <div class="courses" id="courses">
+      <span class="field-label">다룬 과목</span>
+      <div class="course-chips" id="course-chips"></div>
+      <p class="field-hint">고르지 않아도 괜찮아요. 정리할 때 AI가 과목을 나누는 힌트로만 씁니다.</p>
+    </div>
+
+    <span class="date-field" id="date-field">
+      <button type="button" class="pill pill-end" id="date-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="datepicker">
+        <span id="date-label">9월 12일</span><span class="caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="datepicker" id="datepicker" role="dialog" aria-label="날짜 선택" hidden>
+        <div class="dp-head">
+          <span class="dp-title" id="dp-title"></span>
+          <span class="dp-steps">
+            <button type="button" class="pill pill-icon" id="dp-prev" aria-label="이전 달">‹</button>
+            <button type="button" class="pill pill-icon" id="dp-next" aria-label="다음 달">›</button>
+          </span>
+        </div>
+        <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+        <div class="dp-grid" id="dp-grid"></div>
+        <div class="dp-foot"><button type="button" class="pill pill-end" id="dp-today">오늘</button></div>
       </div>
-    </details>
+    </span>
 
     <!-- 2. one document: 4F headings live inside it, not in separate boxes -->
     <div class="editor-bar">
@@ -166,16 +161,19 @@
       </header>
       <p class="field-hint future-hint">실행할 행동을 적고, 과목별로 나눠 실천하고, 완료로 옮겨요. 과제 제출 상태(Assignment Manage)와는 따로 관리돼요.</p>
 
-      <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
+      <div class="fi-toolbar">
+        <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
+        <div class="fi-sort" id="fi-sort">
+          <button type="button" class="pill" id="fi-sort-btn" aria-haspopup="menu" aria-label="박스 정렬">정렬<span class="caret" aria-hidden="true">▾</span></button>
+        </div>
+      </div>
 
       <form class="fi-composer" id="fi-composer" autocomplete="off">
         <div class="course-chips fi-scope-chips" id="fi-scope-chips" role="radiogroup" aria-label="소속 선택"></div>
 
-        <textarea class="fi-input" id="fi-input" rows="2" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done"></textarea>
-
         <div class="fi-due-row">
-          <span class="field-label">마감</span>
-          <span class="date-field" id="fi-due-date-field">
+          <label class="fi-due-toggle"><input type="checkbox" id="fi-due-enable"> 마감</label>
+          <span class="date-field" id="fi-due-date-field" hidden>
             <button type="button" class="pill pill-end" id="fi-due-date-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-due-datepicker">
               <span id="fi-due-date-label"></span><span class="caret" aria-hidden="true">▾</span>
             </button>
@@ -192,7 +190,7 @@
               <div class="dp-foot"><button type="button" class="pill pill-end" id="fi-due-dp-today">오늘</button></div>
             </div>
           </span>
-          <span class="date-field" id="fi-due-time-field">
+          <span class="date-field" id="fi-due-time-field" hidden>
             <button type="button" class="pill pill-end" id="fi-due-time-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-due-timepicker">
               <span id="fi-due-time-label">시간 선택</span><span class="caret" aria-hidden="true">▾</span>
             </button>
@@ -211,12 +209,10 @@
           </span>
         </div>
 
+        <textarea class="fi-input" id="fi-input" rows="2" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done"></textarea>
+
         <button type="submit" class="btn-primary fi-submit">추가</button>
       </form>
-
-      <div class="fi-sort" id="fi-sort">
-        <button type="button" class="pill" id="fi-sort-btn" aria-haspopup="menu" aria-label="박스 정렬">정렬<span class="caret" aria-hidden="true">▾</span></button>
-      </div>
 
       <div class="fi-list" id="fi-list"></div>
     </section>
@@ -318,8 +314,8 @@
     sync();
   })();
 </script>
-<script src="future.js?v=20260913-1"></script>
-<script src="journal.js?v=20260912-2"></script>
+<script src="future.js?v=20260913-2"></script>
+<script src="journal.js?v=20260913-1"></script>
 <script src="assignment.js?v=2"></script>
 </body>
 </html>

@@ -586,11 +586,11 @@
   });
   form.addEventListener('submit', e => {
     e.preventDefault();
-    // date defaults to today and stays silent; a due date only attaches once
-    // the user actually changes something — a time, or the date itself
-    const dueAt = dueTimeValue ? `${dueDate}T${dueTimeValue}` : (dueDate !== todayIso() ? dueDate : null);
+    // 마감 체크박스가 꺼져 있으면 날짜가 무엇이든 마감 없음 — 체크박스 자체가 신호
+    const dueAt = dueEnable.checked ? (dueTimeValue ? `${dueDate}T${dueTimeValue}` : dueDate) : null;
     if (add(input.value, draftKey, dueAt)) {
       input.value = '';
+      dueEnable.checked = false; dueDateField.hidden = true; dueTimeField.hidden = true;
       dueDate = todayIso(); renderDueDateLabel();
       dueTimeValue = ''; renderTimeLabel();
     }
@@ -723,6 +723,15 @@
   dueTimepicker.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeTimePicker(); } });
   document.addEventListener('pointerdown', e => { if (!dueTimeField.contains(e.target)) closeTimePicker(false); });
   renderTimeLabel();
+
+  // ---- 마감 켜기/끄기 — 체크 전에는 날짜/시간 선택창을 아예 숨겨서 "마감 없음"임을
+  // 분명히 하고, 체크하면 그 순간 보이는 날짜(기본 오늘)+시간이 실제 마감이 된다
+  const dueEnable = $('#fi-due-enable');
+  dueEnable.addEventListener('change', () => {
+    dueDateField.hidden = !dueEnable.checked;
+    dueTimeField.hidden = !dueEnable.checked;
+    if (!dueEnable.checked) { closeDuePicker(false); closeTimePicker(false); }
+  });
 
   sortBtn.addEventListener('click', () => (menuAnchor === sortBtn ? closeMenu() : openSortMenu(sortBtn)));
 

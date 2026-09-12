@@ -14,7 +14,7 @@
   const dateField = $('#date-field'), dateBtn = $('#date-button'), dateLabel = $('#date-label');
   const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
-  const coursesEl = $('#courses'), chipsEl = $('#course-chips'), chosenEl = $('#courses-chosen'), coursesToggle = $('#courses-toggle');
+  const chipsEl = $('#course-chips');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
   const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
@@ -184,13 +184,12 @@
   picker.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closePicker(); } });
   document.addEventListener('pointerdown', e => { if (!dateField.contains(e.target)) closePicker(false); });
 
-  // ---- courses (optional hint for the AI) ----
+  // ---- courses (optional hint for the AI) — always expanded, like Future
+  // Item's scope chips; no accordion to open/close ----
   chipsEl.innerHTML = JOURNAL_SCOPES.map(([code, name]) =>
     `<button type="button" class="pill" data-code="${code}" aria-pressed="false" title="${code}_${name}">${code === 'general' ? 'General' : code}</button>`).join('');
   function renderCourses() {
     chipsEl.querySelectorAll('[data-code]').forEach(b => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.code))));
-    chosenEl.textContent = JOURNAL_SCOPES.filter(c => chosen.has(c[0])).map(c => c[0] === 'general' ? 'General' : c[0]).join(' · ');
-    coursesToggle.textContent = coursesEl.open ? '완료' : chosen.size ? '변경' : '+ 선택';
   }
   chipsEl.addEventListener('click', e => {
     const b = e.target.closest('[data-code]');
@@ -199,18 +198,6 @@
     renderCourses();
     scheduleSave();
   });
-  // each chip click is already saved; clicking anywhere else (or Esc) just
-  // closes the panel — 완료 is a convenience, never a required confirm
-  let coursesClosing = false;
-  coursesEl.addEventListener('toggle', () => { if (!coursesEl.open) coursesClosing = false; renderCourses(); });
-  const closeCourses = () => {
-    if (!coursesEl.open || coursesClosing) return; // one close at a time, or the animation restarts
-    coursesClosing = true;
-    save();
-    coursesEl.querySelector('summary').click(); // the kit's accordion animates the close
-  };
-  document.addEventListener('pointerdown', e => { if (!coursesEl.contains(e.target)) closeCourses(); });
-  coursesEl.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCourses(); coursesEl.querySelector('summary').focus(); } });
   titleInput.addEventListener('input', scheduleSave);
 
   // ---- editor ----

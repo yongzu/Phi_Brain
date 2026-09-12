@@ -141,7 +141,8 @@
 /* ---- journal: context ---- */
 .journal-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .journal-heading{margin:0;font-weight:700;color:var(--ink)}
-.date-field{position:relative}
+.date-field{position:relative;display:inline-block}
+#date-field{margin:14px 0 0}
 
 /* date picker — a floating card in the page's own vocabulary: pill
    steps, circular day cells that fill on hover, ink for the chosen day */
@@ -162,12 +163,7 @@
 .title-input::placeholder{color:var(--gray)}
 .title-input:focus-visible{outline:0}
 
-.courses summary{list-style:none;cursor:pointer}
-.courses summary::-webkit-details-marker{display:none}
-.courses-row{display:flex;align-items:center;gap:10px;padding:2px 0}
-.courses-row:hover .pill,.courses-row:focus-visible .pill,.courses[open] .courses-row .pill{background:var(--fill);color:var(--ink)}
-.courses-chosen{color:var(--ink)}
-.courses-chosen:empty{display:none}
+.courses{margin:14px 0 0}
 .course-chips{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 0}
 .course-chips .pill[aria-pressed="true"]{font-weight:700}
 
@@ -261,20 +257,25 @@
 .view-future{position:relative}
 .future-hint{margin:6px 0 0}
 
-/* filters: All / General / 임시 | course codes — one pressed at a time, and drop targets while dragging */
-.fi-filters{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:18px 0 0 calc(-1 * var(--tab-pad-x))}
+/* toolbar: filters on the left, sort pinned to the far right, one row */
+.fi-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:18px 0 0 calc(-1 * var(--tab-pad-x))}
+.fi-filters{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
 .fi-filter[aria-pressed="true"]{font-weight:700}
 .f-count{margin-left:5px;color:var(--gray);font-weight:400;font-variant-numeric:tabular-nums}
+/* sort: one-shot rearrange buttons for the course grid, hidden while a single box is filtered */
+.fi-sort{display:flex;align-items:center}
 
 /* composer: a card, not a single-line bar — membership chips (다룬 과목 style,
-   but single-pick), a two-line action field, then a due date+time row */
+   but single-pick), an optional due date+time row, then the action field */
 .fi-composer{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:14px 0 28px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
 .fi-composer:focus-within{border-color:var(--gray)}
 .fi-scope-chips{margin:0}
 .fi-input{min-height:calc(2 * 1.5em + 12px);padding:6px 0;border:0;background:none;color:var(--ink);font:inherit;resize:vertical}
 .fi-input::placeholder{color:var(--gray)}
 .fi-input:focus-visible{outline:0}
-.fi-due-row{display:flex;align-items:center;gap:8px;color:var(--gray)}
+.fi-due-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--gray)}
+.fi-due-toggle{display:flex;align-items:center;gap:6px}
+.fi-due-toggle input{margin:0}
 
 /* time picker: the same .datepicker card as the date picker, but three
    scrollable columns (오전/오후, 시, 분) of .cm-item options instead of a grid */
@@ -285,9 +286,6 @@
 .tp-col .cm-item{text-align:center}
 .tp-col .cm-item[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .fi-composer .btn-primary{align-self:flex-end}
-
-/* sort: one-shot rearrange buttons above the course grid, hidden while a single box is filtered */
-.fi-sort{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;color:var(--gray)}
 
 /* boxes: a hairline frame, no shadow; 임시 is dashed because it's not a place yet.
    General+임시 share a fixed top row (half width each); the section labels
@@ -438,5 +436,5 @@
   /* these repeat selectors that set a plain `cursor:pointer` elsewhere with
      higher specificity than the generic rule above (class beats element,
      or it's a ::before pseudo-element the rule above can't reach) */
-  .courses summary,.resume-row summary,.fi-done summary,.nav-accordion>summary,.fi-register,.editor ul.checklist>li::before,.fi-box-add:not(.is-editing){cursor:var(--phi-cursor-pointer),pointer}
+  .resume-row summary,.fi-done summary,.nav-accordion>summary,.fi-register,.editor ul.checklist>li::before,.fi-box-add:not(.is-editing){cursor:var(--phi-cursor-pointer),pointer}
 }
