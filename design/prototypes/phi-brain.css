@@ -15,7 +15,7 @@
   --gray:#999;    /* all secondary text: Tab2, meta, hints, placeholder, footer */
   --line:#ededed; /* borders, text selection */
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
-  --phi-cursor:url("cursor-arrow.svg") 4 3;
+  --phi-cursor:url("cursor-arrow.svg") 4 5;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto
