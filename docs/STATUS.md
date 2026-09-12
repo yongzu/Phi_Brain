@@ -12,6 +12,13 @@
 - JS 문법·차이 공백 검사 및 기존 EAI 데이터 변환의 순수 함수 검증 수행.
 - GitHub `main`에 UI 수정(`0e65aeff`)과 캐시 갱신(`4a123e28`)을 반영했다. GitHub Pages에서 General·EWA·AL 노출, 미체크 등록 옵션, Future Items EWA 필터를 다시 확인했다.
 
+### GitHub 자격 증명 창 재발 방지 (2026-09-12)
+
+- 사용자 화면의 `git-remote-https.exe` 메모리 참조 오류는 GitHub의 로그인 거절 안내가 아니라, Codex 격리 계정에서 Windows 자격 증명·TLS 경로를 호출할 때 생긴 프로세스 충돌이다.
+- 저장소 로컬 TLS 백엔드를 `openssl`로 지정했다. 이 설정은 이 저장소에만 적용된다.
+- Codex는 터미널에서 Windows Git Credential Manager를 사용하는 push를 중단하고, 연결된 GitHub 도구로 원격 쓰기를 수행한다. 따라서 이후 같은 인증 창에서 사용자 조작을 요구하지 않는다.
+- 사용자의 일반 PowerShell Git 인증과 전역 Credential Manager 설정은 변경하지 않았다.
+
 프론트엔드 프로토타입 단계. Journaling 화면과 **Future Items 페이지(사용자 구현 지시, 2026-09-12)**가 정적 페이지로
 동작한다. 저장은 브라우저 localStorage뿐이며 서버·DB·계정·기기 간 동기화·AI 정리는 없다(백엔드 구현 지시 없음).
 
