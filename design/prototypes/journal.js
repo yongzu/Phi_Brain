@@ -15,7 +15,11 @@
   const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
   const chipsEl = $('#course-chips');
-  const archiveFiltersEl = $('#archive-filters'), archiveListEl = $('#archive-list');
+  const archiveFiltersEl = $('#archive-filters'), archiveListEl = $('#archive-list'), archiveCardsEl = $('#archive-cards');
+  // the whole composer moves into #archive-compose-slot when editing from
+  // Journal Archive, then back here (its original spot) when done
+  const journalSection = document.querySelector('.journal'), viewJournal = $('#view-journal');
+  const archiveBrowse = $('#archive-browse'), composeSlot = $('#archive-compose-slot'), archiveBackBtn = $('#archive-back');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
   const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
@@ -585,30 +589,125 @@
       </details>
     </li>`;
   };
+  // ---- course excerpts: for a course-filtered card, show only that
+  // course's content instead of the whole day — walk the saved HTML once,
+  // grouping everything after a course box (up to the next course box or
+  // 4F heading) under that course, tagged with the nearest preceding 4F ----
+  function courseChunks(html) {
+    const frag = document.createElement('div');
+    frag.innerHTML = html;
+    const chunks = [];
+    let f4 = '', buf = null;
+    const flush = () => { if (buf && buf.html) chunks.push(buf); buf = null; };
+    [...frag.children].forEach(el => {
+      if (el.tagName === 'H3') { flush(); f4 = el.textContent.trim(); return; }
+      if (el.classList.contains('course-box')) { flush(); buf = { label: f4, course: el.dataset.course || '', html: '' }; return; }
+      if (buf) buf.html += el.outerHTML;
+    });
+    flush();
+    return chunks;
+  }
+  // no matching course box (course only came from the 다룬 과목 칩) → fall
+  // back to the whole entry rather than showing an empty card
+  function courseExcerptHtml(html, code) {
+    const chunks = courseChunks(html).filter(c => c.course === code);
+    if (!chunks.length) return html;
+    return chunks.map(c => (c.label ? `<h3 data-guide="${guideFor(c.label) || ''}">${esc(c.label)}</h3>` : '') + c.html).join('');
+  }
+
+  // ---- 즐겨찾기: per (date, course) card, not per journal — a card is one
+  // course's slice of one day, so that's the thing worth bookmarking ----
+  const FAV_KEY = 'phi-brain:journal-archive:favorites';
+  const favKey = (date, course) => `${date}::${course}`;
+  const favorites = {
+    all() { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY)) || []); } catch { return new Set(); } },
+    has(date, course) { return favorites.all().has(favKey(date, course)); },
+    toggle(date, course) {
+      const s = favorites.all(), k = favKey(date, course);
+      s.has(k) ? s.delete(k) : s.add(k);
+      try { localStorage.setItem(FAV_KEY, JSON.stringify([...s])); } catch {}
+    },
+  };
+  const archiveCardHTML = (e, course, favSet) => `
+    <div class="archive-card${favSet.has(favKey(e.date, course)) ? ' is-fav' : ''}" data-date="${e.date}">
+      <header class="fi-box-head archive-card-head">
+        <h2 class="fi-box-title">${esc(e.title)}</h2>
+        <span class="resume-count">${e.savedAt ? clock(e.savedAt) : ''}</span>
+        <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" data-course="${course}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
+      </header>
+      <div class="editor archive-preview archive-card-body">${courseExcerptHtml(e.html, course)}</div>
+    </div>`;
+
+  function wireArchiveMoreButtons(container) {
+    // bound directly to each button (not delegated on the container) so
+    // stopPropagation reaches it before an ancestor <summary>'s own click
+    // handler (StyleKit.createAccordion) toggles that row open/closed
+    container.querySelectorAll('.archive-more').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      archiveMenuAnchor === b ? closeArchiveMenu() : openArchiveMenu(b, b.dataset.more, b.dataset.course || null);
+    }));
+  }
+  // All: 기존 목록. 특정 과목 필터: 그 과목이 들어간 날짜마다 그 과목 내용만
+  // 뽑은 카드 그리드 — 둘 중 하나만 보이도록 archiveListEl/archiveCardsEl을 토글
   function renderArchiveList(entries) {
     // snapshot which rows are currently dropped open before the rebuild wipes them
     archiveListEl.querySelectorAll('.archive-entry').forEach(d => (d.open ? openArchive.add(d.dataset.date) : openArchive.delete(d.dataset.date)));
-    if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
-    const filtered = archiveFilter === 'all' ? entries : entries.filter(e => e.courses.includes(archiveFilter));
-    if (!filtered.length) { archiveListEl.innerHTML = '<li class="archive-empty">이 과목이 들어간 저널이 아직 없어요</li>'; return; }
-    archiveListEl.innerHTML = filtered.map(archiveRowHTML).join('');
-    archiveListEl.querySelectorAll('.archive-entry').forEach(d => window.StyleKit?.createAccordion(d));
-    // bound directly to each button (not delegated on archiveListEl) so
-    // stopPropagation reaches it before the ancestor <summary>'s own click
-    // handler (StyleKit.createAccordion) toggles the row open/closed
-    archiveListEl.querySelectorAll('.archive-more').forEach(b => b.addEventListener('click', e => {
-      e.stopPropagation();
-      archiveMenuAnchor === b ? closeArchiveMenu() : openArchiveMenu(b, b.dataset.more);
-    }));
+    if (archiveFilter === 'all') {
+      archiveCardsEl.hidden = true;
+      archiveListEl.hidden = false;
+      if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
+      archiveListEl.innerHTML = entries.map(archiveRowHTML).join('');
+      archiveListEl.querySelectorAll('.archive-entry').forEach(d => window.StyleKit?.createAccordion(d));
+      wireArchiveMoreButtons(archiveListEl);
+      return;
+    }
+    archiveListEl.hidden = true;
+    archiveCardsEl.hidden = false;
+    const matched = entries.filter(e => e.courses.includes(archiveFilter));
+    if (!matched.length) { archiveCardsEl.innerHTML = '<p class="archive-empty">이 과목이 들어간 저널이 아직 없어요</p>'; return; }
+    const favSet = favorites.all();
+    const sorted = [...matched].sort((a, b) => {
+      const fa = favSet.has(favKey(a.date, archiveFilter)), fb = favSet.has(favKey(b.date, archiveFilter));
+      return fa !== fb ? (fa ? -1 : 1) : b.date.localeCompare(a.date);
+    });
+    archiveCardsEl.innerHTML = sorted.map(e => archiveCardHTML(e, archiveFilter, favSet)).join('');
+    wireArchiveMoreButtons(archiveCardsEl);
   }
-  // ---- row ⋯ menu: just "수정하기" for now, same popup component as
-  // Journaling's in-body course menu (#course-menu) ----
+
+  // ---- "수정하기"는 Journaling 탭으로 이동하는 대신 작성 세션을 Journal
+  // Archive 안으로 그대로 옮겨온다 ----
+  let editingInArchive = false;
+  function enterArchiveEdit(date) {
+    save();
+    load(date);
+    editingInArchive = true;
+    archiveBrowse.hidden = true;
+    composeSlot.hidden = false;
+    composeSlot.appendChild(journalSection);
+    scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
+  }
+  function exitArchiveEdit() {
+    if (!editingInArchive) return;
+    save();
+    editingInArchive = false;
+    viewJournal.prepend(journalSection); // 원래 자리(.resume 위)로 복귀
+    composeSlot.hidden = true;
+    archiveBrowse.hidden = false;
+    renderArchive();
+  }
+  archiveBackBtn.addEventListener('click', exitArchiveEdit);
+  // ---- row/card ⋯ menu: "수정하기" always; "즐겨찾기"는 카드(과목 필터)에서만
+  // — 카드 자체가 "그 과목의 한 조각"이라 즐겨찾기 대상이 카드 단위다. 같은
+  // 팝업 컴포넌트를 Journaling의 본문 과목 메뉴(#course-menu)와 공유한다 ----
   const archiveMenu = $('#archive-menu');
   let archiveMenuAnchor = null;
-  function openArchiveMenu(btn, date) {
+  function openArchiveMenu(btn, date, course) {
     archiveMenuAnchor = btn;
     archiveMenu.dataset.date = date;
-    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>';
+    archiveMenu.dataset.course = course || '';
+    const isFav = course && favorites.has(date, course);
+    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>'
+      + (course ? `<button type="button" class="cm-item" role="menuitem" data-act="fav">${isFav ? '즐겨찾기 해제' : '즐겨찾기'}</button>` : '');
     const v = $('#view-archive').getBoundingClientRect(), a = btn.getBoundingClientRect();
     archiveMenu.hidden = false; // measure
     const w = archiveMenu.offsetWidth;
@@ -627,7 +726,9 @@
   archiveMenu.addEventListener('click', e => {
     const b = e.target.closest('.cm-item');
     if (!b) return;
-    if (b.dataset.act === 'edit') { const date = archiveMenu.dataset.date; closeArchiveMenu(false); window.PhiBrain.openJournal(date); }
+    const date = archiveMenu.dataset.date, course = archiveMenu.dataset.course || null;
+    if (b.dataset.act === 'edit') { closeArchiveMenu(false); enterArchiveEdit(date); }
+    else if (b.dataset.act === 'fav') { favorites.toggle(date, course); closeArchiveMenu(false); renderArchiveList(archiveEntries()); }
   });
   archiveMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeArchiveMenu(); } });
   document.addEventListener('pointerdown', e => {
@@ -649,7 +750,10 @@
     renderArchiveFilters(entries);
     renderArchiveList(entries);
   });
-  document.addEventListener('phibrain:view', e => { if (e.detail.name === 'journal-archive') renderArchive(); });
+  document.addEventListener('phibrain:view', e => {
+    if (e.detail.name === 'journal-archive') { renderArchive(); return; }
+    exitArchiveEdit(); // 다른 탭으로 나가면 .journal을 #view-journal로 먼저 되돌린다
+  });
   if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
 
   addEventListener('pagehide', save);

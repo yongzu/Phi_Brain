@@ -202,6 +202,13 @@
    structure reads apart from the writing; the text lines up with the
    body copy and the fill bleeds left by the pill padding */
 .editor h3{position:relative;width:fit-content;margin:22px 0 6px calc(-1 * var(--tab-pad-x));padding:4px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;background:var(--fill);color:var(--ink)}
+/* the negative left margin above assumes overflow:visible, bleeding into the
+   shell's own padding — but #editor's scroll container (overflow-y:auto also
+   forces overflow-x:auto per spec, since one axis can't stay 'visible' while
+   the other isn't) clips that bleed instead, cutting the pill's left edge.
+   .archive-preview never had matching padding to bleed into either. Both
+   just sit flush instead. */
+#editor h3,#editor .course-box,.archive-preview h3,.archive-preview .course-box{margin-left:0}
 .editor>h3:first-child,.editor>.course-box:first-child{margin-top:0}
 /* hovering a 4F pill brings its guiding question in from a blur, to the right */
 .editor h3[data-guide]::after{content:attr(data-guide);position:absolute;left:100%;top:50%;margin-left:12px;transform:translateY(-50%);white-space:nowrap;color:var(--gray);opacity:0;filter:blur(6px);pointer-events:none;transition:opacity 340ms var(--ease-out),filter 340ms var(--ease-out)}
@@ -378,11 +385,13 @@
   .fi-top-row{grid-template-columns:1fr}
 }
 
-/* wider than the shared .shell column — Journaling is untouched.
-   Assignment Manage tracks a 12-row grid; Future Item's 4-per-row course
-   grid benefits from even more room, so it gets a wider cap of its own. */
+/* wider than the shared .shell column. Assignment Manage tracks a 12-row
+   grid; Future Item's 4-per-row course grid benefits from even more room,
+   so it gets a wider cap of its own; Journaling and Journal Archive share
+   the same 900px cap (2026-09-13). */
+.shell:has(.view-journal:not([hidden])){max-width:900px}
 .shell:has(.view-assignment:not([hidden])){max-width:920px}
-.shell:has(.view-future:not([hidden])){max-width:1300px}
+.shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
 
 /* ---------- Assignment Manage ---------- */
@@ -442,15 +451,30 @@
    drop resume-list's accordion indent and stretch rows to the full width so
    the summary's title/meta/caret spacing (margin-right:auto trick) works */
 .archive-list{padding-left:0;align-items:stretch}
+/* .resume-list sets display:flex, which otherwise beats the [hidden]
+   attribute's UA-stylesheet display:none at equal specificity */
+#archive-list[hidden]{display:none}
 .archive-empty{color:var(--gray);padding:6px 0}
 .archive-entry .accordion-content{padding:0 0 12px}
 /* reuses .editor's heading/list/quote/code styling for the saved body, minus
    the live editor's own height reservation and inner padding */
 .archive-preview{min-height:0;padding:0 0 10px}
-/* .editor h3/.course-box pull left by --tab-pad-x to line up with the live
-   editor's own outer padding — this preview has no matching padding to pull
-   against, so the same negative margin would clip the box's left edge */
-.archive-preview h3,.archive-preview .course-box{margin-left:0}
+
+/* course filter → card grid instead of the All list: one card per journal
+   date that has that course, showing only that course's content. Same box
+   language as Future Item's .fi-box, doubled up (2 per row instead of 4,
+   taller padding) since a journal excerpt needs more room than a to-do line. */
+.archive-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+#archive-cards[hidden]{display:none}
+.archive-card{padding:20px 24px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
+.archive-card.is-fav{background:var(--fill)}
+.archive-card-head{margin-bottom:4px}
+.archive-card-body{padding-bottom:0}
+@media(max-width:720px){.archive-cards{grid-template-columns:1fr}}
+
+/* "수정하기" moves the live Journaling composer into #archive-compose-slot
+   in place — #archive-browse (filters+list/cards) hides while it's shown */
+#archive-compose-slot .archive-back{margin-bottom:16px}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start

@@ -138,6 +138,14 @@
 - **작성 영역 스크롤:** 글이 길어질수록 위쪽 과목 칩·날짜·삽입 도구줄에 닿기 어려워지던 문제를 `#editor{max-height:55vh;
   overflow-y:auto}`로 해결 — 편집 영역만 자체 스크롤하고 그 위 헤더는 항상 그 자리에 고정된다. `.archive-preview`는
   같은 `.editor` 클래스를 재사용하되 이 규칙은 ID 선택자로만 걸어 미리보기에는 적용하지 않는다(미리보기는 내용만큼만 차지).
+- **본문 섹션 폭(2026-09-13 추가):** Journaling도 Journal Archive와 같은 `.shell:has(.view-journal:not([hidden]))
+  {max-width:900px}`로 넓혔다 — `#view-journal`에는 다른 뷰들과 달리 `view-journal` 클래스가 아예 없어서
+  `:has()` 선택자가 매칭되지 않던 것을 함께 발견해 고쳤다(뷰 div에 클래스 추가).
+- **4F 박스 왼쪽 잘림 수정(2026-09-13 추가):** 바로 위 "작성 영역 스크롤"이 만든 회귀 — `overflow-y:auto`를 걸면
+  스펙상 `overflow-x`도 자동으로 `auto`가 돼(둘 중 하나만 `visible`일 수 없음) `.editor h3`/`.course-box`가
+  `--tab-pad-x`만큼 왼쪽으로 당기던 음수 마진이 그대로 잘려 보였다. `#editor h3,#editor .course-box{margin-left:0}`로
+  당김 자체를 없애 해결 — Journal Archive 미리보기에 이미 적용했던 것과 같은 규칙을 라이브 에디터에도 확장 적용했다
+  (두 선택자를 한 규칙으로 합침).
 - **서식 줄 상시 노출로 원복:** "텍스트를 드래그해야 나타나는" 동작(2026-09-13 오전 도입)을 사용자 요청으로 되돌렸다 —
   `.format-bar`의 `hidden` 속성을 제거하고 `refreshFormatState()`에서 그 토글 로직만 삭제, 4F 템플릿 줄 바로 아래
   고정된 자리는 그대로다(DOM 순서 자체는 바뀐 적 없음). 선택 시 눌림 상태 동기화는 유지.
@@ -167,7 +175,7 @@
   `title`·`aria-label`로 제공. All을 뺀 필터는 드래그 도착지. 오른쪽 끝에 "정렬 ▾"(`.fi-toolbar{justify-content:
   space-between}`로 항상 맨 오른쪽에 붙는다).
 - **본문 섹션 폭:** Assignment Manage와 별도로 `.shell:has(.view-future:not([hidden])){max-width:1100px}`로 넓혀
-  4열 박스 그리드가 여유 있게 배치되도록 했다. **2026-09-13 추가 확장:** 사용자 요청으로 `1100px → 1300px`.
+  4열 박스 그리드가 여유 있게 배치되도록 했다. **2026-09-13 추가 확장 두 차례:** 사용자 요청으로 `1100px → 1300px → 1500px`.
 - **작성 카드(2026-09-13 재설계, 순서는 같은 날 다시 조정):** 한 줄 바가 아니라 세로로 쌓인 카드. 위에서부터
   ① 소속 칩 한 줄(Journaling "다룬 과목"과 같은 `course-chips`/`pill` 스타일이지만 항목당 소속은 하나라 단일 선택),
   ② **마감 켜기/끄기 체크박스** + (체크했을 때만 보이는) 마감 날짜·시간, ③ 2줄 높이 `<textarea>`(Enter로 추가, 한글
@@ -259,17 +267,36 @@
   `future.js`의 완료 항목(`.fi-done`) 아코디언 상태 보존과 같은 패턴이다. 본문 미리보기는 `.editor` 클래스를 그대로
   얹어 헤더·목록·체크리스트·인용·코드 스타일을 재사용하되(`min-height`·안쪽 padding만 덮어씀) `contenteditable`이
   아니라 읽기 전용이다.
-- **행 ⋯ 메뉴로 수정하기(2026-09-13 추가, 위 "Journaling에서 열기" pill 대체):** 펼친 내용 안의 별도 버튼 대신,
-  Future Item 행처럼 summary 줄 자체에 항상 보이는 `⋯`(`.pill.pill-icon`)을 두고 눌렀을 때 뜨는 작은 메뉴(기존
-  `#course-menu` 팝업과 같은 `.course-menu`/`.cm-item` 컴포넌트 재사용, `#archive-menu`)에서 "수정하기"를 고르면
-  `openJournal(date)`로 이동한다. `<summary>` 안에 인터랙티브 버튼을 두는 구조라, `⋯` 버튼에는 렌더링마다 직접
-  클릭 리스너를 달아 `stopPropagation()`으로 `StyleKit.createAccordion`의 summary 클릭(행 펼침/접힘)이 함께
-  발동하지 않도록 막았다 — 위임 리스너로는 summary보다 나중에 실행돼 막을 수 없다.
+- **행/카드 ⋯ 메뉴로 수정하기(2026-09-13 추가, 위 "Journaling에서 열기" pill 대체):** 펼친 내용 안의 별도 버튼 대신,
+  Future Item 행처럼 summary/카드 헤더에 항상 보이는 `⋯`(`.pill.pill-icon`)을 두고 눌렀을 때 뜨는 작은 메뉴(기존
+  `#course-menu` 팝업과 같은 `.course-menu`/`.cm-item` 컴포넌트 재사용, `#archive-menu`)에서 "수정하기"를 고를 수
+  있다. `<summary>` 안에 인터랙티브 버튼을 두는 구조라, `⋯` 버튼에는 렌더링마다 직접 클릭 리스너를 달아
+  `stopPropagation()`으로 `StyleKit.createAccordion`의 summary 클릭(행 펼침/접힘)이 함께 발동하지 않도록 막았다 —
+  위임 리스너로는 summary보다 나중에 실행돼 막을 수 없다.
+- **수정하기 = Journal Archive 안에서 바로 작성(2026-09-13 추가, 사용자 요청 — 원래는 `openJournal(date)`로
+  Journaling 탭으로 이동했다):** "수정하기"를 누르면 Journaling의 `.journal` 작성 섹션(제목·과목 칩·날짜·삽입
+  도구줄·에디터·정리하기 푸터 전체) DOM 노드를 통째로 `#archive-compose-slot`으로 옮겨 그 자리에서 편집한다 —
+  복제가 아니라 같은 노드를 옮기는 것이라 `journal.js`의 `load`/`save`/`renderCourses` 등 기존 로직을 전혀 손대지
+  않고 그대로 동작한다(요소를 ID로 한 번만 찾아 캐싱해두는 방식이라 부모가 바뀌어도 참조는 그대로 유효). 위에 뜨는
+  "← Journal Archive 목록으로" 버튼이나 다른 탭으로의 이동(`phibrain:view` 이벤트) 모두 편집 중이면 저장 후
+  `.journal`을 `#view-journal`의 원래 자리(`.resume` 섹션 위)로 되돌린다. Journaling 자체의 "오늘/지난 저널" 날짜
+  상태(`current`)를 그대로 공유하므로, 편집 후 Journaling 탭을 직접 눌러도 "오늘"이 아니라 방금 고친 그 날짜가
+  보인다 — Future Item의 "원문 저널 열기"가 이미 그렇게 동작하던 것과 같은 원칙.
 - **4F 박스 왼쪽 잘림 수정(2026-09-13):** `.editor h3`/`.course-box`는 라이브 에디터의 바깥 여백(`--tab-pad-x`)에
   맞춰 왼쪽으로 음수 마진을 당기는데, 이 미리보기 컨테이너에는 그만큼의 여백이 없어 박스 왼쪽이 잘려 보였다.
-  `.archive-preview h3,.archive-preview .course-box{margin-left:0}`로 미리보기 안에서만 당김을 없앴다.
-- **본문 폭 확장(2026-09-13 추가):** `.shell:has(.view-archive:not([hidden])){max-width:900px}` — Assignment
-  Manage(920px)·Future Item(1300px)과 같은 방식으로 이 화면에서만 넓힌다. Journaling 기본 폭(680px)은 그대로.
+  `#editor h3,#editor .course-box,.archive-preview h3,.archive-preview .course-box{margin-left:0}`(라이브 에디터
+  쪽은 같은 날 나중에 발견된 회귀 — 위 "Journaling 다듬기"의 4F 박스 잘림 수정 참고)로 당김을 없앴다.
+- **과목 필터 → 카드 그리드(2026-09-13 추가, 사용자 요청):** All 필터는 기존 날짜순 목록 그대로지만, 특정 과목을
+  고르면 저널 전체가 아니라 **그 과목에 해당하는 내용만** 카드로 보여준다. `courseChunks()`가 저장된 HTML을 한 번
+  훑으면서 과목 박스 다음부터(다음 과목 박스나 4F 소제목 전까지) 그 과목 몫으로 묶고, 가장 가까운 앞쪽 4F 이름을
+  라벨로 붙인다 — 과목 박스가 없는 항목(다룬 과목 칩으로만 표시된 경우)은 추출할 게 없으니 항목 전체를 그대로
+  보여주는 걸로 대체(fallback)한다. 카드는 Future Item의 `.fi-box`(`.fi-box-head`/`.fi-box-title`) 스타일을
+  재사용하되 2열 그리드(`repeat(2,minmax(0,1fr))`, 720px 이하에서 1열)로 Future Item의 4열보다 카드 하나가 더
+  넓고, 안쪽 패딩도 더 커서 실제 저널 발췌를 담기에 여유 있다. 카드 ⋯ 메뉴는 "수정하기"에 더해 "즐겨찾기"가
+  추가로 뜬다 — 저널 전체가 아니라 **(날짜, 과목) 카드 단위**로 북마크하는 개념이라 새 저장 키
+  `phi-brain:journal-archive:favorites`(문자열 배열, `"YYYY-MM-DD::CODE"`)를 새로 뒀다. 즐겨찾기한 카드는 그
+  과목 필터 안에서 맨 앞으로 정렬된다(나머지는 최신순 그대로) — Future Item이 즐겨찾기 박스를 그리드 맨 위
+  "즐겨찾기" 구획으로 빼는 것과 같은 방향의 취급.
 
 ## 아직 정하지 않은 것
 
