@@ -17,13 +17,9 @@
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
   /* ?v= busts the OS/browser's cursor-bitmap cache, which can keep showing an old
      image after this file's content changes even with the page cache cleared —
-     bump this number whenever cursor-arrow.png or cursor-pointer.svg changes.
-     The arrow is a pre-rendered PNG (not SVG): the SVG version kept showing a
-     thin dark rim at cursor size no matter what was tried, which points at the
-     browser/OS's cursor rasterizer rather than the artwork — a raster image
-     sidesteps that step entirely. */
-  --phi-cursor:url("cursor-arrow.png?v=3") 4 3;
-  --phi-cursor-pointer:url("cursor-pointer.svg?v=7") 2 3;
+     bump this number whenever cursor-arrow.svg or cursor-pointer.svg changes. */
+  --phi-cursor:url("cursor-arrow.svg?v=1") 1 2;
+  --phi-cursor-pointer:url("cursor-pointer.svg?v=8") 1 2;
 }
 
 /* Style-kit compatibility: theme.css ships 17 color names. Fold them onto

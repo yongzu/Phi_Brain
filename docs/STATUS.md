@@ -192,3 +192,4 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | 2배 확대·그림자 추가·외부 1px 흰 라인 추가까지 시도해도 화살표 커서에 얇은 선이 계속 보인다는 사용자 피드백 → SVG 래스터라이즈 자체를 의심, 기본 화살표를 **PNG로 교체**(`cursor-arrow.png`, 사용자 제공 `cursor.png`를 캔버스로 halo+그림자 합성 후 49×52 저장, 핫스팟 12 9). `cursor-arrow.svg`는 삭제. 포인터(`cursor-pointer.svg`)는 문제가 없다는 사용자 확인에 따라 그대로 둠 | 사용자의 실제 화면 최종 확인 필요 — 그래도 선이 보이면 SVG 문제가 아니라는 뜻이므로 원인을 완전히 다시 봐야 함 |
 | 2026-09-12 | Claude Code | 사용자 요청으로 `cursor-arrow.png` 재생성: 그림자 제거, 크기 절반(49×52→21×23, 핫스팟 4 3)으로 축소 | 여전히 선이 보이는지 최종 확인 필요 |
 | 2026-09-12 | Claude Code | 화살표·포인터 커서 크기를 19×21.16으로 통일(`cursor-arrow.png` 19×21, 핫스팟 4 3 / `cursor-pointer.svg` 19×21.16, 핫스팟 2 3), 캐시 무효화 버전 갱신 | 사용자 최종 확인 필요 |
+| 2026-09-12 | Claude Code | 사용자가 직접 만든 최종 SVG(`Cursor.svg`, `pointer.svg`, 17×19)로 두 커서 모두 교체(`cursor-arrow.png` 폐기, `cursor-arrow.svg`·`cursor-pointer.svg`로 통일, 핫스팟 1 2) | 사용자 최종 확인 필요 |
