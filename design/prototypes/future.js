@@ -926,7 +926,7 @@
   };
 
   // ---- view switch (only the built views; other nav tabs stay inert) ----
-  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment') };
+  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive') };
   const navTabs = $$('.side-nav [data-view]');
   let currentView = 'journal';
   function show(name, { filter: f } = {}) {
@@ -940,7 +940,9 @@
       on ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current');
     });
     if (name === 'future') setFilter(f || filter);
-    else history.replaceState(null, '', location.pathname + location.search);
+    // journal-archive owns its own hash (journal.js) — its filter lives in the
+    // URL too, so don't clear it here before that module gets a chance to read it
+    else if (name !== 'journal-archive') history.replaceState(null, '', location.pathname + location.search);
     if (!reduce.matches) views[name].animate(
       [{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 320, easing: EASE });
     // other view modules (assignment.js, ...) load after this and need to know
@@ -955,7 +957,8 @@
   // (our own replaceState calls don't fire hashchange, so this never loops)
   const route = () => {
     const h = location.hash;
-    const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment' : 'journal';
+    const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment'
+      : h.startsWith('#journal-archive') ? 'journal-archive' : 'journal';
     show(name, { filter: filterFromHash(h) });
   };
   addEventListener('hashchange', route);

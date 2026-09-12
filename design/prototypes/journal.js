@@ -15,6 +15,7 @@
   const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
   const chipsEl = $('#course-chips'), formatBar = $('.format-bar');
+  const archiveFiltersEl = $('#archive-filters'), archiveListEl = $('#archive-list');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
   const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
@@ -505,6 +506,64 @@
     window.PhiBrain.show('journal');
     scrollTo({ top: 0 });
   };
+
+  // ---- Journal Archive: read-only browse over every real saved draft, no
+  // fabricated data (EXAMPLES/REVIEW are for the homepage resume lists only) ----
+  let archiveFilter = 'all';
+  const archiveHashFor = f => (f === 'all' ? '#journal-archive' : `#journal-archive/${f}`);
+  const archiveFilterFromHash = h => {
+    if (!h.startsWith('#journal-archive')) return 'all';
+    const raw = (h.split('/')[1] || '').toUpperCase();
+    if (!raw) return 'all';
+    if (raw === 'GENERAL') return 'general';
+    const code = ALIASES[raw] || raw;
+    return COURSES.some(c => c[0] === code) ? code : 'all';
+  };
+  function archiveEntries() {
+    return store.dates().map(date => {
+      const d = store.get(date);
+      if (!d) return null;
+      return { date, title: (d.title || '').trim() || `${monthDay(date)} 저널`, courses: d.courses || [], savedAt: d.savedAt || 0 };
+    }).filter(Boolean).sort((a, b) => b.date.localeCompare(a.date));
+  }
+  function renderArchiveFilters(entries) {
+    const count = k => entries.filter(e => k === 'all' || e.courses.includes(k)).length;
+    const pill = (k, label) => `<button type="button" class="pill fi-filter" data-archive-filter="${k}" aria-pressed="${k === archiveFilter}">`
+      + `${label}${count(k) ? `<span class="f-count" aria-hidden="true">${count(k)}</span>` : ''}</button>`;
+    archiveFiltersEl.innerHTML = pill('all', 'All') + pill('general', 'General') + COURSES.map(([code]) => pill(code, code)).join('');
+  }
+  function renderArchiveList(entries) {
+    if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
+    const filtered = archiveFilter === 'all' ? entries : entries.filter(e => e.courses.includes(archiveFilter));
+    if (!filtered.length) { archiveListEl.innerHTML = '<li class="archive-empty">이 과목이 들어간 저널이 아직 없어요</li>'; return; }
+    archiveListEl.innerHTML = filtered.map(e => {
+      const courseLabel = e.courses.map(c => (c === 'general' ? 'General' : c)).join(' · ');
+      const meta = [courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
+      return item(esc(e.title), meta, `data-open="${e.date}"`);
+    }).join('');
+  }
+  function renderArchive() {
+    archiveFilter = archiveFilterFromHash(location.hash);
+    const entries = archiveEntries();
+    renderArchiveFilters(entries);
+    renderArchiveList(entries);
+    if (window.PhiBrain.getCurrentView() === 'journal-archive') history.replaceState(null, '', archiveHashFor(archiveFilter));
+  }
+  archiveFiltersEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-archive-filter]');
+    if (!b) return;
+    archiveFilter = b.dataset.archiveFilter;
+    history.replaceState(null, '', archiveHashFor(archiveFilter));
+    const entries = archiveEntries();
+    renderArchiveFilters(entries);
+    renderArchiveList(entries);
+  });
+  archiveListEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-open]');
+    if (b) window.PhiBrain.openJournal(b.dataset.open);
+  });
+  document.addEventListener('phibrain:view', e => { if (e.detail.name === 'journal-archive') renderArchive(); });
+  if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
 
   addEventListener('pagehide', save);
   load(today);

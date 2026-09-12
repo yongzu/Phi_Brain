@@ -205,6 +205,32 @@
   때문에(`history.replaceState`) `assignment.js`는 해시를 직접 읽지 않고 `future.js`가 쏘는 `phibrain:view` 커스텀 이벤트와
   `PhiBrain.getCurrentView()`로 자신이 보여지는 시점을 안다.
 
+### Journal Archive 페이지 (2026-09-13, 사용자 요구사항 · Claude Code 구현)
+
+지금까지 쓴 저널을 과목 기준으로 돌아보는 화면. 새 저장소 없이 `journal.js`의 기존 `store`(localStorage)를 읽기만 한다.
+파일: `home.html`의 `#view-archive` + `journal.js`(같은 IIFE 안에 추가, 별도 파일 없음). 새 색상·토큰 없음.
+
+- **진입:** 사이드바 General > Journal Archive에 `data-view="journal-archive"`를 달아 `future.js`의 `views` 레지스트리에
+  등록했다(이전까지는 링크만 있고 화면이 없는 죽은 버튼이었다). 주소는 `#journal-archive`, 필터별 `#journal-archive/AL`·
+  `/general` 등 — Future Item의 필터 주소 패턴과 동일. 다만 필터 상태를 `future.js`가 아니라 `journal.js` 쪽 archive
+  모듈이 직접 관리한다(`show()`는 이 뷰로 넘어갈 때 해시를 지우지 않도록만 예외 처리하고, 실제 읽기·쓰기는
+  `phibrain:view` 이벤트를 받은 journal.js가 한다 — Assignment Manage와 같은 방식).
+- **상단 필터:** Future Item의 `.fi-filters`/`.fi-filter` pill을 그대로 재사용, 한 번에 하나 선택. 순서는 `All, General,
+  AL, AOR, BI, EWA, IAE, IPS, PC, RW, SI, TF, VT, WI` — General은 Future Item처럼 "전체 보기" 자리를 내주고 그 자체가
+  하나의 필터 값이 됐다(All이 전체 보기를 맡는다). 각 필터 옆에 그 과목이 들어간 저널 개수를 `.f-count`로 표시.
+- **목록:** 필터 아래 `resume-list`(이어서 작성하기와 같은 시각 스타일, 아코디언 밖에서 쓰므로 들여쓰기만 제거)로 최신
+  날짜순 목록. 각 행은 제목(비어 있으면 "M월 D일 저널") · 다룬 과목(있는 만큼, `General`/과목 코드) · 마지막 저장 시각.
+  클릭하면 기존 `window.PhiBrain.openJournal(date)`(Future Item의 "원문 저널 열기"가 이미 쓰던 함수)로 Journaling 탭의
+  그 날짜를 그대로 연다 — Archive 전용 열람 로직을 새로 만들지 않았다.
+- **다대다 과목 필터:** 저널 하나가 여러 과목에 동시에 태그될 수 있는 기존 규칙을 그대로 따른다(Future Item·Assignment
+  Manage의 "소속 하나" 규칙과 다름) — 필터는 배열 `includes()`로 "포함"만 검사하므로 저널 하나가 여러 필터에 동시에
+  나타날 수 있고, 이는 의도된 동작이다.
+- **정직한 데이터:** 홈 화면 "이어서 작성하기"가 섞어 쓰는 가짜 예시(`EXAMPLES`)·검토 목업(`REVIEW`)은 Archive에 전혀
+  쓰지 않는다 — `store.dates()`로 실제 저장된 날짜만 나열한다. 저널이 하나도 없으면 "아직 쓴 저널이 없어요", 필터링
+  결과가 없으면 "이 과목이 들어간 저널이 아직 없어요"로 문구를 구분한다.
+- **범위 제외:** 정리(AI) 결과·검토 상태 표시, 검색·페이지네이션·월별 그룹핑·삭제, 본문 미리보기, 기기 간 동기화 —
+  전부 이번 구현에 포함하지 않았다(안내 문구로 "이 브라우저에만 저장" 고지).
+
 ## 아직 정하지 않은 것
 
 - 과목 상세·검토 화면 본문은 미구현. Assignment Manage와 Future Items 실행 목록은 구현됐으며 추가 사용성 점검 대상이다.

@@ -430,6 +430,12 @@
   .am-detail{left:16px;right:16px;bottom:16px;width:auto;max-width:none}
 }
 
+/* ---------- Journal Archive ---------- */
+.archive-hint{margin:6px 0 16px}
+/* not nested in a <details>, so drop resume-list's accordion indent */
+.archive-list{padding-left:0}
+.archive-empty{color:var(--gray);padding:6px 0}
+
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
    on the page's own white, all three lines in the secondary tone */
