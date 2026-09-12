@@ -94,10 +94,21 @@
 .tab2{color:var(--gray);margin-left:var(--tab2-indent)}
 .nav-code{font-weight:700}
 
+/* General/Course become an accordion only once the sidebar stacks to
+   mobile (below); on the wide layout the JS keeps them permanently open
+   and a click does nothing, so no marker or caret should ever show. */
+.nav-accordion>summary{list-style:none;cursor:pointer}
+.nav-accordion>summary::-webkit-details-marker{display:none}
+.nav-accordion[open] .caret{transform:rotate(180deg)}
+.nav-caret{display:none;margin-left:auto}
+
 @media(max-width:860px){
   .app-body{flex-direction:column}
   .side-nav{width:100%;flex:none;padding:20px 24px}
   .nav-group,.nav-list{flex-direction:row;flex-wrap:wrap;gap:6px}
+  .nav-accordion{flex-direction:column;flex-wrap:nowrap}
+  .nav-accordion>summary{display:flex;align-items:center}
+  .nav-caret{display:inline-block}
   .tab1{width:100%}
   .tab2{margin-left:0}
   .nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:none}
@@ -255,24 +266,55 @@
 .fi-filter[aria-pressed="true"]{font-weight:700}
 .f-count{margin-left:5px;color:var(--gray);font-weight:400;font-variant-numeric:tabular-nums}
 
-/* composer: one soft field — action, membership, add */
-.fi-composer{display:flex;align-items:center;gap:4px;margin:14px 0 28px;padding:4px 4px 4px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
+/* composer: a card, not a single-line bar — membership chips (다룬 과목 style,
+   but single-pick), a two-line action field, then a due date+time row */
+.fi-composer{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:14px 0 28px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:border-color 140ms}
 .fi-composer:focus-within{border-color:var(--gray)}
-.fi-input{flex:1;min-width:0;padding:6px 0;border:0;background:none;color:var(--ink)}
+.fi-scope-chips{margin:0}
+.fi-input{min-height:calc(2 * 1.5em + 12px);padding:6px 0;border:0;background:none;color:var(--ink);font:inherit;resize:vertical}
 .fi-input::placeholder{color:var(--gray)}
 .fi-input:focus-visible{outline:0}
+.fi-due-row{display:flex;align-items:center;gap:8px;color:var(--gray)}
 
-/* boxes: a hairline frame, no shadow; 임시 is dashed because it's not a place yet */
-.fi-list{display:flex;flex-direction:column;gap:12px}
+/* time picker: the same .datepicker card as the date picker, but three
+   scrollable columns (오전/오후, 시, 분) of .cm-item options instead of a grid */
+.tp-panel{width:auto}
+.tp-panel .dp-foot{justify-content:space-between}
+.tp-cols{display:flex;gap:2px}
+.tp-col{display:flex;flex-direction:column;gap:1px;width:56px;max-height:190px;overflow-y:auto;text-align:center}
+.tp-col .cm-item{text-align:center}
+.tp-col .cm-item[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.fi-composer .btn-primary{align-self:flex-end}
+
+/* sort: one-shot rearrange buttons above the course grid, hidden while a single box is filtered */
+.fi-sort{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;color:var(--gray)}
+
+/* boxes: a hairline frame, no shadow; 임시 is dashed because it's not a place yet.
+   General+임시 share a fixed top row (half width each); the section labels
+   and the "+ 박스 추가" tile always span the full row; the drag-orderable
+   course/custom boxes fall into a 4-per-row grid between them. */
+.fi-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
+.fi-list>.fi-top-row,.fi-list>.fi-section-label,.fi-list>.fi-box-add,.fi-list>.fi-box:only-child{grid-column:1/-1}
+.fi-top-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .fi-section-label{margin:12px 0 -4px;color:var(--gray)}
 .fi-box{padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
 .fi-box.is-temp{border-style:dashed}
+.fi-box[draggable="true"]{cursor:grab}
+.fi-box.box-drag-src{opacity:.4}
+.fi-box.box-drop-over{outline:1px solid var(--ink);background:var(--fill)}
 .fi-box-head{display:flex;align-items:center;gap:10px;min-height:28px}
 .fi-box-title{margin:0;color:var(--ink);overflow-wrap:anywhere}
-.fi-fav{margin-left:auto;margin-right:-6px}
-.fi-fav[aria-pressed="true"]{color:var(--ink)}
+.fi-box-name-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
+.fi-box-name-edit:focus-visible{outline:0}
+.fi-box-more{margin-left:auto;margin-right:-6px}
 .fi-box-hint,.fi-box-empty{margin:2px 0 6px;color:var(--gray)}
-.fi-all-empty{margin:0}
+
+/* the "+ 박스 추가" tile: a button when idle, a name field once clicked */
+.fi-box-add{background:none;font:inherit;border-style:dashed;color:var(--gray);display:flex;align-items:center;justify-content:center;min-height:64px;transition:background 140ms,color 140ms}
+.fi-box-add:not(.is-editing){cursor:pointer}
+.fi-box-add:hover{background:var(--fill);color:var(--ink)}
+.fi-box-add-input{width:100%;max-width:200px;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);text-align:center}
+.fi-box-add-input:focus-visible{outline:0}
 
 .fi-rows{list-style:none;margin:0;padding:0}
 .fi-row{display:flex;align-items:center;gap:10px;min-height:32px}
@@ -284,6 +326,10 @@
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
 .fi-text{flex:1;min-width:0;color:var(--ink);overflow-wrap:anywhere}
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
+.fi-due{flex:0 0 auto;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fi-row.is-overdue .fi-due{color:var(--ink);font-weight:700}
+.fi-due-edit{flex:0 0 auto;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
+.fi-due-edit:focus-visible{outline:0}
 .fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
 .fi-edit:focus-visible{outline:0}
 .fi-more{flex:0 0 auto;margin-right:-6px}
@@ -312,12 +358,19 @@
 .toast-act{color:var(--ink);background:var(--fill)}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-@media(max-width:560px){
-  .fi-composer{flex-wrap:wrap;padding:8px 8px 8px 14px}
-  .fi-input{flex:1 1 100%}
-  .fi-scope{margin-left:-8px}
-  .fi-composer .btn-primary{margin-left:auto}
+@media(max-width:860px){
+  .fi-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media(max-width:560px){
+  .fi-list{grid-template-columns:1fr}
+  .fi-top-row{grid-template-columns:1fr}
+}
+
+/* wider than the shared .shell column — Journaling is untouched.
+   Assignment Manage tracks a 12-row grid; Future Item's 4-per-row course
+   grid benefits from even more room, so it gets a wider cap of its own. */
+.shell:has(.view-assignment:not([hidden])){max-width:920px}
+.shell:has(.view-future:not([hidden])){max-width:1100px}
 
 /* ---------- Assignment Manage ---------- */
 /* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
@@ -325,20 +378,22 @@
 .am-week-nav{display:flex;align-items:center;gap:8px}
 .am-week-label{color:var(--ink);font-variant-numeric:tabular-nums}
 .am-status-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--gray)}
-.am-filter{display:flex;align-items:center;gap:6px;color:var(--gray);cursor:pointer;margin-left:auto}
 .am-progress{margin:10px 0 0;color:var(--gray);font-variant-numeric:tabular-nums}
 .am-backend-hint{margin:16px 0;color:var(--ink)}
 .am-backend-hint code{background:var(--fill);border-radius:var(--radius-sm);padding:1px 5px}
 
-.am-table{width:100%;border-collapse:collapse;margin-top:14px}
+.am-table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px}
+.am-table th:first-child,.am-table td:first-child{width:38%}
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
+/* the status button carries its own left padding (an extra --tab-pad-x) so its
+   dot sits one --tab-pad-x further right than a plain header — match it here */
+.am-table th:not(:first-child){padding-left:calc(var(--tab-pad-x) * 2)}
 .am-table td{padding:8px var(--tab-pad-x);border-bottom:1px solid var(--line);vertical-align:middle}
 .am-table tr:last-child td{border-bottom:none}
-.am-course-link{color:var(--ink)}
-.am-course-link:hover{text-decoration:underline}
+.am-course-name{color:var(--ink);padding:4px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
+.am-course-name:hover{background:var(--fill)}
 
 .am-cell{display:inline-flex;align-items:center;gap:6px}
-.am-cell.am-cell-dim{opacity:.35}
 .am-status{display:inline-flex;align-items:center;gap:6px;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
 .am-status:hover{background:var(--fill);color:var(--ink)}
 .am-dot{width:9px;height:9px;border-radius:50%;border:1px solid var(--gray);flex:0 0 9px}
@@ -383,5 +438,5 @@
   /* these repeat selectors that set a plain `cursor:pointer` elsewhere with
      higher specificity than the generic rule above (class beats element,
      or it's a ::before pseudo-element the rule above can't reach) */
-  .courses summary,.resume-row summary,.fi-done summary,.fi-register,.editor ul.checklist>li::before{cursor:var(--phi-cursor-pointer),pointer}
+  .courses summary,.resume-row summary,.fi-done summary,.nav-accordion>summary,.fi-register,.editor ul.checklist>li::before,.fi-box-add:not(.is-editing){cursor:var(--phi-cursor-pointer),pointer}
 }

@@ -1,6 +1,6 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-12 / Codex
+최종 갱신: 2026-09-13 / Claude Code
 
 ## 현재 단계
 
@@ -53,7 +53,41 @@ AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널
 
 ## 진행 중
 
-없음. Assignment Manage 구현 인계 기록 완료(아래).
+없음. Assignment Manage 구현 인계, Future Items 재설계 인계 기록 완료(아래).
+
+## Future Items 재설계 인계 (Claude Code, 2026-09-13)
+
+2026-09-12 구현 이후 사용자 요청으로 여러 차례 반복 수정했다. 아래 "Future Items 구현 인계 (2026-09-12)"의
+필터·저장 실패 복구·저널 연동 부분은 그대로 유효하고, 그 외 레이아웃·데이터 모델은 이 절 내용으로 갱신됐다.
+
+- **박스 레이아웃 재설계:** 임시(unassigned)+General이 상단 한 줄에 반반 고정(즐겨찾기·드래그 대상 아님, 아래
+  "위치" 참고), 나머지 과목·커스텀 박스는 4열 그리드(좁은 화면 2열→1열). 즐겨찾기는 이제 순서에 영향을 주지 않고
+  "즐겨찾기"/"과목" 두 그룹으로만 나눈다 — 실제 순서는 사용자가 정하는 `boxOrder` 배열을 따른다.
+- **박스 드래그 재배치(상하좌우):** 드롭 대상과의 배열 인덱스 비교로 삽입 방향을 정해서 커서 위치가 아니라 "어디에
+  놓았는가"로 항상 동작한다(첫 구현은 좌우만 되던 버그를 이 방식으로 고쳤다). 항목을 다른 박스로 옮기는 기존 드래그와는
+  별도 상태(`dragId` vs `dragBoxKey`)로 관리해 서로 간섭하지 않는다.
+- **정렬 메뉴:** 그리드 위 "정렬 ▾" 버튼 → 옆에 뜨는 메뉴(최신 추가순 / 마감 급한순 / 알파벳순). 한 번 누르면 `boxOrder`를
+  그 기준으로 다시 쓰는 일회성 동작이라, 이후에도 드래그로 계속 다듬을 수 있다(고정 "정렬 모드"가 아님).
+- **커스텀 박스:** 그리드 끝 "+ 박스 추가" 점선 타일로 사용자가 이름을 지어 박스를 만든다(`state.customBoxes`,
+  `custom:<id>` 소속 키). 박스 "⋯" 메뉴에서 즐겨찾기(모든 과목/커스텀 박스)·이름 바꾸기·삭제(커스텀만) 가능 — 실제
+  과목은 고정 커리큘럼이라 이름 변경·삭제 대상에서 뺐다. 삭제 시 그 안 항목은 임시로 이동, 되돌리기 토스트 지원.
+- **마감일(dueAt):** 항목에 선택적 마감 날짜/시간(`item.dueAt`, `YYYY-MM-DD` 또는 `YYYY-MM-DDTHH:mm`). 작성 카드의
+  마감 행에서 기본 설정하거나(날짜 기본값 오늘·조용히 유지, 시간을 고르거나 날짜를 바꿔야 실제로 붙음), 항목 "⋯" →
+  마감 설정/변경으로 나중에 바꿀 수 있다. 지난 마감은 배지가 굵게 표시된다.
+- **작성 카드 재설계:** 한 줄 바 → 세로 카드(소속 칩 한 줄 + 2줄 `<textarea>` + 마감 날짜/시간 + 추가 버튼). 소속은
+  드롭다운 대신 Journaling "다룬 과목"과 같은 칩 스타일(단, 단일 선택). 마감 날짜는 Journaling 날짜 선택창과 동일한
+  `.datepicker` 컴포넌트를 별도 인스턴스로 재사용(과거 제한 없이 미래 날짜도 선택 가능). 마감 시간은 브라우저 기본
+  `time`/`datetime-local` 위젯이 레이아웃을 깨서(글자가 세로로 밀림) 같은 카드 스타일의 커스텀 3열(오전/오후·시·분)
+  선택창으로 새로 만들었다.
+- **본문 섹션 폭:** Future Item은 `.shell:has(.view-future:not([hidden])){max-width:1100px}`로 Assignment
+  Manage(920px)와 별도로 더 넓게 잡았다.
+- **좌측 내비게이션 아코디언:** 모바일 폭(≤860px)에서 General/Course가 좌상단 아코디언으로 접힌다(기존
+  `StyleKit.createAccordion` 재사용). 데스크톱은 항상 펼쳐진 채 클릭 무시.
+- **위치:** `design/prototypes/future.js`(대부분의 로직) · `home.html`(작성 카드·정렬 버튼·아코디언 마크업) ·
+  `phi-brain.css`. 데이터는 여전히 `phi-brain:future:v2` 하나에 저장되며 `customBoxes[]`·`boxOrder[]` 필드가 늘었다
+  (구버전 데이터는 두 필드가 없어도 빈 배열로 채워져 그대로 열린다).
+- **미검증/남은 일:** 실제 사용자 터치 기기에서 드래그 재배치·아코디언 조작 확인 안 함. 커스텀 박스·마감일은
+  localStorage 전용(서버 없음, Assignment Manage와 무관). 마감 알림·반복 일정은 범위 밖.
 
 ## Future Items 구현 인계 (Claude Code, 2026-09-12)
 
@@ -94,8 +128,15 @@ AGENTS.md·PRODUCT.md·DESIGN.md·STATUS.md의 오래된 단계 표현과 저널
     순수 함수), `service.js`(상태 계산·수동 확인·이메일 반영), `googleOAuth.js`·`gmail.js`(OAuth2 웹서버 플로우·Gmail API,
     둘 다 raw `https`), `sync.js`(동기화 오케스트레이션), `index.js`(REST API, CORS, OAuth 라우트).
   - 과목·URL 시드 데이터는 사용자가 준 참고 자료(`Assignmetn Manage.pdf`)의 표를 그대로 옮겼다(주소 패턴을 추측하지 않음).
-  - 학기 1주차(09.06~09.12)는 참고 자료의 예시와 "오늘"(2026-09-12, 1주차 마지막 날)이 정확히 맞아떨어져 그대로 시드했다
-    (`server/db.js`의 `SEMESTER_START`). 16주로 시드했고, 늘어나면 이 상수만 바꾸면 된다.
+  - 학기 1주차는 처음엔 참고 자료 예시(09.06~09.12)로 시드했으나, 사용자가 실제 값을 두 차례 정정해 최종
+    **09.07~09.13(7일)** 이다(`server/db.js`의 `SEMESTER_START='2026-09-07'`, `WEEK_LENGTH_DAYS=7`). 이후 모든 주차는
+    이 두 상수에서 자동 계산되므로, 실제 학기가 다시 바뀌면 두 상수만 바꾸면 된다. 16주로 시드했고, 늘어나면
+    `SEMESTER_WEEKS`를 바꾼다. **주의:** 이미 떠 있는 백엔드 프로세스는 이 값을 코드 로드 시점에만 읽으므로, 상수를
+    바꾼 뒤에는 `node server/index.js`를 재시작해야 DB의 기존 주차 행이 upsert로 갱신된다(자동 반영 아님).
+  - 이후 사용자 요청으로 소소한 화면 조정도 반영: 헤더를 "Course(Figma)"로, 과목명은 클릭 링크가 아니라 호버 시 박스만
+    표시되는 라벨로 바꾸고 옆에 별도 ↗ 아이콘으로 Figma 보드 이동을 분리, Assignment/Self-Feedback 헤더 텍스트를 상태
+    원의 왼쪽 시작점에 맞춤, 본문 섹션 폭을 Journaling/Future Item과 별도로 920px까지 넓힘. 자세한 내용은
+    `docs/DESIGN.md` "Assignment Manage 페이지" 참고.
 - **데이터 모델(SQLite, `server/data/assignment-manage.sqlite` — Git 제외):** courses·weeks·submission_targets(과목×주차×
   종류, 유니크 제약으로 "항목당 하나" 가정을 명시) · submission_evidence(메일 1건 = 1행, message_id 유니크로 중복 방지,
   재제출은 새 행으로 쌓여 이력 보존) · manual_status(수동 확인, 메일 근거를 지우지 않음) · review_queue(판별 모호 메일) ·
@@ -248,3 +289,6 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-12 | Claude Code | 사용자가 새로 만든 `cursor.svg`·`pointer.svg`(13×14)로 교체 — 이번엔 화살표가 흰 채움+짙은 회색 테두리, 포인터는 짙은 회색 단색(테두리색=채움색)으로 배색이 바뀜. 핫스팟 0 1, 캐시 무효화 버전 갱신 | 사용자 최종 확인 필요 |
 | 2026-09-12 | Claude Code | 사용자가 만든 `i-beam.svg`(1×14, 얇은 세로선)를 그대로 `cursor-text.svg`로 추가하고 `--phi-cursor-text` 토큰으로 텍스트 입력·contenteditable에 적용(핫스팟 0 7) | 사용자 최종 확인 필요 |
 | 2026-09-12 | Claude Code | **Assignment Manage 구현**(사용자 요구사항): `server/`에 Node 내장 모듈만으로 백엔드(SQLite·규칙 기반 Gmail 판별·OAuth2·REST API) 신규 작성, `design/prototypes/assignment.js`+`#view-assignment`로 화면 구현(표 형식, 기존 화면과 다른 레이아웃 유지), 테스트 23개(`node --test server/*.test.js`) 전부 통과, `future.js`에 `phibrain:view` 이벤트·`getCurrentView()` 추가 | 실제 Gmail/OAuth 미검증(Google Cloud 설정 필요) · 다른 과목·셀프피드백 매핑 확장 · 위 "Assignment Manage 구현 인계" 참고 |
+| 2026-09-12~13 | Claude Code | Assignment Manage 다듬기: 미확인 항목만 보기 체크박스·설명 문구 삭제, 상태 셀 정렬 버그(`<td>`에 `display:inline-flex` 직접 지정한 게 원인) 수정, 본문 폭 920px 확장, 헤더 "Course(Figma)"로 변경, 과목명을 링크→호버 박스로 바꾸고 별도 ↗ 아이콘 추가, 학기 1주차를 사용자 정정에 따라 09.06~09.12→09.06~09.13→**09.07~09.13**으로 두 차례 수정(`SEMESTER_START`/`WEEK_LENGTH_DAYS` 상수화로 이후 주차 자동 계산) | 백엔드 재시작 필요(코드 로드 시점에만 상수를 읽음) · 테스트 23개 계속 통과 |
+| 2026-09-13 | Claude Code | **Future Items 재설계**(사용자 요구사항, 다수 라운드): 임시/General 상단 고정 반반 배치, 과목·커스텀 박스 4열 그리드로 재구성, 박스 드래그 재배치(상하좌우, 인덱스 비교 방식으로 재구현), "정렬 ▾" 플로팅 메뉴(최신 추가순/마감 급한순/알파벳순), "+ 박스 추가"로 커스텀 박스 생성·박스 "⋯" 메뉴(즐겨찾기·이름바꾸기·삭제), 항목 마감일(dueAt)과 ⋯ 메뉴의 마감 설정, 작성 카드 재설계(다룬 과목 스타일 소속 칩 + 2줄 textarea + Journaling과 통일한 커스텀 날짜/시간 선택), 모바일 좌측 내비게이션 아코디언, Future Item 본문 폭 1100px로 확장 | 실제 터치 기기 드래그·아코디언 미검증 · 자세한 내용은 위 "Future Items 재설계 인계" 참고 |
+| 2026-09-13 | Claude Code | 백엔드(port 5600) 재시작해 학기 1주차 수정 반영 확인(`/api/weeks` → 09.07~09.13), `docs/PRODUCT.md`·`docs/DESIGN.md` 갱신 | GitHub 배포 진행 |

@@ -27,7 +27,7 @@
   const backendHint = $('#am-backend-hint');
   const weekLabel = $('#am-week-label'), weekPrev = $('#am-week-prev'), weekNext = $('#am-week-next');
   const gmailStatus = $('#am-gmail-status'), connectBtn = $('#am-gmail-connect'), disconnectBtn = $('#am-gmail-disconnect');
-  const syncTime = $('#am-sync-time'), refreshBtn = $('#am-refresh'), unconfirmedOnly = $('#am-unconfirmed-only');
+  const syncTime = $('#am-sync-time'), refreshBtn = $('#am-refresh');
   const detail = $('#am-detail');
 
   let weeks = [];
@@ -68,27 +68,27 @@
     const shortcut = safeHref(cell.url)
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
-    return `<td class="am-cell${unconfirmedOnly.checked && cell.status !== 'unconfirmed' ? ' am-cell-dim' : ''}">
+    return `<td><span class="am-cell">
       <button type="button" class="am-status" data-target-id="${cell.targetId}">
         ${statusDot(cell.status)}<span>${STATUS_LABEL[cell.status] || cell.status}</span>
       </button>
       ${shortcut}
-    </td>`;
+    </span></td>`;
   }
 
   function render(matrix) {
     renderWeekLabel(matrix.week);
     progressEl.textContent = `완료 ${matrix.progress.done} / ${matrix.progress.total}`;
-    tbody.innerHTML = matrix.rows.map(row => {
-      const bothDone = unconfirmedOnly.checked && row.assignment.status !== 'unconfirmed' && row.selfFeedback.status !== 'unconfirmed';
-      return `<tr${bothDone ? ' hidden' : ''}>
-        <td>${safeHref(row.boardUrl)
-          ? `<a class="am-course-link" href="${esc(row.boardUrl)}" target="_blank" rel="noopener"><b>${esc(row.code)}</b>_${esc(row.name)}</a>`
-          : `<b>${esc(row.code)}</b>_${esc(row.name)}`}</td>
+    tbody.innerHTML = matrix.rows.map(row => `<tr>
+        <td><span class="am-cell">
+          <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
+          ${safeHref(row.boardUrl)
+            ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
+            : ''}
+        </span></td>
         ${renderCell(row.code, `${row.code} 과제`, row.assignment)}
         ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback)}
-      </tr>`;
-    }).join('');
+      </tr>`).join('');
   }
 
   async function loadWeek(weekNo) {
@@ -123,7 +123,6 @@
 
   weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) loadWeek(currentWeekNo - 1); });
   weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) loadWeek(currentWeekNo + 1); });
-  unconfirmedOnly.addEventListener('change', () => currentWeekNo && loadWeek(currentWeekNo));
 
   connectBtn.addEventListener('click', () => { location.href = `${API_BASE}/auth/google/start`; });
   disconnectBtn.addEventListener('click', async () => {

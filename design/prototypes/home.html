@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260912-3">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-1">
 </head>
 <body>
 
@@ -38,18 +38,18 @@
   <div class="nav-group">
     <button type="button" class="nav-tab tab1 active" aria-current="page" data-view="journal">Journaling</button>
   </div>
-  <div class="nav-group">
-    <button type="button" class="nav-tab tab1">General</button>
-    <div class="nav-list">
+  <details class="nav-group nav-accordion" open>
+    <summary class="nav-tab tab1">General<span class="caret nav-caret" aria-hidden="true">▾</span></summary>
+    <div class="nav-list accordion-content">
       <button type="button" class="nav-tab tab2" data-view="future">Future Item</button>
       <button type="button" class="nav-tab tab2" data-view="assignment">Assignment Manage</button>
       <button type="button" class="nav-tab tab2">Journal Archive</button>
       <button type="button" class="nav-tab tab2">Insight Archive</button>
     </div>
-  </div>
-  <div class="nav-group">
-    <button type="button" class="nav-tab tab1">Course</button>
-    <div class="nav-list nav-list-course">
+  </details>
+  <details class="nav-group nav-accordion" open>
+    <summary class="nav-tab tab1">Course<span class="caret nav-caret" aria-hidden="true">▾</span></summary>
+    <div class="nav-list nav-list-course accordion-content">
       <button type="button" class="nav-tab tab2"><span class="nav-code">AL</span>_Aesthetic Literacy</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">AOR</span>_Art of Reading</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">BI</span>_Beautiful Interface</button>
@@ -63,7 +63,7 @@
       <button type="button" class="nav-tab tab2"><span class="nav-code">VT</span>_Visual Translation</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">WI</span>_What If</button>
     </div>
-  </div>
+  </details>
 </nav>
 
 <main class="shell">
@@ -169,10 +169,54 @@
       <nav class="fi-filters" id="fi-filters" aria-label="소속 필터 — 항목을 끌어다 놓으면 소속이 바뀌어요"></nav>
 
       <form class="fi-composer" id="fi-composer" autocomplete="off">
-        <input type="text" class="fi-input" id="fi-input" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done">
-        <button type="button" class="pill fi-scope" id="fi-scope" aria-haspopup="menu"><span id="fi-scope-label">미지정</span><span class="caret" aria-hidden="true">▾</span></button>
-        <button type="submit" class="btn-primary">추가</button>
+        <div class="course-chips fi-scope-chips" id="fi-scope-chips" role="radiogroup" aria-label="소속 선택"></div>
+
+        <textarea class="fi-input" id="fi-input" rows="2" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done"></textarea>
+
+        <div class="fi-due-row">
+          <span class="field-label">마감</span>
+          <span class="date-field" id="fi-due-date-field">
+            <button type="button" class="pill pill-end" id="fi-due-date-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-due-datepicker">
+              <span id="fi-due-date-label"></span><span class="caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="datepicker" id="fi-due-datepicker" role="dialog" aria-label="마감 날짜 선택" hidden>
+              <div class="dp-head">
+                <span class="dp-title" id="fi-due-dp-title"></span>
+                <span class="dp-steps">
+                  <button type="button" class="pill pill-icon" id="fi-due-dp-prev" aria-label="이전 달">‹</button>
+                  <button type="button" class="pill pill-icon" id="fi-due-dp-next" aria-label="다음 달">›</button>
+                </span>
+              </div>
+              <div class="dp-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+              <div class="dp-grid" id="fi-due-dp-grid"></div>
+              <div class="dp-foot"><button type="button" class="pill pill-end" id="fi-due-dp-today">오늘</button></div>
+            </div>
+          </span>
+          <span class="date-field" id="fi-due-time-field">
+            <button type="button" class="pill pill-end" id="fi-due-time-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fi-due-timepicker">
+              <span id="fi-due-time-label">시간 선택</span><span class="caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="datepicker tp-panel" id="fi-due-timepicker" role="dialog" aria-label="마감 시간 선택" hidden>
+              <div class="dp-head"><span class="dp-title">시간 선택</span></div>
+              <div class="tp-cols">
+                <div class="tp-col" id="fi-due-tp-meridiem" role="listbox" aria-label="오전/오후"></div>
+                <div class="tp-col" id="fi-due-tp-hour" role="listbox" aria-label="시"></div>
+                <div class="tp-col" id="fi-due-tp-minute" role="listbox" aria-label="분"></div>
+              </div>
+              <div class="dp-foot">
+                <button type="button" class="pill pill-inline" id="fi-due-time-clear">지우기</button>
+                <button type="button" class="pill pill-end" id="fi-due-time-now">지금</button>
+              </div>
+            </div>
+          </span>
+        </div>
+
+        <button type="submit" class="btn-primary fi-submit">추가</button>
       </form>
+
+      <div class="fi-sort" id="fi-sort">
+        <button type="button" class="pill" id="fi-sort-btn" aria-haspopup="menu" aria-label="박스 정렬">정렬<span class="caret" aria-hidden="true">▾</span></button>
+      </div>
 
       <div class="fi-list" id="fi-list"></div>
     </section>
@@ -186,8 +230,6 @@
       <header class="journal-head">
         <h1 class="journal-heading" id="am-heading">Assignment Manage</h1>
       </header>
-      <p class="field-hint">과제·셀프피드백 제출 여부만 관리해요. Future Item과는 따로예요 — 어느 쪽을 완료해도 서로의 상태를 바꾸지 않아요.</p>
-
       <div class="am-toolbar">
         <div class="am-week-nav">
           <button type="button" class="pill" id="am-week-prev" aria-label="이전 주">‹</button>
@@ -201,14 +243,13 @@
           <span class="am-sync-time" id="am-sync-time"></span>
           <button type="button" class="pill" id="am-refresh">제출 상태 새로고침</button>
         </div>
-        <label class="am-filter"><input type="checkbox" id="am-unconfirmed-only"> 미확인 항목만 보기</label>
       </div>
 
       <p class="am-progress" id="am-progress"></p>
       <p class="am-backend-hint" id="am-backend-hint" hidden>백엔드에 연결할 수 없어요 — <code>node server/index.js</code>를 실행해주세요.</p>
 
       <table class="am-table" id="am-table">
-        <thead><tr><th>과목</th><th>Assignment</th><th>Self-Feedback</th></tr></thead>
+        <thead><tr><th>Course(Figma)</th><th>Assignment</th><th>Self-Feedback</th></tr></thead>
         <tbody id="am-tbody"></tbody>
       </table>
     </section>
@@ -259,9 +300,26 @@
     options: document.getElementById('search-options'),
   });
   document.querySelectorAll('.courses, .resume-row').forEach(d => StyleKit.createAccordion(d));
+
+  // Left nav: General/Course only behave as an accordion once the layout
+  // stacks to mobile (@media(max-width:860px) in phi-brain.css) — on the
+  // wide layout a click does nothing and both stay permanently open.
+  (() => {
+    const mobileQuery = matchMedia('(max-width:860px)');
+    const groups = document.querySelectorAll('.nav-accordion');
+    groups.forEach(details => {
+      details.querySelector(':scope>summary').addEventListener('click', e => {
+        if (!mobileQuery.matches) { e.preventDefault(); e.stopImmediatePropagation(); }
+      });
+      StyleKit.createAccordion(details);
+    });
+    const sync = () => groups.forEach(d => { d.open = !mobileQuery.matches; });
+    mobileQuery.addEventListener('change', sync);
+    sync();
+  })();
 </script>
-<script src="future.js?v=20260912-2"></script>
+<script src="future.js?v=20260913-1"></script>
 <script src="journal.js?v=20260912-2"></script>
-<script src="assignment.js?v=1"></script>
+<script src="assignment.js?v=2"></script>
 </body>
 </html>

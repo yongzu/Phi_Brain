@@ -5,14 +5,17 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const SEMESTER_START = '2026-09-06';
+const SEMESTER_START = '2026-09-07';
 const SEMESTER_WEEKS = 16;
+// Week 01 runs 09.07~09.13 (7 days) — confirmed by the user. Every later week
+// follows the same 7-day length, back to back with no gap or overlap.
+const WEEK_LENGTH_DAYS = 7;
 const addDays = (iso, n) => {
   const d = new Date(iso + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
-const SEMESTER_END = addDays(SEMESTER_START, SEMESTER_WEEKS * 7 - 1);
+const SEMESTER_END = addDays(SEMESTER_START, SEMESTER_WEEKS * WEEK_LENGTH_DAYS - 1);
 
 const COURSE_SEED = [
   ['al', 'Aesthetic Literacy', 'AL'],
@@ -124,17 +127,17 @@ CREATE TABLE IF NOT EXISTS gmail_connection (
     );
   }
 
-  // Week 1 (09.06~09.12) matches the reference wireframe's example exactly, and
-  // design/prototypes' "today" (2026-09-12) lands right on its last day — this is
-  // the real current cohort's week 1, not a guess. Extend SEMESTER_WEEKS if the
-  // cohort runs longer; nothing else needs to change.
+  // Week 1 (09.07~09.13) is the real current cohort's week 1, confirmed by the
+  // user — every later week is generated from SEMESTER_START/WEEK_LENGTH_DAYS,
+  // so correcting those two constants fixes the whole semester automatically.
+  // Extend SEMESTER_WEEKS if the cohort runs longer; nothing else needs to change.
   const insertWeek = db.prepare(`
     INSERT INTO weeks (week_no, start_date, end_date) VALUES (?, ?, ?)
     ON CONFLICT(week_no) DO UPDATE SET start_date=excluded.start_date, end_date=excluded.end_date
   `);
   for (let w = 1; w <= SEMESTER_WEEKS; w++) {
-    const start = addDays(SEMESTER_START, (w - 1) * 7);
-    const end = addDays(start, 6);
+    const start = addDays(SEMESTER_START, (w - 1) * WEEK_LENGTH_DAYS);
+    const end = addDays(start, WEEK_LENGTH_DAYS - 1);
     insertWeek.run(w, start, end);
   }
 
