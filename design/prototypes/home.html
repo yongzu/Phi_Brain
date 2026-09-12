@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260913-8">
+<link rel="stylesheet" href="phi-brain.css?v=20260913-9">
 </head>
 <body>
 
@@ -111,7 +111,7 @@
       </div>
     </div>
     <!-- acts on the dragged selection — hidden until there is one (see journal.js refreshFormatState) -->
-    <div class="format-bar" role="toolbar" aria-label="글자 서식" hidden>
+    <div class="format-bar" role="toolbar" aria-label="글자 서식">
       <button type="button" class="pill pill-icon" data-fmt="bold" aria-pressed="false" aria-label="굵게" title="굵게"><b>B</b></button>
       <button type="button" class="pill pill-icon" data-fmt="italic" aria-pressed="false" aria-label="기울임" title="기울임"><i>I</i></button>
       <button type="button" class="pill pill-icon" data-fmt="underline" aria-pressed="false" aria-label="밑줄" title="밑줄"><u>U</u></button>
@@ -266,6 +266,7 @@
 
       <ul class="resume-list archive-list" id="archive-list"></ul>
     </section>
+    <div class="course-menu" id="archive-menu" role="menu" aria-label="저널 메뉴" hidden></div>
   </div>
 
 </main>
@@ -329,8 +330,8 @@
     sync();
   })();
 </script>
-<script src="future.js?v=20260913-5"></script>
-<script src="journal.js?v=20260913-4"></script>
+<script src="future.js?v=20260913-6"></script>
+<script src="journal.js?v=20260913-5"></script>
 <script src="assignment.js?v=2"></script>
 </body>
 </html>

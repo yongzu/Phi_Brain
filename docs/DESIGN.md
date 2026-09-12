@@ -133,6 +133,28 @@
 
 - 인터랙션 원칙: 이동하는 항목은 네비와 같은 화살표+이동+fill, 펼치는 항목은 ▾ 회전 + 키트 아코디언(slide+blur).
 
+### Journaling 다듬기 (2026-09-13, 사용자 요구사항 · Claude Code 구현)
+
+- **작성 영역 스크롤:** 글이 길어질수록 위쪽 과목 칩·날짜·삽입 도구줄에 닿기 어려워지던 문제를 `#editor{max-height:55vh;
+  overflow-y:auto}`로 해결 — 편집 영역만 자체 스크롤하고 그 위 헤더는 항상 그 자리에 고정된다. `.archive-preview`는
+  같은 `.editor` 클래스를 재사용하되 이 규칙은 ID 선택자로만 걸어 미리보기에는 적용하지 않는다(미리보기는 내용만큼만 차지).
+- **서식 줄 상시 노출로 원복:** "텍스트를 드래그해야 나타나는" 동작(2026-09-13 오전 도입)을 사용자 요청으로 되돌렸다 —
+  `.format-bar`의 `hidden` 속성을 제거하고 `refreshFormatState()`에서 그 토글 로직만 삭제, 4F 템플릿 줄 바로 아래
+  고정된 자리는 그대로다(DOM 순서 자체는 바뀐 적 없음). 선택 시 눌림 상태 동기화는 유지.
+- **과목선택 버튼에 General 추가:** 본문 삽입 "과목" 박스(`courseMenu`)는 지금까지 12개 과목만 있었다(다룬 과목 칩에는
+  이미 있었음) — `courseName`/`courseBoxInner`가 `'general'`을 특수 처리(3글자 코드 없이 "General" 텍스트만)하도록
+  확장하고, 메뉴 목록 맨 앞에 추가했다. 고르면 다룬 과목에도 그대로 반영된다(기존 로직 재사용).
+- **디스코드 저널 포맷 자동 변환:** 붙여넣은 텍스트에서 백틱으로 감싼 `` `fact`/`feeling`/`findings`/`Future item` `` 한
+  줄짜리 라벨(대소문자·복수형 무관)은 4F 소제목으로, `**TF**`처럼 굵게만 있는 한 줄은 실제 과목이면 과목 박스로(다룬
+  과목에도 자동 추가), 과목이 아니면 그냥 굵은 문단으로 바꾼다. 나머지 줄은 평문 문단. 과목 박스로 변환된 굵은 줄은
+  `collectFutureItems()`가 이미 쓰던 "과목 박스 → 다음 굵은 줄까지 그 과목" 규칙에 그대로 올라타므로, Future Item
+  등록 시 각 항목이 올바른 과목(또는 General) 박스로 자동 분류된다.
+- **붙여넣기 줄바꿈 버그 수정:** 빈 줄 하나가 세 줄로 붙여넣어지던 버그의 원인은 Windows 클립보드의 `\r\n` 줄바꿈을
+  정규화하지 않고 그대로 `execCommand('insertText', ...)`에 넘긴 것 — Chrome이 `\r`과 `\n`을 각각 별도의 줄바꿈으로
+  처리해 CRLF 두 개(빈 줄 하나)가 줄바꿈 네 번(빈 문단 세 개)으로 부풀었다. 붙여넣기 핸들러 진입 시 `\r\n?`을 `\n`
+  하나로 먼저 정규화해 해결. 여러 줄 붙여넣기는 위 디스코드 변환 경로로, 줄바꿈 없는 한 줄 붙여넣기는 기존
+  `insertText`(캐럿 위치에 바로 이어붙는 동작 유지)로 분기해 짧은 텍스트 붙여넣기의 기존 동작은 바꾸지 않았다.
+
 ### Future Items 페이지 (2026-09-12, 사용자 요구사항 · Claude Code 구현)
 
 파일: `design/prototypes/future.js`(저장·화면·드래그·메뉴·토스트, Journaling↔Future Item 전환). 새 토큰 없음.
@@ -145,7 +167,7 @@
   `title`·`aria-label`로 제공. All을 뺀 필터는 드래그 도착지. 오른쪽 끝에 "정렬 ▾"(`.fi-toolbar{justify-content:
   space-between}`로 항상 맨 오른쪽에 붙는다).
 - **본문 섹션 폭:** Assignment Manage와 별도로 `.shell:has(.view-future:not([hidden])){max-width:1100px}`로 넓혀
-  4열 박스 그리드가 여유 있게 배치되도록 했다.
+  4열 박스 그리드가 여유 있게 배치되도록 했다. **2026-09-13 추가 확장:** 사용자 요청으로 `1100px → 1300px`.
 - **작성 카드(2026-09-13 재설계, 순서는 같은 날 다시 조정):** 한 줄 바가 아니라 세로로 쌓인 카드. 위에서부터
   ① 소속 칩 한 줄(Journaling "다룬 과목"과 같은 `course-chips`/`pill` 스타일이지만 항목당 소속은 하나라 단일 선택),
   ② **마감 켜기/끄기 체크박스** + (체크했을 때만 보이는) 마감 날짜·시간, ③ 2줄 높이 `<textarea>`(Enter로 추가, 한글
@@ -236,10 +258,18 @@
   현재 열려 있는 `<details>`의 `open` 상태를 `Set`에 스냅샷해뒀다가 다시 그려 넣을 때 반영하는 방식으로,
   `future.js`의 완료 항목(`.fi-done`) 아코디언 상태 보존과 같은 패턴이다. 본문 미리보기는 `.editor` 클래스를 그대로
   얹어 헤더·목록·체크리스트·인용·코드 스타일을 재사용하되(`min-height`·안쪽 padding만 덮어씀) `contenteditable`이
-  아니라 읽기 전용이다. 펼친 내용 안에 "Journaling에서 열기" pill을 따로 둬서, 실제로 수정하려면 그 버튼으로
-  기존 `openJournal(date)` 이동을 그대로 쓴다.
+  아니라 읽기 전용이다.
+- **행 ⋯ 메뉴로 수정하기(2026-09-13 추가, 위 "Journaling에서 열기" pill 대체):** 펼친 내용 안의 별도 버튼 대신,
+  Future Item 행처럼 summary 줄 자체에 항상 보이는 `⋯`(`.pill.pill-icon`)을 두고 눌렀을 때 뜨는 작은 메뉴(기존
+  `#course-menu` 팝업과 같은 `.course-menu`/`.cm-item` 컴포넌트 재사용, `#archive-menu`)에서 "수정하기"를 고르면
+  `openJournal(date)`로 이동한다. `<summary>` 안에 인터랙티브 버튼을 두는 구조라, `⋯` 버튼에는 렌더링마다 직접
+  클릭 리스너를 달아 `stopPropagation()`으로 `StyleKit.createAccordion`의 summary 클릭(행 펼침/접힘)이 함께
+  발동하지 않도록 막았다 — 위임 리스너로는 summary보다 나중에 실행돼 막을 수 없다.
+- **4F 박스 왼쪽 잘림 수정(2026-09-13):** `.editor h3`/`.course-box`는 라이브 에디터의 바깥 여백(`--tab-pad-x`)에
+  맞춰 왼쪽으로 음수 마진을 당기는데, 이 미리보기 컨테이너에는 그만큼의 여백이 없어 박스 왼쪽이 잘려 보였다.
+  `.archive-preview h3,.archive-preview .course-box{margin-left:0}`로 미리보기 안에서만 당김을 없앴다.
 - **본문 폭 확장(2026-09-13 추가):** `.shell:has(.view-archive:not([hidden])){max-width:900px}` — Assignment
-  Manage(920px)·Future Item(1100px)과 같은 방식으로 이 화면에서만 넓힌다. Journaling 기본 폭(680px)은 그대로.
+  Manage(920px)·Future Item(1300px)과 같은 방식으로 이 화면에서만 넓힌다. Journaling 기본 폭(680px)은 그대로.
 
 ## 아직 정하지 않은 것
 

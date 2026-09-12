@@ -192,6 +192,10 @@
 .cm-item .nav-code{color:var(--ink)}
 
 .editor{position:relative;min-height:300px;padding:18px 0 28px;color:var(--ink);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+/* the live editor only — not .archive-preview, which should size to its
+   content. Long entries scroll inside their own box instead of pushing the
+   과목/날짜 controls above out of easy reach as the page grows. */
+#editor{max-height:55vh;overflow-y:auto;overscroll-behavior:contain}
 .editor:focus-visible{outline:0}
 .editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:18px;left:0;color:var(--gray);pointer-events:none}
 /* headings are fill pills (same shape as the controls) so the 4F
@@ -378,7 +382,7 @@
    Assignment Manage tracks a 12-row grid; Future Item's 4-per-row course
    grid benefits from even more room, so it gets a wider cap of its own. */
 .shell:has(.view-assignment:not([hidden])){max-width:920px}
-.shell:has(.view-future:not([hidden])){max-width:1100px}
+.shell:has(.view-future:not([hidden])){max-width:1300px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
 
 /* ---------- Assignment Manage ---------- */
@@ -432,6 +436,7 @@
 }
 
 /* ---------- Journal Archive ---------- */
+.view-archive{position:relative} /* positions #archive-menu, same as .view-future */
 .archive-hint{margin:6px 0 16px}
 /* each row is its own <details> dropdown, not nested in a section-level one —
    drop resume-list's accordion indent and stretch rows to the full width so
@@ -442,7 +447,10 @@
 /* reuses .editor's heading/list/quote/code styling for the saved body, minus
    the live editor's own height reservation and inner padding */
 .archive-preview{min-height:0;padding:0 0 10px}
-.archive-open{margin:0}
+/* .editor h3/.course-box pull left by --tab-pad-x to line up with the live
+   editor's own outer padding — this preview has no matching padding to pull
+   against, so the same negative margin would clip the box's left edge */
+.archive-preview h3,.archive-preview .course-box{margin-left:0}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start

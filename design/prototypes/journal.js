@@ -14,7 +14,7 @@
   const dateField = $('#date-field'), dateBtn = $('#date-button'), dateLabel = $('#date-label');
   const picker = $('#datepicker'), dpGrid = $('#dp-grid'), dpTitle = $('#dp-title'), dpPrev = $('#dp-prev'), dpNext = $('#dp-next');
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
-  const chipsEl = $('#course-chips'), formatBar = $('.format-bar');
+  const chipsEl = $('#course-chips');
   const archiveFiltersEl = $('#archive-filters'), archiveListEl = $('#archive-list');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
@@ -269,9 +269,11 @@
   }
 
   // ---- course box: marks which course the lines below it belong to ----
-  const courseName = code => COURSES.find(c => c[0] === code)?.[1];
+  // 'general' is a legitimate box value too — same "특정 과목 아님" meaning as
+  // the 다룬 과목 chip, just with no 3-letter code/full name pair to show
+  const courseName = code => (code === 'general' ? 'General' : COURSES.find(c => c[0] === code)?.[1]);
   const courseBoxInner = code => `<button type="button" class="cb-btn" aria-haspopup="listbox">`
-    + `<span>${code ? `<span class="nav-code">${code}</span>_${courseName(code)}` : '과목 선택'}</span>`
+    + `<span>${code === 'general' ? 'General' : code ? `<span class="nav-code">${code}</span>_${courseName(code)}` : '과목 선택'}</span>`
     + `<span class="caret" aria-hidden="true">▾</span></button>`;
   const courseMenu = $('#course-menu');
   let menuBox = null; // the course box the menu is open for
@@ -302,8 +304,8 @@
     menuBox = box;
     box.classList.add('is-open');
     const cur = box.dataset.course;
-    courseMenu.innerHTML = COURSES.map(([code, name]) =>
-      `<button type="button" class="cm-item" role="option" data-code="${code}" aria-selected="${code === cur}"><span class="nav-code">${code}</span>_${name}</button>`).join('');
+    courseMenu.innerHTML = [['general', 'General'], ...COURSES].map(([code, name]) =>
+      `<button type="button" class="cm-item" role="option" data-code="${code}" aria-selected="${code === cur}">${code === 'general' ? name : `<span class="nav-code">${code}</span>_${name}`}</button>`).join('');
     const j = editor.closest('.journal').getBoundingClientRect(), b = box.getBoundingClientRect();
     courseMenu.style.top = `${b.bottom - j.top + 6}px`;
     courseMenu.style.left = `${b.left - j.left}px`;
@@ -380,9 +382,6 @@
   function refreshFormatState() {
     const s = getSelection();
     const inside = s.rangeCount > 0 && editor.contains(s.anchorNode);
-    // the format bar only means anything once text is actually selected —
-    // the page opens with nothing arranged, no toolbar floating over a blank editor
-    formatBar.hidden = !(inside && !s.isCollapsed);
     fmtButtons.forEach(b => {
       const f = b.dataset.fmt;
       let on = false;
@@ -441,11 +440,46 @@
     renderResume();
     return true;
   }
+  // 디스코드 저널링 포맷 인식: `fact`/`feeling`/`findings`/`Future item` 같은 백틱
+  // 줄은 4F 소제목으로, **TF**·**General** 같은 단독 굵게 줄은 과목 박스로 바꾼다.
+  // 그 외 굵게 줄은 그냥 굵은 문단으로, 나머지는 평문 문단으로 남는다.
+  const FOUR_F_ALIASES = { fact: 'Fact', feeling: 'Feeling', feelings: 'Feeling', finding: 'Finding', findings: 'Finding', 'future item': 'Future Item', futureitem: 'Future Item' };
+  function resolveCourseWord(word) {
+    const w = word.trim();
+    if (!w) return null;
+    if (w.toLowerCase() === 'general') return 'general';
+    const code = ALIASES[w.toUpperCase()] || w.toUpperCase();
+    return COURSES.some(c => c[0] === code) ? code : null;
+  }
+  function pastedTextToHtml(text) {
+    return text.split('\n').map(raw => {
+      const line = raw.trim();
+      if (!line) return '<p><br></p>';
+      const f = line.match(/^`\s*(.+?)\s*`$/);
+      if (f) {
+        const label = FOUR_F_ALIASES[f[1].trim().toLowerCase()];
+        if (label) return `<h3 data-guide="${guideFor(label)}">${label}</h3>`;
+      }
+      const b = line.match(/^\*\*\s*(.+?)\s*\*\*$/);
+      if (b) {
+        const code = resolveCourseWord(b[1]);
+        if (code) { chosen.add(code); return `<div class="course-box" contenteditable="false" data-course="${code}">${courseBoxInner(code)}</div>`; }
+        return `<p><b>${esc(b[1])}</b></p>`;
+      }
+      return `<p>${esc(line)}</p>`;
+    }).join('');
+  }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
     e.preventDefault();
-    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+    // normalize \r\n/\r first — leaving \r in place makes execCommand('insertText')
+    // treat \r and \n as separate breaks, turning one blank line into three
+    const text = e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
+    if (!text.includes('\n')) { document.execCommand('insertText', false, text); return; }
+    ensureCaret();
+    document.execCommand('insertHTML', false, pastedTextToHtml(text));
+    renderCourses();
   });
   editor.addEventListener('click', e => {
     const box = e.target.closest('.course-box');
@@ -534,18 +568,20 @@
     archiveFiltersEl.innerHTML = pill('all', 'All') + pill('general', 'General') + COURSES.map(([code]) => pill(code, code)).join('');
   }
   // click a row's summary to drop its content open in place — it stays open
-  // (pinned) across filter/view changes until clicked again; "Journaling에서
-  // 열기" is the separate action for actually editing that date
+  // (pinned) across filter/view changes until clicked again. The ⋯ button
+  // lives in the summary itself (always visible, like Future Item's row
+  // menu) and stops its click from also toggling the accordion underneath.
   const archiveRowHTML = e => {
     const courseLabel = e.courses.map(c => (c === 'general' ? 'General' : c)).join(' · ');
     const meta = [courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
     return `<li>
       <details class="resume-row archive-entry" data-date="${e.date}"${openArchive.has(e.date) ? ' open' : ''}>
-        <summary class="resume-summary"><span class="ri-title">${esc(e.title)}</span><span class="ri-meta">${esc(meta)}</span><span class="caret" aria-hidden="true">▾</span></summary>
-        <div class="accordion-content">
-          <div class="editor archive-preview">${e.html}</div>
-          <button type="button" class="pill archive-open" data-open="${e.date}">Journaling에서 열기</button>
-        </div>
+        <summary class="resume-summary">
+          <span class="ri-title">${esc(e.title)}</span><span class="ri-meta">${esc(meta)}</span>
+          <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
+          <span class="caret" aria-hidden="true">▾</span>
+        </summary>
+        <div class="accordion-content"><div class="editor archive-preview">${e.html}</div></div>
       </details>
     </li>`;
   };
@@ -557,7 +593,46 @@
     if (!filtered.length) { archiveListEl.innerHTML = '<li class="archive-empty">이 과목이 들어간 저널이 아직 없어요</li>'; return; }
     archiveListEl.innerHTML = filtered.map(archiveRowHTML).join('');
     archiveListEl.querySelectorAll('.archive-entry').forEach(d => window.StyleKit?.createAccordion(d));
+    // bound directly to each button (not delegated on archiveListEl) so
+    // stopPropagation reaches it before the ancestor <summary>'s own click
+    // handler (StyleKit.createAccordion) toggles the row open/closed
+    archiveListEl.querySelectorAll('.archive-more').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      archiveMenuAnchor === b ? closeArchiveMenu() : openArchiveMenu(b, b.dataset.more);
+    }));
   }
+  // ---- row ⋯ menu: just "수정하기" for now, same popup component as
+  // Journaling's in-body course menu (#course-menu) ----
+  const archiveMenu = $('#archive-menu');
+  let archiveMenuAnchor = null;
+  function openArchiveMenu(btn, date) {
+    archiveMenuAnchor = btn;
+    archiveMenu.dataset.date = date;
+    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>';
+    const v = $('#view-archive').getBoundingClientRect(), a = btn.getBoundingClientRect();
+    archiveMenu.hidden = false; // measure
+    const w = archiveMenu.offsetWidth;
+    archiveMenu.style.top = `${a.bottom - v.top + 6}px`;
+    archiveMenu.style.left = `${Math.max(0, Math.min(a.right - v.left - w, v.width - w))}px`;
+    popIn(archiveMenu);
+    archiveMenu.querySelector('.cm-item')?.focus({ preventScroll: true });
+  }
+  function closeArchiveMenu(refocus = true) {
+    if (!archiveMenuAnchor) return;
+    const a = archiveMenuAnchor;
+    archiveMenuAnchor = null;
+    popOut(archiveMenu);
+    if (refocus && a.isConnected) a.focus();
+  }
+  archiveMenu.addEventListener('click', e => {
+    const b = e.target.closest('.cm-item');
+    if (!b) return;
+    if (b.dataset.act === 'edit') { const date = archiveMenu.dataset.date; closeArchiveMenu(false); window.PhiBrain.openJournal(date); }
+  });
+  archiveMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeArchiveMenu(); } });
+  document.addEventListener('pointerdown', e => {
+    if (archiveMenuAnchor && !archiveMenu.contains(e.target) && !archiveMenuAnchor.contains(e.target)) closeArchiveMenu(false);
+  });
   function renderArchive() {
     archiveFilter = archiveFilterFromHash(location.hash);
     const entries = archiveEntries();
@@ -573,10 +648,6 @@
     const entries = archiveEntries();
     renderArchiveFilters(entries);
     renderArchiveList(entries);
-  });
-  archiveListEl.addEventListener('click', e => {
-    const b = e.target.closest('[data-open]');
-    if (b) window.PhiBrain.openJournal(b.dataset.open);
   });
   document.addEventListener('phibrain:view', e => { if (e.detail.name === 'journal-archive') renderArchive(); });
   if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
