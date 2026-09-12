@@ -53,7 +53,7 @@
       <button type="button" class="nav-tab tab2"><span class="nav-code">AL</span>_Aesthetic Literacy</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">AOR</span>_Art of Reading</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">BI</span>_Beautiful Interface</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">EAI</span>_Engaging with AI</button>
+      <button type="button" class="nav-tab tab2"><span class="nav-code">EWA</span>_Engaging with AI</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">IAE</span>_Interviewing as Exploration</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">IPS</span>_Iterative Problem Solving</button>
       <button type="button" class="nav-tab tab2"><span class="nav-code">PC</span>_Peer Coaching</button>
@@ -128,14 +128,12 @@
       <button type="button" class="pill pill-icon" data-fmt="code" aria-pressed="false" aria-label="코드" title="코드"><span class="ico-code" aria-hidden="true">&lt;/&gt;</span></button>
     </div>
     <div class="course-menu" id="course-menu" role="listbox" aria-label="과목 선택" hidden></div>
-    <!-- sits on the Future Item box's row, at the column's right edge (placed by journal.js) -->
-    <button type="button" class="pill fi-register" id="fi-register" hidden>Future Item에 등록하기</button>
-
     <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="저널 본문" data-placeholder="오늘의 저널링을 적어주세요"></div>
 
     <!-- 3. draft autosave ≠ confirmed archive: saving never files anything into a course -->
     <footer class="journal-foot">
       <p class="save-status" id="save-status" aria-live="polite"></p>
+      <label class="fi-register"><input type="checkbox" id="fi-register"> Future Item에 등록하기</label>
       <button type="button" class="btn-primary" id="organize">정리하기</button>
     </footer>
   </section>
@@ -229,3 +227,4 @@
 <script src="journal.js"></script>
 </body>
 </html>
+

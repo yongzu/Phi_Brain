@@ -18,6 +18,7 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   // shared with future.js: course list, Future Item store, floating-card animation
   const { COURSES, ALIASES, future, ui: { popIn, popOut } } = window.PhiBrain;
+  const JOURNAL_SCOPES = [['general', 'General'], ...COURSES];
   const FOUR_F = [
     ['Fact', '오늘 무엇을 배우거나 경험했나요?'],
     ['Feeling', '무엇이 인상적이거나 불편했나요?'],
@@ -86,9 +87,11 @@
     const data = saved || example || { title: '', courses: [], html: '' };
     titleInput.value = data.title || '';
     editor.innerHTML = data.html || '';
-    chosen = new Set(data.courses || []);
+    chosen = new Set((data.courses || []).map(c => ALIASES[c] || c));
+    editor.querySelectorAll('.course-box[data-course="EAI"]').forEach(box => { box.dataset.course = 'EWA'; box.innerHTML = courseBoxInner('EWA'); });
+    $('#fi-register').checked = false;
     dirty = false;
-    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); placeFiButton(); resetOrganize();
+    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
     setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
@@ -182,11 +185,11 @@
   document.addEventListener('pointerdown', e => { if (!dateField.contains(e.target)) closePicker(false); });
 
   // ---- courses (optional hint for the AI) ----
-  chipsEl.innerHTML = COURSES.map(([code, name]) =>
-    `<button type="button" class="pill" data-code="${code}" aria-pressed="false" title="${code}_${name}">${code}</button>`).join('');
+  chipsEl.innerHTML = JOURNAL_SCOPES.map(([code, name]) =>
+    `<button type="button" class="pill" data-code="${code}" aria-pressed="false" title="${code}_${name}">${code === 'general' ? 'General' : code}</button>`).join('');
   function renderCourses() {
     chipsEl.querySelectorAll('[data-code]').forEach(b => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.code))));
-    chosenEl.textContent = COURSES.map(c => c[0]).filter(c => chosen.has(c)).join(' · ');
+    chosenEl.textContent = JOURNAL_SCOPES.filter(c => chosen.has(c[0])).map(c => c[0] === 'general' ? 'General' : c[0]).join(' · ');
     coursesToggle.textContent = coursesEl.open ? '완료' : chosen.size ? '변경' : '+ 선택';
   }
   chipsEl.addEventListener('click', e => {
@@ -408,22 +411,11 @@
     btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
   });
 
-  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); placeFiButton(); scheduleSave(); }
+  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
 
   // ---- Future Item에 등록하기 (feeds the temporary Future Item tab) ----
-  const journalEl = editor.closest('.journal');
-  const fiBtn = $('#fi-register'), FI_LABEL = fiBtn.textContent;
+  const fiBtn = $('#fi-register');
   const futureHead = () => fourFHeads().find(h => h.textContent.trim().toLowerCase() === 'future item');
-  // sits on the Future Item box's row at the column's right edge — clear of the hover guide on the left
-  function placeFiButton() {
-    const head = futureHead();
-    fiBtn.hidden = !head;
-    if (!head) return;
-    const j = journalEl.getBoundingClientRect(), r = head.getBoundingClientRect();
-    fiBtn.style.top = `${r.top - j.top + r.height / 2}px`;
-  }
-  new ResizeObserver(placeFiButton).observe(editor);
-
   // Course for each line, until the AI does this properly: the course box
   // above it in the section, else a leading code ("BI — …"), else the one
   // course picked in 다룬 과목, else unassigned.
@@ -446,24 +438,18 @@
     }
     return entries;
   }
-  let fiTimer = 0;
-  const flashFi = text => {
-    fiBtn.textContent = text;
-    clearTimeout(fiTimer);
-    fiTimer = setTimeout(() => { fiBtn.textContent = FI_LABEL; }, 1800);
-  };
-  fiBtn.addEventListener('mousedown', e => e.preventDefault());
-  fiBtn.addEventListener('click', () => {
+  function registerFutureItems() {
     const head = futureHead();
-    if (!head) return;
+    if (!head) { setStatus('Future Item 소제목과 행동을 먼저 작성해주세요', 'error'); return false; }
     const entries = collectFutureItems(head);
-    if (!entries.length) { flashFi('등록할 내용이 없어요'); return; }
-    save();
-    // adds only lines not registered before, so edits and moves made in Future Item are never undone
+    if (!entries.length) { setStatus('등록할 Future Item이 없어요', 'error'); return false; }
     const n = future.register(current, entries);
-    flashFi(n < 0 ? '저장하지 못했어요' : n ? `${n}개 등록됨` : '이미 모두 등록됐어요');
+    if (n < 0) { setStatus('Future Item을 저장하지 못했어요', 'error'); return false; }
+    fiBtn.checked = false;
+    window.PhiBrain.ui.toast(n ? `${n}개 Future Item 등록됨` : '이미 모두 등록됐어요');
     renderResume();
-  });
+    return true;
+  }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
@@ -482,6 +468,7 @@
   organize.addEventListener('click', () => {
     if (isEmpty()) { setStatus('정리할 내용을 먼저 적어주세요', 'error'); editor.focus(); return; }
     save();
+    if (fiBtn.checked && !registerFutureItems()) return;
     organize.disabled = true;
     setStatus('정리 중…', 'busy');
     setTimeout(() => {
@@ -532,3 +519,4 @@
   addEventListener('pagehide', save);
   load(today);
 })();
+

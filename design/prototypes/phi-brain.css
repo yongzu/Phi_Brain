@@ -151,7 +151,7 @@
 .courses-row:hover .pill,.courses-row:focus-visible .pill,.courses[open] .courses-row .pill{background:var(--fill);color:var(--ink)}
 .courses-chosen{color:var(--ink)}
 .courses-chosen:empty{display:none}
-.course-chips{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 0 calc(-1 * var(--tab-pad-x))}
+.course-chips{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 0}
 .course-chips .pill[aria-pressed="true"]{font-weight:700}
 
 /* ---- journal: the one document ---- */
@@ -200,12 +200,15 @@
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}
-.editor ul.checklist>li::before{content:'';position:absolute;left:-22px;top:.45em;width:12px;height:12px;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
+.editor ul.checklist>li::before{content:'';position:absolute;left:-22px;top:.45em;width:9px;height:9px;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .editor ul.checklist>li[data-done]{color:var(--gray);text-decoration:line-through}
 .editor ul.checklist>li[data-done]::before{background:var(--ink);border-color:var(--ink)}
 
 /* Future Item에 등록하기 — a quiet pill on the Future Item box's row, flush right */
-.fi-register{position:absolute;right:calc(-1 * var(--tab-pad-x));transform:translateY(-50%);z-index:1}
+.fi-register{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.fi-register input{accent-color:var(--ink);width:10px;height:10px;margin:0}
+.journal-foot{flex-wrap:wrap}
+.journal-foot .save-status{margin-right:auto}
 
 /* ---- journal: save state + next action ---- */
 .journal-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;border-top:1px solid var(--line)}
@@ -269,7 +272,7 @@
 .fi-row{display:flex;align-items:center;gap:10px;min-height:32px}
 .fi-row[draggable="true"]{cursor:grab}
 .fi-row.is-drag-src{opacity:.4}
-.fi-check{appearance:none;flex:0 0 14px;width:14px;height:14px;margin:0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
+.fi-check{appearance:none;flex:0 0 10px;width:10px;height:10px;margin:0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .fi-check:hover{background:var(--fill)}
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
@@ -317,3 +320,4 @@
 .site-footer,.footer-identity p,.footer-identity .footer-copyright,.footer-social a{color:var(--gray)}
 .footer-social a:hover{color:var(--ink)}
 @media(max-width:700px){.site-footer{padding-left:24px;padding-right:24px}}
+

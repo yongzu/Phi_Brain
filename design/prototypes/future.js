@@ -25,12 +25,12 @@
   // ---- courses: one list, one order, used everywhere ----
   const COURSES = [
     ['AL', 'Aesthetic Literacy'], ['AOR', 'Art of Reading'], ['BI', 'Beautiful Interface'],
-    ['EAI', 'Engaging with AI'], ['IAE', 'Interviewing as Exploration'], ['IPS', 'Iterative Problem Solving'],
+    ['EWA', 'Engaging with AI'], ['IAE', 'Interviewing as Exploration'], ['IPS', 'Iterative Problem Solving'],
     ['PC', 'Peer Coaching'], ['RW', 'Readable Writing'], ['SI', 'Self Introduction'],
     ['TF', 'Typography as Foundation'], ['VT', 'Visual Translation'], ['WI', 'What If'],
   ];
   // other spellings resolve to an existing course — never a course of their own
-  const ALIASES = { EWA: 'EAI' };
+  const ALIASES = { EAI: 'EWA' };
   const courseName = code => COURSES.find(c => c[0] === code)?.[1] || '';
 
   // ---- floating cards come in from a blur and leave into one (shared with journal.js) ----
@@ -71,11 +71,11 @@
   const newItem = (text, key, source = null, at = Date.now()) =>
     ({ id: uid(), text, ...scopeOf(key), done: false, doneAt: null, createdAt: at, placedAt: at, updatedAt: at, source });
 
-  const sane = item => (isKey(keyOf(item)) ? item : { ...item, scope: 'unassigned', courseId: null }); // unknown course → 임시, text kept
+  const sane = item => { const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId }; return isKey(keyOf(normalized)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null }; }; // unknown course → 임시, text kept
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY));
-      if (s && Array.isArray(s.items)) return { items: s.items.map(sane), favorites: (s.favorites || []).filter(k => BOX_KEYS.includes(k)) };
+      if (s && Array.isArray(s.items)) return { items: s.items.map(sane), favorites: [...new Set((s.favorites || []).map(k => k === 'course:EAI' ? 'course:EWA' : k))].filter(k => BOX_KEYS.includes(k)) };
     } catch { /* fall through to migration */ }
     // v1 → v2. Each v1 item already had exactly one course or none, so nothing is split or dropped.
     let v1 = [];
@@ -475,7 +475,7 @@
         entries.forEach((e, n) => {
           if (s.items.some(i => i.source?.journalDate === date && i.source?.text === e.text)) return;
           const code = ALIASES[e.course] || e.course;
-          s.items.push(newItem(e.text, code && BOX_KEYS.includes(`course:${code}`) ? `course:${code}` : 'unassigned',
+          s.items.push(newItem(e.text, code === 'general' ? 'general' : code && BOX_KEYS.includes(`course:${code}`) ? `course:${code}` : 'unassigned',
             { journalDate: date, text: e.text }, now - n)); // keep the journal's line order: first line on top
           added++;
         });
@@ -515,3 +515,4 @@
   addEventListener('hashchange', route);
   route();
 })();
+
