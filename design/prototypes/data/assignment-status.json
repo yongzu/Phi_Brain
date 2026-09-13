@@ -5,8 +5,8 @@
   "firstWeek": 0,
   "lastWeek": 16,
   "lastSyncedAt": "2026-09-13T17:42:30.769Z",
-  "lastRunAt": "2026-09-13T17:42:30.769Z",
-  "lastError": null,
+  "lastRunAt": "2026-09-13T17:46:57.853Z",
+  "lastError": "oauth2.googleapis.com/token 401 (invalid_client)",
   "courses": [
     {
       "id": "al",
