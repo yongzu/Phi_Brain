@@ -466,6 +466,8 @@
 .am-cell{display:inline-flex;align-items:center;gap:6px}
 .am-status{display:inline-flex;align-items:center;gap:6px;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
 .am-status:hover{background:var(--fill);color:var(--ink)}
+/* read-only (deployed site): not clickable, so no hover box */
+.am-status.is-static:hover{background:none;color:var(--gray)}
 .am-dot{width:9px;height:9px;border-radius:50%;border:1px solid var(--gray);flex:0 0 9px}
 .am-dot-confirmed_mail,.am-dot-confirmed_manual{background:var(--ink);border-color:var(--ink)}
 .am-dot-not_applicable{border-style:dashed}

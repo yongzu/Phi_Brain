@@ -2,7 +2,7 @@
 // and the read/write operations the HTTP API exposes.
 'use strict';
 const { matchEmail } = require('./matching');
-const { SEMESTER_START, SEMESTER_END } = require('./db');
+const { RECEIPTS_FROM, RECEIPTS_UNTIL } = require('./db');
 
 function nowIso() { return new Date().toISOString(); }
 
@@ -16,7 +16,11 @@ function getWeeks(db) {
 
 // "current" = the week whose date range contains today, clamped to the
 // configured range so a run before/after the cohort still shows something.
-function getCurrentWeekNo(db, today = new Date().toISOString().slice(0, 10)) {
+// Only picks the default week to open (dates are approximate, see db.js).
+// "today" is the Korean calendar date — plain toISOString() is UTC, which is
+// still yesterday until 09:00 KST and opened the previous week overnight.
+const todayKst = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+function getCurrentWeekNo(db, today = todayKst()) {
   const row = db.prepare('SELECT week_no FROM weeks WHERE start_date <= ? AND end_date >= ?').get(today, today);
   if (row) return row.week_no;
   const first = db.prepare('SELECT week_no FROM weeks ORDER BY week_no ASC LIMIT 1').get();
@@ -116,7 +120,7 @@ function setManualStatus(db, targetId, action, { force = false } = {}) {
 // never throws on a message that just doesn't match anything.
 function ingestEmail(db, email) {
   const courses = getCourses(db);
-  const result = matchEmail(email, { courses, semesterStart: SEMESTER_START, semesterEnd: SEMESTER_END });
+  const result = matchEmail(email, { courses, windowStart: RECEIPTS_FROM, windowEnd: RECEIPTS_UNTIL });
 
   if (result.status === 'unrelated') return { outcome: 'unrelated' };
 
@@ -136,6 +140,10 @@ function ingestEmail(db, email) {
 
   const targetId = targetIdFor(db, result.courseId, result.weekNo, result.kind);
   if (!targetId) return { outcome: 'review', reason: 'week_out_of_range' };
+
+  // a message an older, stricter rule set parked in review is now resolved —
+  // don't leave it listed there as well
+  db.prepare('DELETE FROM review_queue WHERE gmail_message_id = ?').run(email.messageId);
 
   db.prepare(`
     INSERT INTO submission_evidence

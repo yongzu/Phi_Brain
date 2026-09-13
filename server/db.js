@@ -5,10 +5,15 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const SEMESTER_START = '2026-09-07';
-const SEMESTER_WEEKS = 16;
-// Week 01 runs 09.07~09.13 (7 days) — confirmed by the user. Every later week
-// follows the same 7-day length, back to back with no gap or overlap.
+// Weeks are the forms' own "주차" answers, 0~16 (0 = Warm-up, 16 = 코스 말미 —
+// wording from the self-feedback form) — user decision 2026-09-14, after the
+// real receipts showed courses running on different week numbers at the same
+// calendar time (EWA "2주차" on 09.11 while AL/IPS were on "1주차" on 09.13).
+// The table is keyed by these numbers only; the dates stored per week are an
+// approximation used solely to pick which week to open by default.
+const SEMESTER_START = '2026-09-07'; // approx. start of 1주차
+const FIRST_WEEK = 0;
+const SEMESTER_WEEKS = 16;           // last week number
 const WEEK_LENGTH_DAYS = 7;
 const addDays = (iso, n) => {
   const d = new Date(iso + 'T00:00:00Z');
@@ -16,6 +21,13 @@ const addDays = (iso, n) => {
   return d.toISOString().slice(0, 10);
 };
 const SEMESTER_END = addDays(SEMESTER_START, SEMESTER_WEEKS * WEEK_LENGTH_DAYS - 1);
+// Which received dates count as this cohort's receipts at all. Real 0주차
+// receipts started arriving 09.01 (before SEMESTER_START), and courses that run
+// behind can still be submitting after SEMESTER_END — so the window is padded
+// on both sides. This is the first cohort (1기), so no earlier cohort's mail
+// can be mistaken for this one's.
+const RECEIPTS_FROM = addDays(SEMESTER_START, -21);
+const RECEIPTS_UNTIL = addDays(SEMESTER_END, 42);
 
 const COURSE_SEED = [
   ['al', 'Aesthetic Literacy', 'AL'],
@@ -33,6 +45,12 @@ const COURSE_SEED = [
 ];
 // other spellings resolve to the same course id — never create a separate course for them
 const COURSE_ALIASES = { ewa: ['eai'] };
+// board / submission-form shortcuts — shared by the DB seed and the public status file (snapshot.js)
+const courseLinks = id => ({
+  boardUrl: `https://go.phi.design/${id}/board`,
+  assignmentUrl: `https://go.phi.design/${id}/assignment`,
+  selfFeedbackUrl: `https://go.phi.design/${id}/self-feedback`,
+});
 
 function openDb(dbPath) {
   const db = new DatabaseSync(dbPath);
@@ -119,23 +137,17 @@ CREATE TABLE IF NOT EXISTS gmail_connection (
       board_url=excluded.board_url, assignment_url=excluded.assignment_url, self_feedback_url=excluded.self_feedback_url
   `);
   for (const [id, name, code] of COURSE_SEED) {
-    insertCourse.run(
-      id, name, code, JSON.stringify(COURSE_ALIASES[id] || []),
-      `https://go.phi.design/${id}/board`,
-      `https://go.phi.design/${id}/assignment`,
-      `https://go.phi.design/${id}/self-feedback`
-    );
+    const links = courseLinks(id);
+    insertCourse.run(id, name, code, JSON.stringify(COURSE_ALIASES[id] || []), links.boardUrl, links.assignmentUrl, links.selfFeedbackUrl);
   }
 
-  // Week 1 (09.07~09.13) is the real current cohort's week 1, confirmed by the
-  // user — every later week is generated from SEMESTER_START/WEEK_LENGTH_DAYS,
-  // so correcting those two constants fixes the whole semester automatically.
-  // Extend SEMESTER_WEEKS if the cohort runs longer; nothing else needs to change.
+  // 0주차 ~ 16주차. Dates are approximate (see SEMESTER_START above) — extend
+  // SEMESTER_WEEKS if the cohort runs longer; nothing else needs to change.
   const insertWeek = db.prepare(`
     INSERT INTO weeks (week_no, start_date, end_date) VALUES (?, ?, ?)
     ON CONFLICT(week_no) DO UPDATE SET start_date=excluded.start_date, end_date=excluded.end_date
   `);
-  for (let w = 1; w <= SEMESTER_WEEKS; w++) {
+  for (let w = FIRST_WEEK; w <= SEMESTER_WEEKS; w++) {
     const start = addDays(SEMESTER_START, (w - 1) * WEEK_LENGTH_DAYS);
     const end = addDays(start, WEEK_LENGTH_DAYS - 1);
     insertWeek.run(w, start, end);
@@ -172,4 +184,4 @@ function getDb() {
   return defaultDb;
 }
 
-module.exports = { openDb, getDb, COURSE_ALIASES, SEMESTER_START, SEMESTER_END, SEMESTER_WEEKS };
+module.exports = { openDb, getDb, COURSE_SEED, COURSE_ALIASES, courseLinks, SEMESTER_START, SEMESTER_END, SEMESTER_WEEKS, FIRST_WEEK, RECEIPTS_FROM, RECEIPTS_UNTIL };

@@ -4,7 +4,7 @@
 const { refreshAccessToken } = require('./googleOAuth');
 const { searchMessageIds, fetchEmail } = require('./gmail');
 const { ingestEmail } = require('./service');
-const { SEMESTER_START } = require('./db');
+const { RECEIPTS_FROM } = require('./db');
 
 function nowIso() { return new Date().toISOString(); }
 
@@ -33,7 +33,7 @@ async function runSync(db) {
     throw err;
   }
 
-  const sinceDate = SEMESTER_START.replace(/-/g, '/'); // Gmail after: wants YYYY/MM/DD
+  const sinceDate = RECEIPTS_FROM.replace(/-/g, '/'); // Gmail after: wants YYYY/MM/DD
   const summary = { matched: 0, review: 0, duplicate: 0, unrelated: 0, fetched: 0 };
   try {
     let pageToken;

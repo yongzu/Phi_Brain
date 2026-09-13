@@ -1,0 +1,99 @@
+name: Assignment status weekly sync
+
+# M3 (docs/PRODUCT.md): read Forms receipts that arrived since the last
+# successful sync, record them in design/prototypes/data/assignment-status.json,
+# commit it, and redeploy Pages so the deployed Assignment Manage table shows it.
+#
+# Secrets (repo Settings → Secrets and variables → Actions):
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GMAIL_REFRESH_TOKEN
+# The OAuth app must be "In production" — a testing-mode refresh token expires in 7 days.
+
+on:
+  schedule:
+    # every Sunday 23:59 KST = Sunday 14:59 UTC. GitHub may start scheduled
+    # runs late; nothing is lost, the next run reads from the last successful sync.
+    - cron: '59 14 * * 0'
+  workflow_dispatch:
+    inputs:
+      full:
+        description: '전체 다시 계산 — 인식 규칙을 고친 뒤 한 번만. "manual" 칸은 유지'
+        type: boolean
+        default: false
+  push:
+    # run once when the sync itself changes, so a change is verified end to end
+    branches: [main]
+    paths:
+      - '.github/workflows/assignment-sync.yml'
+      - 'server/export-snapshot.js'
+      - 'server/snapshot.js'
+      - 'server/matching.js'
+      - 'server/gmail.js'
+
+permissions:
+  contents: write   # commit the status file
+  pages: write
+  id-token: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: assignment-sync
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'   # node:sqlite (required by server/db.js) needs a current Node
+
+      - name: Sync Gmail receipts into the status file
+        id: sync
+        continue-on-error: true   # a failure is still written into the file and committed, then the run is failed below
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+        run: node server/export-snapshot.js ${{ inputs.full && '--full' || '' }}
+
+      - name: Commit the status file
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add design/prototypes/data/assignment-status.json
+          if git diff --cached --quiet; then
+            echo 'status file unchanged'
+          else
+            git commit -m "Assignment status sync ($(TZ=Asia/Seoul date +%F))"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Fail the run if the sync failed
+        if: steps.sync.outcome == 'failure'
+        run: |
+          echo "::error::Gmail sync failed — see lastError in design/prototypes/data/assignment-status.json"
+          exit 1
+
+  # A push made with GITHUB_TOKEN does not trigger design-pages.yml, so this
+  # workflow deploys the updated site itself. Runs even when the sync failed,
+  # so the page shows the failure instead of silently going stale.
+  deploy:
+    needs: sync
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # includes the status commit the sync job just pushed
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: design
+      - id: deployment
+        uses: actions/deploy-pages@v4

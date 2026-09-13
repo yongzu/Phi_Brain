@@ -1,8 +1,11 @@
 /*
   Assignment Manage — weekly assignment/self-feedback submission status
   across the 12 courses. Talks to the Assignment Manage backend
-  (server/index.js); shows an honest "backend not running" state rather
-  than any fake/virtual data when that server isn't reachable.
+  (server/index.js) when it's running locally. When it isn't — always the
+  case on the deployed GitHub Pages site — it falls back to the public status
+  file the weekly sync writes (data/assignment-status.json, M3) and shows it
+  read-only; only if that file is missing too does it show the honest
+  "backend not running" hint. Never fake/virtual data.
 
   Separate from Future Item: completing either one never touches the other.
 */
@@ -34,6 +37,52 @@
   let currentWeekNo = null;
   let loaded = false;
 
+  // ---- read-only mode: the weekly sync's status file (server/snapshot.js) ----
+  const SNAPSHOT_URL = 'data/assignment-status.json';
+  let snapshot = null; // set once the file is loaded and the backend is unreachable
+  const SNAPSHOT_STATUS = { mail: 'confirmed_mail', manual: 'confirmed_manual' };
+  // same shape as the backend's /api/weeks/:n/matrix, so render() is shared
+  function snapshotMatrix(weekNo) {
+    const cells = snapshot.weeks[weekNo] || {};
+    const rows = snapshot.courses.map(c => {
+      const cell = cells[c.code] || {};
+      return {
+        courseId: c.id, name: c.name, code: c.code, boardUrl: c.boardUrl,
+        assignment: { targetId: null, status: SNAPSHOT_STATUS[cell.assignment] || 'unconfirmed', url: c.assignmentUrl },
+        selfFeedback: { targetId: null, status: SNAPSHOT_STATUS[cell.selfFeedback] || 'unconfirmed', url: c.selfFeedbackUrl },
+      };
+    });
+    const all = rows.flatMap(r => [r.assignment.status, r.selfFeedback.status]);
+    return { week: { week_no: weekNo }, rows, progress: { done: all.filter(s => s !== 'unconfirmed').length, total: all.length } };
+  }
+  // default week — same approximation as the backend's getCurrentWeekNo (Korean date)
+  function snapshotCurrentWeek() {
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const days = Math.floor((Date.parse(today) - Date.parse(snapshot.semesterStart)) / 86400000);
+    return Math.min(snapshot.lastWeek, Math.max(snapshot.firstWeek, Math.floor(days / 7) + 1));
+  }
+  async function initSnapshot() {
+    if (!snapshot) {
+      try {
+        const res = await fetch(SNAPSHOT_URL, { cache: 'no-store' });
+        if (!res.ok) return;
+        snapshot = await res.json();
+      } catch { return; }
+    }
+    backendHint.hidden = true;
+    table.hidden = false;
+    weeks = Array.from({ length: snapshot.lastWeek - snapshot.firstWeek + 1 }, (_, i) => ({ week_no: snapshot.firstWeek + i }));
+    refreshBtn.hidden = true;
+    connectBtn.hidden = true;
+    const synced = snapshot.lastSyncedAt
+      ? new Date(snapshot.lastSyncedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : null;
+    gmailStatus.textContent = synced ? `읽기 전용 · ${synced} 동기화` : '읽기 전용 · 아직 동기화 전';
+    // 실패는 조용히 숨기지 않는다 — 지난 성공 결과는 그대로 보여주되 실패 사실을 붙인다
+    if (snapshot.lastError) gmailStatus.textContent += ` · 마지막 동기화 실패: ${snapshot.lastError}`;
+    loadWeek(currentWeekNo ?? snapshotCurrentWeek());
+  }
+
   async function api(path, opts) {
     try {
       const res = await fetch(API_BASE + path, opts);
@@ -41,8 +90,8 @@
       table.hidden = false;
       return res;
     } catch {
-      backendHint.hidden = false;
-      table.hidden = true;
+      // a slow, late failure must not blank a table the status file is already showing
+      if (!snapshot) { backendHint.hidden = false; table.hidden = true; }
       return null;
     }
   }
@@ -52,10 +101,11 @@
     try { return await res.json(); } catch { return null; }
   }
 
-  function monthDay(iso) { const [, m, d] = iso.split('-').map(Number); return `${String(m).padStart(2, '0')}.${String(d).padStart(2, '0')}`; }
+  // 표의 주차 = 제출폼에서 고른 "N주차"(0~16) 그대로 — 과목마다 같은 날짜에 다른 주차를 내므로
+  // 날짜 범위는 표시하지 않는다(2026-09-14 사용자 결정, server/db.js 참고)
 
   function renderWeekLabel(week) {
-    weekLabel.textContent = `Week ${String(week.week_no).padStart(2, '0')} (${monthDay(week.start_date)}~${monthDay(week.end_date)})`;
+    weekLabel.textContent = `${week.week_no}주차`;
     weekPrev.disabled = week.week_no <= weeks[0]?.week_no;
     weekNext.disabled = week.week_no >= weeks[weeks.length - 1]?.week_no;
   }
@@ -68,10 +118,12 @@
     const shortcut = safeHref(cell.url)
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
+    // read-only mode has no detail panel (no mail details are published) — a plain label, not a button
+    const status = `${statusDot(cell.status)}<span>${STATUS_LABEL[cell.status] || cell.status}</span>`;
     return `<td><span class="am-cell">
-      <button type="button" class="am-status" data-target-id="${cell.targetId}">
-        ${statusDot(cell.status)}<span>${STATUS_LABEL[cell.status] || cell.status}</span>
-      </button>
+      ${cell.targetId == null
+        ? `<span class="am-status is-static">${status}</span>`
+        : `<button type="button" class="am-status" data-target-id="${cell.targetId}">${status}</button>`}
       ${shortcut}
     </span></td>`;
   }
@@ -92,6 +144,7 @@
   }
 
   async function loadWeek(weekNo) {
+    if (snapshot) { currentWeekNo = weekNo; render(snapshotMatrix(weekNo)); return; }
     const matrix = await apiJson(`/api/weeks/${weekNo}/matrix`);
     if (!matrix) return;
     currentWeekNo = weekNo;
@@ -229,13 +282,14 @@
   }
 
   tbody.addEventListener('click', e => {
-    const btn = e.target.closest('.am-status');
+    const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
     if (btn) openDetail(Number(btn.dataset.targetId));
   });
 
   async function init() {
+    if (snapshot) { initSnapshot(); return; } // already in read-only mode — don't re-probe the backend and flash the hint
     const cw = await loadWeeksList();
-    if (cw == null) return; // backend unreachable — the hint is already shown
+    if (cw == null) { await initSnapshot(); return; } // backend unreachable → the weekly status file, if there is one
     await loadConnection();
     await loadWeek(currentWeekNo || cw);
     loaded = true;

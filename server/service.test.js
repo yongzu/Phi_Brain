@@ -3,29 +3,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { openDb } = require('./db');
 const { ingestEmail, getWeekMatrix, getTargetDetail, setManualStatus, targetIdFor } = require('./service');
+const { receipt } = require('./test-fixtures');
 
-const ewaBody = (week) => `
-[Engaging with AI] 과제 제출
-
-질문: 주차 (예: 0주차는 오리엔테이션입니다)
-답변: ${week}
-
-질문: 트랙
-답변: 트랙 b
-
-질문: 작동하는 작업
-답변: https://github.com/example/working-artifact
-`;
-
-const email = (overrides = {}) => ({
-  from: 'Google Forms <forms-receipts-noreply@google.com>',
-  subject: '[Engaging with AI] 과제 제출 양식을 작성해 주셔서 감사합니다',
-  receivedAt: '2026-09-19T03:00:00.000Z',
-  bodyText: ewaBody('2주차'),
-  messageId: 'm-1',
-  threadId: 't-1',
-  ...overrides,
-});
+const email = (overrides = {}) => receipt({ tag: 'Engaging with AI', week: '2주차' },
+  { receivedAt: '2026-09-19T03:00:00.000Z', messageId: 'm-1', threadId: 't-1', ...overrides });
 
 test('a matched email flips the target from unconfirmed to confirmed_mail', () => {
   const db = openDb(':memory:');
@@ -94,12 +75,23 @@ test('manual "직접 확인" counts toward progress; "해당 없음" is excluded
 
 test('a mail dated in this cohort but for an unrecognized course goes to review, leaving the matrix unconfirmed', () => {
   const db = openDb(':memory:');
-  const r = ingestEmail(db, email({
-    messageId: 'm-3',
-    subject: '[Unknown Course] 과제 제출 양식을 작성해 주셔서 감사합니다',
-    bodyText: ewaBody('2주차').replace('[Engaging with AI]', '[Unknown Course]'),
-  }));
+  const r = ingestEmail(db, receipt({ tag: 'Unknown Course', week: '2주차' }, { messageId: 'm-3' }));
   assert.equal(r.outcome, 'review');
   const targetId = targetIdFor(db, 'ewa', 2, 'assignment');
   assert.equal(getTargetDetail(db, targetId).status, 'unconfirmed');
+});
+
+test('week 0 (Warm-up) exists as a table week and receives submissions', () => {
+  const db = openDb(':memory:');
+  const r = ingestEmail(db, receipt({ tag: 'Beautiful Interface', week: '0주차' }, { messageId: 'm-w0', receivedAt: '2026-09-03T12:52:53.000Z' }));
+  assert.equal(r.outcome, 'matched');
+  assert.equal(r.weekNo, 0);
+  assert.equal(getWeekMatrix(db, 0).rows.find(x => x.courseId === 'bi').assignment.status, 'confirmed_mail');
+});
+
+test('a message parked in review under older rules leaves the review queue once it matches', () => {
+  const db = openDb(':memory:');
+  db.prepare(`INSERT INTO review_queue (gmail_message_id, received_at, subject, reason, created_at) VALUES ('m-old', '2026-09-07', 's', 'unverified_format', '2026-09-07')`).run();
+  ingestEmail(db, email({ messageId: 'm-old' }));
+  assert.equal(db.prepare(`SELECT count(*) c FROM review_queue WHERE gmail_message_id = 'm-old'`).get().c, 0);
 });

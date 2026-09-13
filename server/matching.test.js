@@ -1,127 +1,101 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { matchEmail } = require('./matching');
+const { matchEmail, extractWeekNo } = require('./matching');
+const { receipt, SELF_FEEDBACK_WEEK_DESCRIPTION } = require('./test-fixtures');
 
 const COURSES = [
-  { id: 'ewa', name: 'Engaging with AI', code: 'EWA', aliases: JSON.stringify(['eai']) },
-  { id: 'bi', name: 'Beautiful Interface', code: 'BI', aliases: '[]' },
-];
-const CTX = { courses: COURSES, semesterStart: '2026-09-06', semesterEnd: '2026-12-26' };
+  ['al', 'Aesthetic Literacy', 'AL'], ['ewa', 'Engaging with AI', 'EWA'], ['ips', 'Iterative Problem Solving', 'IPS'],
+  ['si', 'Self Introduction', 'SI'], ['vt', 'Visual Translation', 'VT'], ['iae', 'Interviewing as Exploration', 'IAE'],
+].map(([id, name, code]) => ({ id, name, code, aliases: JSON.stringify(id === 'ewa' ? ['eai'] : []) }));
+const CTX = { courses: COURSES, windowStart: '2026-08-17', windowEnd: '2027-02-06' };
 
-const ewaBody = ({ week = '2주차', trackLine = '트랙 b', withTil = true } = {}) => `
-[Engaging with AI] 과제 제출
-
-제출해 주셔서 감사합니다. 아래 내용이 정상적으로 접수되었습니다.
-
-질문: 제출자
-답변: 홍길동
-
-질문: 트랙
-답변: ${trackLine}
-
-질문: 주차 (예: 0주차는 오리엔테이션입니다)
-답변: ${week}
-
-질문: 목표 및 탐색
-답변: 이번 주 목표는 AI와 함께 탐색하는 것이었습니다.
-
-질문: AI 대화 링크
-답변: https://chat.example.com/abc123
-
-질문: 작동하는 작업
-답변: https://github.com/example/working-artifact
-${withTil ? `
-질문: TIL 리포트
-답변: https://notion.example.com/til-report
-` : ''}`;
-
-const baseEmail = (overrides = {}) => ({
-  from: 'Google Forms <forms-receipts-noreply@google.com>',
-  subject: '[Engaging with AI] 과제 제출 양식을 작성해 주셔서 감사합니다',
-  receivedAt: '2026-09-19T03:00:00.000Z',
-  bodyText: ewaBody(),
-  messageId: 'msg-1',
-  threadId: 'thread-1',
-  ...overrides,
-});
-
-test('EWA verified sample: matches course/kind/week and extracts links', () => {
-  const r = matchEmail(baseEmail(), CTX);
+test('subject alone identifies course (full name) + kind, week comes from the 주차 answer', () => {
+  const r = matchEmail(receipt(), CTX);
   assert.equal(r.status, 'matched');
-  assert.equal(r.courseId, 'ewa');
+  assert.equal(r.courseId, 'ips');
   assert.equal(r.kind, 'assignment');
+  assert.equal(r.weekNo, 1);
+});
+
+test('a course code tag works the same as the full name', () => {
+  const r = matchEmail(receipt({ tag: 'AL' }), CTX);
+  assert.equal(r.courseId, 'al');
+});
+
+test('every course/kind auto-matches now — no per-course verified-format gate', () => {
+  const r = matchEmail(receipt({ tag: 'IAE', kind: '셀프피드백', weekDescription: SELF_FEEDBACK_WEEK_DESCRIPTION, week: '0주차' }), CTX);
+  assert.equal(r.status, 'matched');
+  assert.equal(r.courseId, 'iae');
+  assert.equal(r.kind, 'self_feedback');
+});
+
+test('"[Self-Introduction]" resolves to the registered "Self Introduction" (punctuation ignored)', () => {
+  const r = matchEmail(receipt({ tag: 'Self-Introduction', week: '0주차' }), CTX);
+  assert.equal(r.status, 'matched');
+  assert.equal(r.courseId, 'si');
+});
+
+test('EAI resolves to the same course as EWA', () => {
+  assert.equal(matchEmail(receipt({ tag: 'EAI' }), CTX).courseId, 'ewa');
+});
+
+test('week numbers mentioned in the question description are never taken as the answer', () => {
+  const r = matchEmail(receipt({ tag: 'EWA', kind: '셀프피드백', weekDescription: SELF_FEEDBACK_WEEK_DESCRIPTION, week: '2주차' }), CTX);
   assert.equal(r.weekNo, 2);
-  assert.equal(r.track, 'b');
-  assert.equal(r.links.workingArtifact, 'https://github.com/example/working-artifact');
-  assert.equal(r.links.tilReport, 'https://notion.example.com/til-report');
 });
 
-test('a field the form does not have is simply omitted, not fabricated', () => {
-  const r = matchEmail(baseEmail({ bodyText: ewaBody({ withTil: false }) }), CTX);
+test('a dropdown label before the week ("Image 0주차", "Typesetting 0주차") still reads as the week', () => {
+  assert.equal(matchEmail(receipt({ tag: 'Visual Translation', week: 'Image 0주차' }), CTX).weekNo, 0);
+  assert.equal(extractWeekNo('주차 *\n\n설명\n\n\nTypesetting 3주차\n'), 3);
+});
+
+test('week 0 (Warm-up) is a real week, not "no week"', () => {
+  const r = matchEmail(receipt({ week: '0주차' }), CTX);
   assert.equal(r.status, 'matched');
-  assert.equal('tilReport' in r.links, false);
+  assert.equal(r.weekNo, 0);
 });
 
-test('the "(예: 0주차)" instructional example is never mistaken for the real answer', () => {
-  const r = matchEmail(baseEmail({ bodyText: ewaBody({ week: '5주차' }) }), CTX);
-  assert.equal(r.status, 'matched');
-  assert.equal(r.weekNo, 5);
+test('a late receipt is linked by the answered week, not the received date', () => {
+  const r = matchEmail(receipt({ week: '1주차' }, { receivedAt: '2026-10-20T03:00:00.000Z' }), CTX);
+  assert.equal(r.weekNo, 1);
 });
 
-test('a late-arriving email is linked by the body\'s stated week, not by when it arrived', () => {
-  // received in week 3's date range, but the body says week 2
-  const r = matchEmail(baseEmail({ receivedAt: '2026-09-24T03:00:00.000Z', bodyText: ewaBody({ week: '2주차' }) }), CTX);
-  assert.equal(r.status, 'matched');
-  assert.equal(r.weekNo, 2);
+test('links are taken from each question\'s answer line only, never from a description URL', () => {
+  const r = matchEmail(receipt(), CTX);
+  assert.deepEqual(r.links, {
+    '1 Pager docs ver.': 'https://docs.google.com/document/d/example-doc',
+    '프로토타입 링크': 'https://www.youtube.com/watch?v=example',
+  });
+  assert.equal(r.track, null); // radio receipts list every option — track is unreadable, so not guessed
 });
 
-test('EAI resolves to the same course as EWA, never a separate one', () => {
-  const r = matchEmail(baseEmail({ subject: '[EAI] 과제 제출 양식을 작성해 주셔서 감사합니다' }), CTX);
-  assert.equal(r.status, 'matched');
-  assert.equal(r.courseId, 'ewa');
-});
-
-test('an unverified course format goes to review instead of auto-confirming', () => {
-  const r = matchEmail(baseEmail({
-    subject: '[Beautiful Interface] 과제 제출 양식을 작성해 주셔서 감사합니다',
-    bodyText: ewaBody().replace('[Engaging with AI]', '[Beautiful Interface]'),
-  }), CTX);
-  assert.equal(r.status, 'ambiguous');
-  assert.equal(r.reason, 'unverified_format');
-});
-
-test('self-feedback never auto-confirms, even for EWA, until its format is verified', () => {
-  const r = matchEmail(baseEmail({
-    subject: '[Engaging with AI] 셀프피드백 제출 양식을 작성해 주셔서 감사합니다',
-    bodyText: ewaBody().replace('과제 제출', '셀프피드백 제출'),
-  }), CTX);
-  assert.equal(r.status, 'ambiguous');
-  assert.equal(r.reason, 'unverified_format');
-});
-
-test('mail from any other sender is unrelated, not just unmatched', () => {
-  const r = matchEmail(baseEmail({ from: 'someone@example.com' }), CTX);
-  assert.equal(r.status, 'unrelated');
-});
-
-test('a receipt from outside this cohort\'s date range does not bleed into it', () => {
-  const r = matchEmail(baseEmail({ receivedAt: '2025-03-01T00:00:00.000Z' }), CTX);
-  assert.equal(r.status, 'unrelated');
+test('a bracketed Google Form that is not a 과제/셀프피드백 submission is unrelated, not queued', () => {
+  const email = receipt({}, { subject: '[Phi] 1year-program_1기_환급 계좌 정보 요청 양식을 작성해 주셔서 감사합니다', bodyText: '[Phi] 환급 계좌 정보 요청\n' });
+  assert.equal(matchEmail(email, CTX).status, 'unrelated');
 });
 
 test('an unrecognized course tag is ambiguous, not silently dropped or guessed', () => {
-  const r = matchEmail(baseEmail({
-    subject: '[Some Other Course] 과제 제출 양식을 작성해 주셔서 감사합니다',
-    bodyText: ewaBody().replace('[Engaging with AI]', '[Some Other Course]'),
-  }), CTX);
+  const r = matchEmail(receipt({ tag: 'Some Other Course' }), CTX);
   assert.equal(r.status, 'ambiguous');
   assert.equal(r.reason, 'unknown_course');
 });
 
-test('a body with no extractable week is ambiguous rather than defaulting to a week', () => {
-  const body = ewaBody().replace(/답변: 2주차/, '답변: 곧 알려드리겠습니다');
-  const r = matchEmail(baseEmail({ bodyText: body }), CTX);
+test('no readable 주차 answer is ambiguous rather than defaulting to a week', () => {
+  const r = matchEmail(receipt({ week: '곧 알려드리겠습니다' }), CTX);
   assert.equal(r.status, 'ambiguous');
   assert.equal(r.reason, 'no_week_found');
+});
+
+test('the subject decides; the body title line is only a fallback', () => {
+  const email = receipt({ tag: 'AL' }, { subject: 'Fwd: 제출 확인' });
+  assert.equal(matchEmail(email, CTX).courseId, 'al');
+});
+
+test('mail from any other sender is unrelated', () => {
+  assert.equal(matchEmail(receipt({}, { from: 'someone@example.com' }), CTX).status, 'unrelated');
+});
+
+test('a receipt from outside this cohort\'s window does not bleed into it', () => {
+  assert.equal(matchEmail(receipt({}, { receivedAt: '2025-03-01T00:00:00.000Z' }), CTX).status, 'unrelated');
 });
