@@ -1,10 +1,23 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (Assignment 상세 정리, 박스 1개 폭 고정, Archive 카드 높이) / Claude Code
+최종 갱신: 2026-09-14 (개인정보처리방침·서비스 약관 페이지, M3 방향 확정) / Claude Code
 
 **주의(다음에 이 저장소를 여는 사람 — Codex 포함):** 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 1주차 AL 과제·EWA 셀프피드백이 "제출 확인"으로 뜨는 건 실제 Gmail 매칭이 아니라 사용자의 프로토타입 제출 데모용으로 직접 심어 넣은 가짜 근거 행이다(`gmail_message_id`가 `demo-`로 시작). matching.js의 `VERIFIED_FORMATS`는 여전히 `ewa:assignment` 하나뿐 — M1(제목 우선 매칭 확장)은 아직 코드로 들어가지 않았다.
 
 ## 현재 단계
+
+### 개인정보처리방침·서비스 약관 페이지 (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- 목적: Google OAuth 동의 화면을 "프로덕션"으로 전환하려면 브랜딩 정보(앱 이름·지원 이메일·홈페이지·개인정보처리방침)가
+  필요해 "앱 게시" 버튼이 비활성화돼 있었다(M3 사전 조건 — 테스트 상태면 refresh token 7일 만료).
+- 추가: `design/privacy.html`, `design/terms.html`, 공용 스타일 `design/legal.css`(앱과 같은 4톤, 새 색 없음).
+  배포 주소 `https://yongzu.github.io/Phi_Brain/privacy.html`, `.../terms.html`.
+- 내용은 실제 동작 기준으로 작성: 저널류는 localStorage만, Gmail은 `gmail.readonly`·Forms 확인메일 발신자만 조회,
+  DB 스키마(`server/db.js`)에 실제 저장되는 항목(토큰, 과목·주차·구분·제목·수신 시각·메시지/스레드 ID·제출 링크)을 그대로 나열,
+  본문 미저장, Google API 사용자 데이터 정책 Limited Use 문구 포함. M3 주간 동기화(미구현)는 "사용하는 경우"로 적고
+  공개 파일엔 제출 여부만 들어간다고 명시 — **M3 구현 시 이 약속(메일 ID·제목·링크·수신 시각 비공개)을 지켜야 한다.**
+  문의처는 개인 이메일 대신 GitHub Issues. 법률 검토를 받은 문서는 아님.
+- 검증: 로컬에서 두 페이지 렌더·로고·글꼴·링크 확인.
 
 ### Assignment 상세 정리 · 박스 1개일 때 늘리지 않기 · Archive 카드 높이 (2026-09-14, 사용자 요구사항 3건 · Claude Code)
 

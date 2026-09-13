@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개인정보처리방침 — Phi Brain</title>
+<link rel="icon" type="image/png" href="./prototypes/assets/logo.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<link rel="stylesheet" href="./legal.css">
+</head>
+<body>
+<main class="legal">
+  <a class="legal-brand" href="./prototypes/home.html"><img src="./prototypes/assets/logo.png" alt="">Phi Brain</a>
+  <h1>개인정보처리방침</h1>
+  <p class="legal-meta">시행일: 2026년 9월 14일</p>
+
+  <p class="legal-note">Phi Brain은 개인이 자신의 학습 기록과 과제 제출 여부를 관리하기 위해 만든 비상업적 개인 프로젝트입니다.
+    회사나 기관이 운영하는 서비스가 아니며, 광고나 판매 목적으로 정보를 사용하지 않습니다.</p>
+
+  <h2>1. 수집·이용하는 정보</h2>
+  <p><strong>저널링·Future Item·Findings·Journal Archive</strong><br>
+    작성한 내용은 사용 중인 브라우저의 로컬 저장소(localStorage)에만 저장되며, 서버나 제3자에게 전송되지 않습니다.</p>
+  <p><strong>Assignment Manage(과제 제출 확인)</strong> — 사용자가 Gmail 연결을 선택한 경우에만</p>
+  <ul>
+    <li>Google 계정 인증 정보: 접근 토큰(access token)과 갱신 토큰(refresh token)</li>
+    <li>Google Forms 제출 확인메일(발신자 <code>forms-receipts-noreply@google.com</code>)에서 추출한 정보:
+      과목, 주차, 과제/셀프피드백 구분, 메일 제목, 수신 시각, Gmail 메시지·스레드 ID, 확인메일에 포함된 제출물 링크</li>
+    <li>동기화 시각과 오류 메시지</li>
+  </ul>
+  <p>메일 <strong>본문 전체는 저장하지 않습니다.</strong> 위 항목을 추출하는 데에만 읽고 버립니다.
+    위 발신자가 아닌 다른 메일은 검색하거나 읽지 않습니다.</p>
+
+  <h2>2. Google 사용자 데이터 이용 범위</h2>
+  <ul>
+    <li>요청하는 권한은 <code>gmail.readonly</code>(읽기 전용) 하나뿐입니다. 메일을 보내거나, 수정하거나, 삭제하지 않습니다.</li>
+    <li>Google 사용자 데이터는 과제·셀프피드백 제출 여부를 표시하는 목적으로만 사용합니다.</li>
+    <li>Google 사용자 데이터를 판매하거나, 광고에 사용하거나, 사람이 열람하도록 넘기거나, AI 모델 학습에 사용하지 않습니다.</li>
+    <li>Phi Brain이 Google API로부터 받은 정보의 사용 및 다른 앱으로의 전송은
+      <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API 서비스 사용자 데이터 정책</a>의
+      제한적 사용(Limited Use) 요구사항을 포함하여 해당 정책을 준수합니다.</li>
+  </ul>
+
+  <h2>3. 저장 위치와 보관 기간</h2>
+  <ul>
+    <li><strong>로컬 서버:</strong> 인증 토큰과 1항의 추출 정보는 사용자 본인 컴퓨터의 데이터베이스 파일에 저장됩니다.</li>
+    <li><strong>주간 자동 동기화(사용하는 경우):</strong> 갱신 토큰은 GitHub의 암호화된 저장소(Repository Secrets)에 보관되어
+      매주 한 번 제출 확인메일을 조회하는 데에만 쓰입니다. 그 결과로 <strong>과목·주차별 제출 여부만</strong> 담긴 파일이
+      공개 웹사이트에 게시됩니다. 메일 제목, 메시지 ID, 링크, 수신 시각은 이 파일에 포함하지 않습니다.</li>
+    <li>보관 기간: 사용자가 연결을 해제하거나 데이터를 삭제할 때까지. 학기가 끝나면 삭제할 수 있습니다.</li>
+  </ul>
+
+  <h2>4. 제3자 제공</h2>
+  <p>정보를 제3자에게 판매하거나 제공하지 않습니다. 서비스 제공을 위해 다음 서비스를 이용합니다.</p>
+  <ul>
+    <li>Google(Gmail API, 계정 인증)</li>
+    <li>GitHub(웹사이트 호스팅, 주간 자동 동기화 실행)</li>
+    <li>jsDelivr(웹 글꼴 제공 — 글꼴 요청 시 접속 IP 등이 해당 서비스에 전달될 수 있음)</li>
+  </ul>
+
+  <h2>5. 권한 철회와 삭제</h2>
+  <ul>
+    <li><a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google 계정 → 서드파티 앱 및 서비스</a>에서
+      Phi Brain의 접근 권한을 언제든지 철회할 수 있습니다. 철회하면 더 이상 메일을 조회할 수 없습니다.</li>
+    <li>브라우저에 저장된 저널 데이터는 브라우저의 사이트 데이터 삭제로 지울 수 있습니다.</li>
+    <li>로컬 데이터베이스 파일과 GitHub Secrets에 저장된 토큰은 삭제하면 즉시 제거됩니다.</li>
+  </ul>
+
+  <h2>6. 문의</h2>
+  <p>개인정보 관련 문의는 <a href="https://github.com/yongzu/Phi_Brain/issues" target="_blank" rel="noopener">GitHub 저장소 Issues</a>로 남겨 주세요.</p>
+
+  <h2>7. 변경</h2>
+  <p>이 방침이 바뀌면 이 페이지에 게시하고 시행일을 갱신합니다.</p>
+
+  <p class="legal-foot"><a href="./terms.html">서비스 약관</a> · <a href="./prototypes/home.html">Phi Brain으로 돌아가기</a></p>
+</main>
+</body>
+</html>
