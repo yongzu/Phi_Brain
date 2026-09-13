@@ -50,6 +50,7 @@
   const store = {
     get(date) { try { return JSON.parse(localStorage.getItem(KEY + date)); } catch { return null; } },
     set(date, v) { try { localStorage.setItem(KEY + date, JSON.stringify(v)); return true; } catch { return false; } },
+    remove(date) { try { localStorage.removeItem(KEY + date); return true; } catch { return false; } },
     dates() {
       try { return Object.keys(localStorage).filter(k => k.startsWith(KEY)).map(k => k.slice(KEY.length)); }
       catch { return []; }
@@ -276,7 +277,7 @@
   // the 다룬 과목 chip, just with no 3-letter code/full name pair to show
   const courseName = code => (code === 'general' ? 'General' : COURSES.find(c => c[0] === code)?.[1]);
   const courseBoxInner = code => `<button type="button" class="cb-btn" aria-haspopup="listbox">`
-    + `<span>${code === 'general' ? 'General' : code ? `<span class="nav-code">${code}</span>_${courseName(code)}` : '과목 선택'}</span>`
+    + `<span>${code === 'general' ? '<span class="nav-code">General</span>' : code ? `<span class="nav-code">${code}</span>_${courseName(code)}` : '과목 선택'}</span>`
     + `<span class="caret" aria-hidden="true">▾</span></button>`;
   const courseMenu = $('#course-menu');
   let menuBox = null; // the course box the menu is open for
@@ -311,7 +312,7 @@
     box.classList.add('is-open');
     const cur = box.dataset.course;
     courseMenu.innerHTML = [['general', 'General'], ...COURSES].map(([code, name]) =>
-      `<button type="button" class="cm-item" role="option" data-code="${code}" aria-selected="${code === cur}">${code === 'general' ? name : `<span class="nav-code">${code}</span>_${name}`}</button>`).join('');
+      `<button type="button" class="cm-item" role="option" data-code="${code}" aria-selected="${code === cur}">${code === 'general' ? `<span class="nav-code">${name}</span>` : `<span class="nav-code">${code}</span>_${name}`}</button>`).join('');
     const j = editor.closest('.journal').getBoundingClientRect(), b = box.getBoundingClientRect();
     courseMenu.style.top = `${b.bottom - j.top + 6}px`;
     courseMenu.style.left = `${b.left - j.left}px`;
@@ -447,7 +448,10 @@
   }
   // 디스코드 저널링 포맷 인식: `fact`/`feeling`/`findings`/`Future item` 같은 백틱
   // 줄은 4F 소제목으로, **TF**·**General** 같은 단독 굵게 줄은 과목 박스로 바꾼다.
-  // 그 외 굵게 줄은 그냥 굵은 문단으로, 나머지는 평문 문단으로 남는다.
+  // 그 외 `**내용**`은 줄 전체든 문장 중간이든 굵게(<b>)로 바꾼다 — 과목 박스는
+  // 블록이라 줄 전체가 과목명일 때만 만들고, 문장 중간의 **BI**는 그냥 굵은 글자다.
+  // 짝이 안 맞는 **는 원문 그대로 둔다.
+  const inlineBold = s => esc(s).replace(/\*\*(?=\S)((?:(?!\*\*).)+?)(?<=\S)\*\*/g, '<b>$1</b>');
   const FOUR_F_ALIASES = { fact: 'Fact', feeling: 'Feeling', feelings: 'Feeling', finding: 'Finding', findings: 'Finding', 'future item': 'Future Item', futureitem: 'Future Item' };
   function resolveCourseWord(word) {
     const w = word.trim();
@@ -469,9 +473,8 @@
       if (b) {
         const code = resolveCourseWord(b[1]);
         if (code) { chosen.add(code); return `<div class="course-box" contenteditable="false" data-course="${code}">${courseBoxInner(code)}</div>`; }
-        return `<p><b>${esc(b[1])}</b></p>`;
       }
-      return `<p>${esc(line)}</p>`;
+      return `<p>${inlineBold(line)}</p>`;
     }).join('');
   }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
@@ -547,16 +550,20 @@
 
   // ---- Journal Archive: read-only browse over every real saved draft, no
   // fabricated data (EXAMPLES/REVIEW are for the homepage resume lists only) ----
-  let archiveFilter = 'all';
+  // 복수 선택(사용자 확정, Future Item·Findings와 같은 켜고 끄기) — 빈 배열 = All.
+  // 늘 General → 과목 순서로 정규화해 둔다. 해시는 쉼표로: #journal-archive/BI,EWA
+  let archiveFilters = [];
+  const ARCHIVE_KEYS = ['general', ...COURSES.map(c => c[0])];
+  const orderArchiveFilters = fs => ARCHIVE_KEYS.filter(k => fs.includes(k));
   const openArchive = new Set(); // dates currently dropped open — stays pinned across filter/view changes
-  const archiveHashFor = f => (f === 'all' ? '#journal-archive' : `#journal-archive/${f}`);
+  const archiveHashFor = fs => (fs.length ? `#journal-archive/${fs.join(',')}` : '#journal-archive');
   const archiveFilterFromHash = h => {
-    if (!h.startsWith('#journal-archive')) return 'all';
-    const raw = (h.split('/')[1] || '').toUpperCase();
-    if (!raw) return 'all';
-    if (raw === 'GENERAL') return 'general';
-    const code = ALIASES[raw] || raw;
-    return COURSES.some(c => c[0] === code) ? code : 'all';
+    if (!h.startsWith('#journal-archive')) return [];
+    return orderArchiveFilters((h.split('/')[1] || '').split(',').map(p => {
+      const raw = p.trim().toUpperCase();
+      if (raw === 'GENERAL') return 'general';
+      return ALIASES[raw] || raw;
+    }));
   };
   function archiveEntries() {
     return store.dates().map(date => {
@@ -567,7 +574,8 @@
   }
   function renderArchiveFilters(entries) {
     const count = k => entries.filter(e => k === 'all' || e.courses.includes(k)).length;
-    const pill = (k, label) => `<button type="button" class="pill fi-filter" data-archive-filter="${k}" aria-pressed="${k === archiveFilter}">`
+    const pressed = k => (k === 'all' ? !archiveFilters.length : archiveFilters.includes(k));
+    const pill = (k, label) => `<button type="button" class="pill fi-filter" data-archive-filter="${k}" aria-pressed="${pressed(k)}">`
       + `${label}${count(k) ? `<span class="f-count" aria-hidden="true">${count(k)}</span>` : ''}</button>`;
     archiveFiltersEl.innerHTML = pill('all', 'All') + pill('general', 'General') + COURSES.map(([code]) => pill(code, code)).join('');
   }
@@ -627,16 +635,25 @@
       s.has(k) ? s.delete(k) : s.add(k);
       try { localStorage.setItem(FAV_KEY, JSON.stringify([...s])); } catch {}
     },
+    // called when a whole journal is deleted, so no orphaned date::course keys linger
+    removeForDate(date) {
+      const s = favorites.all();
+      const kept = [...s].filter(k => !k.startsWith(date + '::'));
+      try { localStorage.setItem(FAV_KEY, JSON.stringify(kept)); } catch {}
+    },
   };
   // 즐겨찾기는 Future Item 과목 박스와 같은 별표(.fi-box-fav, CSS background로
   // 옅은 회색/검정 SVG를 바꿔 끼우는 방식)를 그대로 재사용 — 카드 헤더에 두면 CSS도 공짜
-  const archiveCardHTML = (e, course, favSet) => {
+  // showCourse: 과목을 여럿 골랐을 때만 카드 메타에 과목을 붙인다 — 같은 날짜 카드가
+  // 과목별로 나란히 생기므로 어느 과목 몫인지 구분이 필요하다(하나만 고르면 자명해서 생략)
+  const archiveCardHTML = (e, course, favSet, showCourse = false) => {
     const isFav = favSet.has(favKey(e.date, course));
+    const meta = [showCourse ? (course === 'general' ? 'General' : course) : '', e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
     return `
     <div class="archive-card${isFav ? ' is-fav' : ''}" data-date="${e.date}">
       <header class="fi-box-head archive-card-head">
         <h2 class="fi-box-title">${esc(e.title)}</h2>
-        <span class="resume-count">${e.savedAt ? clock(e.savedAt) : ''}</span>
+        <span class="resume-count">${esc(meta)}</span>
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-fav="${e.date}" data-fav-course="${course}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(e.title)}"></button>
         <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
       </header>
@@ -658,12 +675,12 @@
       renderArchiveList(archiveEntries());
     }));
   }
-  // All: 기존 목록. 특정 과목 필터: 그 과목이 들어간 날짜마다 그 과목 내용만
-  // 뽑은 카드 그리드 — 둘 중 하나만 보이도록 archiveListEl/archiveCardsEl을 토글
+  // All: 기존 목록. 과목 필터(하나 이상): 고른 과목이 들어간 (날짜, 과목)마다 그 과목
+  // 내용만 뽑은 카드 그리드 — 둘 중 하나만 보이도록 archiveListEl/archiveCardsEl을 토글
   function renderArchiveList(entries) {
     // snapshot which rows are currently dropped open before the rebuild wipes them
     archiveListEl.querySelectorAll('.archive-entry').forEach(d => (d.open ? openArchive.add(d.dataset.date) : openArchive.delete(d.dataset.date)));
-    if (archiveFilter === 'all') {
+    if (!archiveFilters.length) {
       archiveCardsEl.hidden = true;
       archiveListEl.hidden = false;
       if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
@@ -674,14 +691,20 @@
     }
     archiveListEl.hidden = true;
     archiveCardsEl.hidden = false;
-    const matched = entries.filter(e => e.courses.includes(archiveFilter));
-    if (!matched.length) { archiveCardsEl.innerHTML = '<p class="archive-empty">이 과목이 들어간 저널이 아직 없어요</p>'; return; }
+    // 카드 한 장 = (날짜, 과목). 정렬: 즐겨찾기 먼저 → 최신 날짜 → 같은 날은 과목 순서
+    const cards = entries.flatMap(e => archiveFilters.filter(c => e.courses.includes(c)).map(course => ({ e, course })));
+    if (!cards.length) {
+      archiveCardsEl.innerHTML = `<p class="archive-empty">${archiveFilters.length > 1 ? '고른 과목이 들어간 저널이 아직 없어요' : '이 과목이 들어간 저널이 아직 없어요'}</p>`;
+      return;
+    }
     const favSet = favorites.all();
-    const sorted = [...matched].sort((a, b) => {
-      const fa = favSet.has(favKey(a.date, archiveFilter)), fb = favSet.has(favKey(b.date, archiveFilter));
-      return fa !== fb ? (fa ? -1 : 1) : b.date.localeCompare(a.date);
+    const multi = archiveFilters.length > 1;
+    cards.sort((a, b) => {
+      const fa = favSet.has(favKey(a.e.date, a.course)), fb = favSet.has(favKey(b.e.date, b.course));
+      if (fa !== fb) return fa ? -1 : 1;
+      return b.e.date.localeCompare(a.e.date) || ARCHIVE_KEYS.indexOf(a.course) - ARCHIVE_KEYS.indexOf(b.course);
     });
-    archiveCardsEl.innerHTML = sorted.map(e => archiveCardHTML(e, archiveFilter, favSet)).join('');
+    archiveCardsEl.innerHTML = cards.map(({ e, course }) => archiveCardHTML(e, course, favSet, multi)).join('');
     wireArchiveMoreButtons(archiveCardsEl);
   }
 
@@ -707,14 +730,39 @@
     renderArchive();
   }
   archiveBackBtn.addEventListener('click', exitArchiveEdit);
-  // ---- row/card ⋯ menu: 그냥 "수정하기" 하나뿐이다(즐겨찾기는 별표 버튼으로
+
+  // ---- 삭제하기: ⋯ 메뉴의 확인 단계(showDeleteConfirm)를 거친 뒤 지우고, 되돌리기
+  // 토스트도 그대로 남긴다(Future Item 삭제와 같은 패턴). 지우는 날짜를 지금 편집 중이었다면(Archive 안 편집이든 Journaling
+  // 탭 자체든) 그 화면부터 정리해서 방금 지운 초안이 되살아나 보이지 않게 한다 ----
+  function deleteJournal(date) {
+    const data = store.get(date);
+    if (!data) return;
+    store.remove(date);
+    favorites.removeForDate(date);
+    if (editingInArchive && current === date) {
+      editingInArchive = false;
+      viewJournal.prepend(journalSection);
+      composeSlot.hidden = true;
+      archiveBrowse.hidden = false;
+    } else if (current === date) {
+      load(date); // store.get(date)이 이제 없으니 예시/빈 문서로 되돌아간다
+    }
+    renderArchive();
+    window.PhiBrain.ui.toast('삭제했어요', {
+      label: '되돌리기',
+      run: () => { store.set(date, data); renderArchive(); if (current === date) load(date); },
+    });
+  }
+
+  // ---- row/card ⋯ menu: "수정하기"·"삭제하기"(즐겨찾기는 별표 버튼으로
   // 옮겨감) — Journaling의 본문 과목 메뉴(#course-menu)와 같은 팝업 컴포넌트 ----
   const archiveMenu = $('#archive-menu');
   let archiveMenuAnchor = null;
   function openArchiveMenu(btn, date) {
     archiveMenuAnchor = btn;
     archiveMenu.dataset.date = date;
-    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>';
+    archiveMenu.innerHTML = '<button type="button" class="cm-item" role="menuitem" data-act="edit">수정하기</button>'
+      + '<button type="button" class="cm-item" role="menuitem" data-act="delete">삭제하기</button>';
     const v = $('#view-archive').getBoundingClientRect(), a = btn.getBoundingClientRect();
     archiveMenu.hidden = false; // measure
     const w = archiveMenu.offsetWidth;
@@ -730,38 +778,178 @@
     popOut(archiveMenu);
     if (refocus && a.isConnected) a.focus();
   }
+  // "삭제하기"는 바로 지우지 않고 같은 팝업을 확인 단계로 바꾼다(사용자 확정) —
+  // 브라우저 기본 confirm() 대화상자 대신 메뉴 자리에서 묻는다. 기본 포커스는
+  // "취소"에 둬서 Enter 연타로 지워지지 않게 한다.
+  function showDeleteConfirm(date) {
+    const title = store.get(date)?.title || monthDay(date);
+    archiveMenu.innerHTML = `<p class="cm-confirm">"${esc(title)}" 저널을 삭제할까요?</p>`
+      + '<button type="button" class="cm-item cm-danger" role="menuitem" data-act="confirm-delete">삭제</button>'
+      + '<button type="button" class="cm-item" role="menuitem" data-act="cancel">취소</button>';
+    archiveMenu.querySelector('[data-act="cancel"]').focus({ preventScroll: true });
+  }
   archiveMenu.addEventListener('click', e => {
     const b = e.target.closest('.cm-item');
-    if (!b || b.dataset.act !== 'edit') return;
+    if (!b) return;
     const date = archiveMenu.dataset.date;
-    closeArchiveMenu(false);
-    enterArchiveEdit(date);
+    if (b.dataset.act === 'delete') { showDeleteConfirm(date); return; } // 메뉴는 열어 둔 채 확인 단계로
+    closeArchiveMenu(b.dataset.act === 'cancel');
+    if (b.dataset.act === 'edit') enterArchiveEdit(date);
+    else if (b.dataset.act === 'confirm-delete') deleteJournal(date);
   });
-  archiveMenu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeArchiveMenu(); } });
+  archiveMenu.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); closeArchiveMenu(); return; }
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const items = [...archiveMenu.querySelectorAll('.cm-item')], i = items.indexOf(document.activeElement);
+    items[(i + step + items.length) % items.length].focus();
+  });
   document.addEventListener('pointerdown', e => {
     if (archiveMenuAnchor && !archiveMenu.contains(e.target) && !archiveMenuAnchor.contains(e.target)) closeArchiveMenu(false);
   });
   function renderArchive() {
-    archiveFilter = archiveFilterFromHash(location.hash);
+    archiveFilters = archiveFilterFromHash(location.hash);
     const entries = archiveEntries();
     renderArchiveFilters(entries);
     renderArchiveList(entries);
-    if (window.PhiBrain.getCurrentView() === 'journal-archive') history.replaceState(null, '', archiveHashFor(archiveFilter));
+    if (window.PhiBrain.getCurrentView() === 'journal-archive') history.replaceState(null, '', archiveHashFor(archiveFilters));
   }
+  // pill 클릭: All은 선택 해제, 과목은 켜고 끄기(마지막 하나를 끄면 All)
   archiveFiltersEl.addEventListener('click', e => {
     const b = e.target.closest('[data-archive-filter]');
     if (!b) return;
-    archiveFilter = b.dataset.archiveFilter;
-    history.replaceState(null, '', archiveHashFor(archiveFilter));
+    const k = b.dataset.archiveFilter;
+    archiveFilters = k === 'all' ? [] : orderArchiveFilters(archiveFilters.includes(k) ? archiveFilters.filter(x => x !== k) : [...archiveFilters, k]);
+    history.replaceState(null, '', archiveHashFor(archiveFilters));
     const entries = archiveEntries();
     renderArchiveFilters(entries);
     renderArchiveList(entries);
+    archiveFiltersEl.querySelector(`[data-archive-filter="${k}"]`)?.focus();
   });
   document.addEventListener('phibrain:view', e => {
     if (e.detail.name === 'journal-archive') { renderArchive(); return; }
     exitArchiveEdit(); // 다른 탭으로 나가면 .journal을 #view-journal로 먼저 되돌린다
   });
   if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
+
+  // ---- Findings: insight excerpts pulled from saved journals' "Finding" 4F
+  // section, grouped by the day's 다룬 과목(courses[]) — read-only, no separate
+  // store (same principle as Journal Archive). A Finding written on a day with
+  // no course checked falls into General rather than being dropped. ----
+  const findingsFiltersEl = $('#findings-filters'), findingsListEl = $('#findings-list');
+  // 복수 선택(사용자 확정) — 빈 배열 = All. 해시는 쉼표로: #findings/BI,EWA
+  let findingsFilters = [];
+  const findingsHashFor = fs => (fs.length ? `#findings/${fs.join(',')}` : '#findings');
+  const findingsFilterFromHash = h => {
+    if (!h.startsWith('#findings')) return [];
+    return (h.split('/')[1] || '').split(',').map(p => {
+      const raw = p.trim().toUpperCase();
+      if (raw === 'GENERAL') return 'general';
+      const code = ALIASES[raw] || raw;
+      return COURSES.some(c => c[0] === code) ? code : null;
+    }).filter(Boolean);
+  };
+  // Findings에는 과목 태그를 단 Finding만 들어간다(사용자 확정) — Finding 섹션
+  // 안에서 과목 박스 뒤 ~ 다음 과목 박스 전까지가 그 과목의 몫이고, 그 박스에만
+  // 들어간다. 태그 앞에 쓴 내용이나 태그가 아예 없는 Finding은 보여주지 않는다
+  // (칩·General로 떨어뜨리던 예전 폴백은 빈 줄만 있는 앞머리까지 "General 1"로
+  // 잡는 등 사용자가 고르지 않은 배정을 만들었다). General도 태그로 고른 경우만.
+  // 과목 박스 자체는 빼고 담는다 — 어느 박스에 들어있는지가 이미 과목을 말해 준다.
+  const isBlankBlock = el => el.textContent.trim() === '' && !el.querySelector('img, hr');
+  function findingSlices(html) {
+    const frag = document.createElement('div');
+    frag.innerHTML = html;
+    const slices = [];
+    let capturing = false, cur = null;
+    const flush = () => {
+      if (!cur) return;
+      // 태그 바로 뒤·다음 태그 직전의 빈 줄(<p><br></p>)은 잘라 박스 위아래 공백을 없앤다
+      while (cur.els.length && isBlankBlock(cur.els[0])) cur.els.shift();
+      while (cur.els.length && isBlankBlock(cur.els[cur.els.length - 1])) cur.els.pop();
+      if (cur.els.length) slices.push({ course: cur.course, html: cur.els.map(el => el.outerHTML).join('') });
+      cur = null;
+    };
+    [...frag.children].forEach(el => {
+      if (el.tagName === 'H3') { flush(); capturing = el.textContent.trim().toLowerCase() === 'finding'; return; }
+      if (!capturing) return;
+      if (el.classList.contains('course-box')) { flush(); cur = { course: ALIASES[el.dataset.course] || el.dataset.course || '', els: [] }; return; }
+      if (cur) cur.els.push(el); // cur가 없으면 = 첫 태그 앞 내용 → 버린다
+    });
+    flush();
+    return slices.filter(s => JOURNAL_SCOPES.some(c => c[0] === s.course));
+  }
+  function findingsEntries() {
+    const out = [];
+    store.dates().sort((a, b) => b.localeCompare(a)).forEach(date => {
+      const d = store.get(date);
+      if (!d || !d.html) return;
+      findingSlices(d.html).forEach(s => out.push({ date, html: s.html, courses: [s.course] }));
+    });
+    return out;
+  }
+  function findingsByBox() {
+    const map = new Map();
+    findingsEntries().forEach(e => e.courses.forEach(c => {
+      if (!map.has(c)) map.set(c, []);
+      map.get(c).push(e);
+    }));
+    return map;
+  }
+  function findingsBoxHTML(key, box) {
+    const entries = box.get(key) || [];
+    const label = key === 'general' ? 'General' : `<span class="nav-code">${esc(key)}</span>_${esc(courseName(key))}`;
+    const rows = entries.map(e => `
+      <li class="findings-item">
+        <div class="editor archive-preview">${e.html}</div>
+        <span class="findings-date">${esc(monthDay(e.date))}</span>
+      </li>`).join('');
+    return `<section class="fi-box" data-box="${key}">
+      <header class="fi-box-head">
+        <h2 class="fi-box-title">${label}</h2>
+        <span class="resume-count" aria-label="${entries.length}개">${entries.length}</span>
+      </header>
+      ${entries.length ? `<ul class="findings-rows">${rows}</ul>` : '<p class="fi-box-empty">아직 없어요.</p>'}
+    </section>`;
+  }
+  // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
+  const findingsKeys = box => ['general', ...COURSES.map(c => c[0])].filter(k => box.has(k));
+  function renderFindingsFilters(box) {
+    const total = [...box.values()].reduce((n, list) => n + list.length, 0);
+    const pressed = k => (k === 'all' ? !findingsFilters.length : findingsFilters.includes(k));
+    const pill = (k, label, n) => `<button type="button" class="pill fi-filter" data-findings-filter="${k}" aria-pressed="${pressed(k)}">`
+      + `${label}<span class="f-count" aria-hidden="true">${n}</span></button>`;
+    findingsFiltersEl.innerHTML = pill('all', 'All', total)
+      + findingsKeys(box).map(k => pill(k, k === 'general' ? 'General' : k, box.get(k).length)).join('');
+  }
+  function renderFindingsList(box) {
+    const keys = findingsKeys(box);
+    findingsListEl.innerHTML = !keys.length
+      ? '<p class="fi-box-empty">아직 없어요. 저널의 Finding 아래에 과목 태그를 달면 여기에 모여요.</p>'
+      : (findingsFilters.length ? findingsFilters : keys).map(k => findingsBoxHTML(k, box)).join('');
+  }
+  // 화면 순서로 정렬 + 내용 없는 과목(딥링크로 들어온 빈 과목 포함)은 뺀다
+  function applyFindingsFilters(fs, box) {
+    findingsFilters = findingsKeys(box).filter(k => fs.includes(k));
+    renderFindingsFilters(box);
+    renderFindingsList(box);
+    if (window.PhiBrain.getCurrentView() === 'findings') history.replaceState(null, '', findingsHashFor(findingsFilters));
+  }
+  function renderFindings() {
+    applyFindingsFilters(findingsFilterFromHash(location.hash), findingsByBox());
+  }
+  // pill 클릭: All은 선택 해제, 과목은 켜고 끄기(마지막 하나를 끄면 All). 박스는 .findings-list
+  // 2열 그리드 그대로라 몇 개를 골라도 한 줄 최대 2개
+  findingsFiltersEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-findings-filter]');
+    if (!b) return;
+    const k = b.dataset.findingsFilter;
+    const next = k === 'all' ? [] : findingsFilters.includes(k) ? findingsFilters.filter(x => x !== k) : [...findingsFilters, k];
+    applyFindingsFilters(next, findingsByBox());
+    findingsFiltersEl.querySelector(`[data-findings-filter="${k}"]`)?.focus();
+  });
+  document.addEventListener('phibrain:view', e => { if (e.detail.name === 'findings') renderFindings(); });
+  if (window.PhiBrain.getCurrentView() === 'findings') renderFindings();
 
   addEventListener('pagehide', save);
   load(today);

@@ -26,8 +26,8 @@
   const table = $('#am-table'), tbody = $('#am-tbody'), progressEl = $('#am-progress');
   const backendHint = $('#am-backend-hint');
   const weekLabel = $('#am-week-label'), weekPrev = $('#am-week-prev'), weekNext = $('#am-week-next');
-  const gmailStatus = $('#am-gmail-status'), connectBtn = $('#am-gmail-connect'), disconnectBtn = $('#am-gmail-disconnect');
-  const syncTime = $('#am-sync-time'), refreshBtn = $('#am-refresh');
+  const gmailStatus = $('#am-gmail-status'), connectBtn = $('#am-gmail-connect');
+  const refreshBtn = $('#am-refresh');
   const detail = $('#am-detail');
 
   let weeks = [];
@@ -111,24 +111,19 @@
     if (c.connected) {
       gmailStatus.textContent = c.email ? `Gmail 연결됨 · ${c.email}` : 'Gmail 연결됨';
       connectBtn.hidden = true;
-      disconnectBtn.hidden = false;
     } else {
       gmailStatus.textContent = 'Gmail 연결 안 됨';
       connectBtn.hidden = false;
-      disconnectBtn.hidden = true;
     }
-    syncTime.textContent = c.last_sync_at ? `마지막 동기화 ${new Date(c.last_sync_at).toLocaleString('ko-KR')}` : '';
-    if (c.last_sync_error) syncTime.textContent += ` · 오류: ${c.last_sync_error}`;
+    // 마지막 동기화 시각 표시는 없앴지만, 오류만큼은 조용히 숨기지 않는다(정직하게
+    // 보여준다는 원칙 유지) — 상태 텍스트 뒤에 그대로 이어붙인다.
+    if (c.last_sync_error) gmailStatus.textContent += ` · 오류: ${c.last_sync_error}`;
   }
 
   weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) loadWeek(currentWeekNo - 1); });
   weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) loadWeek(currentWeekNo + 1); });
 
   connectBtn.addEventListener('click', () => { location.href = `${API_BASE}/auth/google/start`; });
-  disconnectBtn.addEventListener('click', async () => {
-    await api('/api/connection/disconnect', { method: 'POST' });
-    loadConnection();
-  });
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
     refreshBtn.textContent = '새로고침 중…';
@@ -147,12 +142,36 @@
   });
 
   // ---- detail panel ----
-  function closeDetail() { popOut(detail); }
+  // 누른 상태 칸 바로 아래에 뜨는 팝오버(사용자 확정 — 예전엔 화면 우하단 고정).
+  // 아래 공간이 모자라면 칸 위로 뒤집고, 화면 가장자리 16px 안으로 가둔다. 앵커는
+  // 버튼 요소가 아니라 targetId로 기억한다 — 수동 확인 저장 뒤 loadWeek()가 표를 다시
+  // 그려 버튼이 새로 생겨도 같은 칸을 다시 찾아 붙기 위해서. 640px 이하 모바일은
+  // 기존대로 화면 아래 시트(CSS)라 위치를 계산하지 않는다.
+  let detailAnchorId = null;
+  const detailSheet = matchMedia('(max-width:640px)');
+  function placeDetail() {
+    if (detailAnchorId == null || detail.hidden) return;
+    if (detailSheet.matches) { detail.style.top = detail.style.left = ''; return; }
+    const anchor = tbody.querySelector(`.am-status[data-target-id="${detailAnchorId}"]`);
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect(), gap = 6, edge = 16;
+    const w = detail.offsetWidth, h = detail.offsetHeight;
+    let top = r.bottom + gap;
+    if (top + h > innerHeight - edge && r.top - gap - h >= edge) top = r.top - gap - h;
+    top = Math.max(edge, Math.min(top, innerHeight - edge - h));
+    detail.style.top = `${top}px`;
+    detail.style.left = `${Math.max(edge, Math.min(r.left, innerWidth - edge - w))}px`;
+  }
+  addEventListener('scroll', placeDetail, { passive: true, capture: true }); // 표 가로 스크롤 포함
+  addEventListener('resize', placeDetail);
+  function closeDetail() { detailAnchorId = null; popOut(detail); }
   async function openDetail(targetId) {
     const d = await apiJson(`/api/targets/${targetId}`);
     if (!d) return;
+    detailAnchorId = targetId;
     detail.innerHTML = renderDetail(d);
     popIn(detail);
+    placeDetail(); // 같은 프레임 안이라 우하단에 먼저 그려졌다 튀는 일은 없다
     wireDetailActions(d);
   }
 
@@ -170,7 +189,7 @@
       </dl>
       ${Object.keys(latest.links).length ? `<ul class="am-links">${Object.entries(latest.links)
         .map(([k, v]) => safeHref(v) ? `<li><a href="${esc(v)}" target="_blank" rel="noopener">${esc(k)} ↗</a></li>` : '').join('')}</ul>` : ''}
-    ` : (d.manual?.status === 'confirmed_manual' ? `<p class="am-detail-fields">확인 방식: 직접 확인 (${new Date(d.manual.updated_at).toLocaleString('ko-KR')})</p>` : '<p class="field-hint">아직 확인된 근거가 없어요.</p>');
+    ` : (d.manual?.status === 'confirmed_manual' ? `<p class="am-detail-fields">확인 방식: 직접 확인 (${new Date(d.manual.updated_at).toLocaleString('ko-KR')})</p>` : ''); // 근거 없음 안내 문구는 뺐다(사용자 지시)
 
     return `
       <button type="button" class="am-detail-close" id="am-detail-close" aria-label="닫기">✕</button>
@@ -180,7 +199,6 @@
       ${evidenceBlock}
       <div class="am-detail-actions">
         <button type="button" class="pill" data-action="confirmed_manual">직접 확인으로 표시</button>
-        <button type="button" class="pill" data-action="not_applicable">해당 없음으로 표시</button>
         <button type="button" class="pill" data-action="clear">수동 확인 취소</button>
       </div>
     `;

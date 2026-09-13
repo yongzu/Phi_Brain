@@ -1,8 +1,201 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-13 (계속, 과목 칩 클릭 시 에디터 스크롤 맨 위로 튀던 버그 수정) / Claude Code
+최종 갱신: 2026-09-14 (Assignment 상세 정리, 박스 1개 폭 고정, Archive 카드 높이) / Claude Code
+
+**주의(다음에 이 저장소를 여는 사람 — Codex 포함):** 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 1주차 AL 과제·EWA 셀프피드백이 "제출 확인"으로 뜨는 건 실제 Gmail 매칭이 아니라 사용자의 프로토타입 제출 데모용으로 직접 심어 넣은 가짜 근거 행이다(`gmail_message_id`가 `demo-`로 시작). matching.js의 `VERIFIED_FORMATS`는 여전히 `ewa:assignment` 하나뿐 — M1(제목 우선 매칭 확장)은 아직 코드로 들어가지 않았다.
 
 ## 현재 단계
+
+### Assignment 상세 정리 · 박스 1개일 때 늘리지 않기 · Archive 카드 높이 (2026-09-14, 사용자 요구사항 3건 · Claude Code)
+
+1. **Assignment Manage 상세 팝업** (`assignment.js`): 근거 없을 때의 "아직 확인된 근거가 없어요." 문구와 "해당 없음으로 표시" 버튼 제거.
+   남은 버튼은 "직접 확인으로 표시"·"수동 확인 취소". 서버의 `not_applicable` 처리·충돌(conflict) 안내는 그대로 둠 —
+   예전에 이미 '해당 없음'으로 표시된 칸은 "수동 확인 취소"로 풀 수 있다.
+2. **Future Item 필터 하나만 골라도 1/4 칸 고정** (`phi-brain.css`): 공용 `.fi-list>.fi-box:only-child{grid-column:1/-1}`
+   (박스 하나면 전체 폭) 규칙을 삭제. 같은 이유로 Findings에 따로 걸어 뒀던 `:only-child{grid-column:auto}` 덮어쓰기도 삭제 —
+   이제 두 화면 모두 기본값으로 1칸(Future Item 1/4, Findings 1/2). `+ 박스 추가`·섹션 라벨 전체 폭은 유지.
+3. **Journal Archive 카드 높이** (`phi-brain.css`): `.archive-cards`에 `align-items:start` — 그리드 기본 stretch 때문에 같은 줄의
+   긴 카드 높이만큼 짧은 카드가 늘어나던 문제.
+
+**검증(1440×900):** 미확인 칸 팝업 텍스트 = 제목·상태·버튼 2개뿐, 제출 확인 칸은 메일 근거 그대로. Future Item `#future-item/BI` 박스
+253px(목록 1061px의 1/4), All의 박스 추가 타일은 전체 폭 유지. Findings 박스 1개 523px(1/2). Archive에서 짧은/긴 카드 나란히 →
+높이 131px / 457px로 각자 내용만큼. 테스트 저널 삭제. 캐시 버스터 `phi-brain.css?v=20260914-12`, `future.js?v=20260914-4`, `assignment.js?v=5`.
+
+### Journal Archive 필터 복수 선택 (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- `journal.js`: `archiveFilter`(문자열) → `archiveFilters`(배열, 빈 배열 = All, `orderArchiveFilters`로 General→과목 순 정규화),
+  해시 `#journal-archive/BI,EWA`(모르는 코드는 버림). 카드 목록은 (날짜, 과목) 쌍으로 펼쳐 즐겨찾기 → 최신 날짜 → 과목 순 정렬,
+  2개 이상 골랐을 때만 `archiveCardHTML(..., showCourse)`가 메타에 과목 코드 표시. CSS 변경 없음(기존 2열 `.archive-cards`).
+- 검증: 저널 3건(BI / BI·EWA / AL) 심어 → BI 1개: 2장(과목 표시 없음), AL·BI·EWA: T2가 BI·EWA 두 장으로 나뉘어 총 4장 + 과목 표시,
+  T2::EWA 즐겨찾기 → 맨 앞, 전부 끄면 목록(All) 모드 복귀, 딥링크 `#journal-archive/ewa,bi,XYZ` → `BI,EWA`. 테스트 저널 삭제.
+- **정리:** 이 테스트 브라우저의 9/14 초안 `courses`에 앞선 붙여넣기 테스트(`**BI**` 줄은 다룬 과목에 자동 추가됨)에서 남은 `BI`가
+  섞여 있어 제거(본문에 BI 태그 없음 확인). 사용자 실제 브라우저 데이터와는 무관. 캐시 버스터 `journal.js?v=20260914-7`.
+
+### 버튼 없는 토스트 오른쪽 여백 18px (2026-09-14, 사용자 지적 · Claude Code)
+
+- 증상: "…완료했어요"처럼 버튼 없는 토스트는 글자가 오른쪽 끝에 붙어 보임. 원인: 토스트 패딩이 좌 18px / 우 6px
+  (우 6px는 되돌리기 버튼용). `phi-brain.css`에 `.toast:has(> .toast-act[hidden]){padding-right:18px}`.
+- 검증: 버튼 없음 좌 18 / 우 18, 버튼 있음 좌 18 / 버튼까지 6(기존 유지), 버튼 있는 토스트 뒤 다시 없는 토스트 → 18 / 18.
+  캐시 버스터 `phi-brain.css?v=20260914-10`.
+- 후속: 상하 패딩 6px → 8px(모든 토스트). 검증: 버튼 없음 `8px 18px`(높이 31→35px), 버튼 있음 `8px 6px 8px 18px`(43→47px).
+  캐시 버스터 `phi-brain.css?v=20260914-11`.
+
+### Assignment Manage 상세 팝업을 누른 칸 위치에 (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- 상태 배지(미확인 등) 클릭 시 뜨는 `#am-detail`: 화면 우하단 고정(`right/bottom:32px`) → 누른 배지 바로 아래.
+  `assignment.js`에 `placeDetail()`(아래 공간 부족 시 위로 뒤집기, 가장자리 16px 클램프, scroll(capture)·resize 시 재배치,
+  앵커는 `targetId`로 기억해 `loadWeek()` 재렌더 뒤에도 유지), CSS `.am-detail`은 `top/left:0` 기본값으로 바꾸고 JS가 채움.
+  640px 이하 모바일은 인라인 위치를 비우고 기존 하단 시트 유지.
+- 검증(1440×900, 실제 로컬 서버 데이터 24칸): 위쪽 행 → 배지 아래 6px·왼쪽 정렬, 화면 아래쪽 행 → 배지 위 6px로 뒤집힘,
+  스크롤 후에도 간격 6px 유지, 닫기 정상, 375px에서 좌·우·하 16px 시트. 스크린샷으로 칸 바로 아래 표시 확인.
+  캐시 버스터 `assignment.js?v=4`, `phi-brain.css?v=20260914-9`.
+
+### Future Item 완료 알림 (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- `future.js` `toggleDone`: 완료로 바뀌고 저장에 성공했을 때만 `toast("OOO를 완료했어요")`. 완료 취소는 알림 없음.
+  `doneSubject()`가 20자 초과 문장을 `…`로 줄이고 받침에 따라 을/를(한글 외 끝 글자는 "을(를)").
+- 검증: 4건 심어 체크 → "레퍼런스 3개 찾기를 / 과제 제출하기를 / Figma 정리 PDF을(를) / 이번 주 인터뷰 질문지 초안을 교수님…를
+  완료했어요", 완료 취소 시 토스트 안 뜸, 저장값 반영 확인. 테스트 뒤 Future Item 저장소 원복 + 새로고침.
+  캐시 버스터 `future.js?v=20260914-3`.
+
+### 토스트 100px 위로 · 왼쪽 로고 (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- "정리하기"를 누를 때 뜨는 팝업 = 공용 토스트(`Future Item에 등록하기` 체크 시 "N개 Future Item 등록됨").
+  `.toast-wrap{bottom:24px → 124px}`, `home.html` 토스트에 `<img class="toast-logo" src="assets/logo.png" alt="">`,
+  `.toast-logo{width:1em;height:1em}`(로고가 1000×1000 정사각이라 글자 크기와 같은 정사각).
+  **공용 컴포넌트라 앱의 모든 토스트(Future Item 되돌리기, Journal Archive 삭제 등)에 함께 적용된다.**
+- 검증(1440×900): 토스트 아래 여백 124px, 로고 13.33px = 메시지 글자 크기 13.33px, 로고와 글자 세로 중심 일치(760px),
+  로고 이미지 로드됨. 캐시 버스터 `phi-brain.css?v=20260914-8`.
+
+### Journaling 작성 영역 높이: 기본 300px · 최대 550px (2026-09-14, 사용자 요구사항 · Claude Code)
+
+- 먼저 "세로 1.5배" 지시로 450px / 82.5vh로 늘렸다가, 사용자가 **기본 높이 300px 유지, 최대 높이 550px**로 다시 정함.
+- `phi-brain.css`: `#editor{max-height:550px}`(기존 55vh), 기본 높이는 공용 `.editor{min-height:300px}` 그대로.
+  Archive "수정하기" 편집기도 같은 `#editor`라 동일 적용, 미리보기(`.archive-preview`)는 영향 없음.
+- 검증: 계산값 min 300px / max 550px, 빈 문서 300px, 80줄 넣으면 550px에서 멈추고 안에서 스크롤. 캐시 버스터 `phi-brain.css?v=20260914-7`.
+
+### 사이드바 잘림 실제 원인 수정 (2026-09-14, 사용자 재보고 · Claude Code)
+
+- 앞선 수정(아래 "Findings 다듬기" 2번)이 효과가 없었다. 실제 원인: `.nav-list`는 `.accordion-content`라
+  `overflow:hidden`이고 가장 넓은 탭 폭(227px)에 맞춰 줄어드는데, 호버/선택 시 `translateX(10px)`로 탭이 밀려
+  IAE 탭 오른쪽 10px가 목록에 잘렸다. 지난번엔 탭을 사이드바하고만 비교해서 이걸 놓쳤다.
+- 수정: `.side-nav .nav-list{padding-right:10px}`(`phi-brain.css`), 효과 없던 사이드바 오른쪽 패딩 34px → 24px 원복.
+  캐시 버스터 `phi-brain.css?v=20260914-5`.
+- 검증: 선택 상태에서 탭 오른쪽 끝 − 목록 오른쪽 끝 = 수정 전 **10px** → 수정 후 사이드바 전 탭 **0px**. 라벨 12% 확대 강제 시에도 0px,
+  375px 모바일 가로 스크롤 없음. 상세는 DESIGN.md "사이드바 긴 라벨 잘림".
+
+### Future Item 주차 이월 · Future Item/Findings 필터 복수 선택 (2026-09-14, 사용자 요구사항 2건 · Claude Code 구현)
+
+1. **못 한 행동 이번 주로 이월** (`future.js`) — `weekItems()`의 주차 기준을 `weekOf(createdAt)`에서 `itemWeek(i)`로 교체:
+   완료 = `weekOf(doneAt || createdAt)`, 미완료 = `max(weekOf(createdAt), 이번 주)`. 저장 데이터는 안 바꾸는 계산값이라
+   마이그레이션 없음. 지난주 화면에서는 사라지고 이번 주에만 보인다.
+2. **필터 복수 선택** — Future Item: `let filter`(문자열) → `let filters`(배열, 빈 배열 = All), `setFilter` →
+   `setFilters`/`toggleFilter`, 해시 `#future-item/BI,AL`(쉼표), 기본 소속은 필터 1개일 때만 그 박스. 한 줄 최대 4개는
+   기존 `.fi-list` 4열 그대로. Findings(`journal.js`): `findingsFilter` → `findingsFilters`, `applyFindingsFilters`,
+   해시 `#findings/BI,EWA`, 한 줄 최대 2개는 기존 `.findings-list` 2열 그대로. CSS 변경 없음.
+   `PhiBrain.show('future', { filter })`의 `filter`도 이제 **배열**이다(외부 호출처는 없음 — journal.js는 `show('journal')`만 씀).
+
+**검증:** Future Item에 W1 미완료 / W1 완료 / W1 생성·W2 완료 / W2 생성 미완료 4건을 심어 → Week 02에 3건(이월 포함),
+Week 01에는 W1에 완료한 1건만. Week 01에서 완료 취소 → Week 01에서 사라지고 Week 02에 나타남. 필터 5개 선택 → 한 줄
+4개(253px×4)·5번째는 다음 줄, 1개 → 전체 폭, 전부 끄면 All, 딥링크 `#future-item/bi,ewa` → BI·EWA. Findings 과목 4개
+심어 → 3개 선택 시 한 줄 2개(523px), 딥링크에 빈 과목(AOR) 섞으면 빠짐. 테스트 뒤 Future Item 저장소는 원래 값으로
+복구, 심은 저널 삭제. 캐시 버스터 `future.js?v=20260914-2`, `journal.js?v=20260914-6`.
+
+### 저널 삭제 확인 · 붙여넣기 문장 중간 굵게 · Findings 2열 고정 (2026-09-14, 사용자 요구사항 3건 · Claude Code 구현)
+
+1. **Journal Archive 삭제 확인** — `⋯` → "삭제하기"가 바로 지우지 않고 같은 팝업을 `"제목" 저널을 삭제할까요? / 삭제 / 취소`로
+   바꾼다(`showDeleteConfirm`, 기본 포커스 "취소", Esc·바깥 클릭은 취소). 새 CSS `.cm-confirm`·`.cm-danger`(ink+볼드, 새 색 없음).
+   삭제 후 되돌리기 토스트는 유지.
+2. **디스코드 붙여넣기 `**내용**` 굵게** — `pastedTextToHtml`의 평문 줄에 `inlineBold` 적용(문장 중간도 변환). 줄 전체가
+   `**BI**` 같은 과목명이면 기존대로 과목 박스. 굵게 안에 `**`가 끼는 경우는 짝으로 보지 않음(검증 중 발견해 정규식 보강).
+   **붙여넣을 때만 변환** — 이미 저장된 저널의 `**`는 그대로라, 기존 BI 저널은 다시 붙여넣어야 반영된다.
+3. **Findings 한 줄 2개 고정** — `.findings-list>.fi-box:only-child{grid-column:auto}`. 박스 1개·과목 필터 선택 시에도 반 폭.
+   (560px 미만 모바일 1열 규칙은 남겨 둠.)
+
+**검증:** 실제 `paste` 이벤트로 변환 결과 확인(과목 박스 / 문장 중간 굵게 / 짝 안 맞는 `**` 원문 유지), 삭제 → 확인 단계에서
+저장소 유지 → 취소 시 유지 → 삭제 확정 시 제거 + 토스트, Findings 박스 1개일 때 폭 522.5px(그리드 1061px의 절반). 테스트
+데이터는 삭제. 캐시 버스터 `phi-brain.css?v=20260914-4`, `journal.js?v=20260914-5`.
+
+### Findings: 과목 태그 단 것만, 빈 과목 숨김 (2026-09-14 후속, 사용자 요구사항 · Claude Code 구현)
+
+- **증상(사용자 스크린샷):** BI 태그 Finding 하나뿐인데 "General 1"(본문 없이 `9월 9일`만 있는 항목)이 뜨고,
+  AL·AOR 등 빈 과목 박스가 "0 / 아직 없어요."로 전부 그려짐.
+- **원인:** 바로 아래 항목에서 내가 넣은 폴백 — 첫 과목 태그 앞 내용을 General로 보냈는데, 그 "내용"이 BI 태그
+  위의 빈 줄(`<p><br></p>`)이었다(HTML 문자열로는 비어 있지 않아 걸러지지 않음). 빈 박스는 원래 항상 렌더링.
+- **수정(`journal.js`):** `findingSlices`가 과목 태그 뒤 내용만 수집하고 첫 태그 앞·태그 없는 Finding은 버린다
+  (칩·General 폴백 제거). 조각 앞뒤 빈 블록은 `isBlankBlock`으로 잘라냄. 필터·박스는 `findingsKeys(box)`로
+  내용 있는 과목만, 전부 비면 안내 한 줄, 빈 과목 딥링크는 All로.
+- **검증:** 스크린샷 상황 재현(칩 general·AOR·BI, Finding = 빈 줄 2개 + BI 태그 + 빈 줄 + 본문) + 태그 없는 AL
+  Finding 1건 → 필터 `All 1 · BI 1`, 박스 BI 하나, 본문 앞뒤 빈 줄 없음. `#findings/AOR` → `#findings`로 복귀.
+  테스트 데이터 삭제 후 `All 0` + 안내 문구. 캐시 버스터 `phi-brain.css`·`journal.js` 모두 `?v=20260914-3`.
+
+### Findings 다듬기 · 사이드바 잘림 수정 (2026-09-14, 사용자 요구사항 6건 · Claude Code 구현)
+
+전부 프로토타입(`design/prototypes/`) 안에서만 끝나는 변경이다. 서버·DB는 건드리지 않았다.
+
+1. **Findings 박스 2열** — `.findings-list{grid-template-columns:repeat(2,minmax(0,1fr))}`(560px 아래 1열).
+   Future Item의 4열은 한 줄짜리 할 일 기준이고 Finding은 문단이라 폭이 두 배 필요하다는 사용자 지적.
+2. **사이드바 긴 라벨 잘림** — ⚠️ 이 시도는 원인을 잘못 짚어 효과가 없었다(사용자가 "아직 안 고쳐짐" 재보고).
+   바로 위 "사이드바 잘림 실제 원인 수정" 항목 참고.
+3. **사이드바 그룹명 General → Management** — `home.html` `<summary>` 텍스트만.
+   (그룹 안 항목의 과목 배정에서 쓰는 `general` 스코프 키와는 무관.)
+4. **Findings 과목 배정 기준을 "그날의 다룬 과목 칩"에서 "본문 과목 태그"로 변경** — 사용자가 보낸 3번 이미지에서
+   BI 태그가 달린 Finding 하나가 General·AOR·BI 박스에 똑같이 복제돼 있었다. 원인은 어제 내가 택한 칩 기준
+   배정(칩을 3개 고른 날이라 3개 박스에 모두 걸림). 이제 Finding 섹션 안의 과목 박스로 잘라 그 박스에만 넣는다
+   (Journal Archive의 `courseChunks`와 같은 규칙, `journal.js`의 `extractFindingHtml` → `findingSlices`로 교체).
+   태그가 하나도 없는 Finding만 칩으로, 칩도 없으면 General로 폴백한다. 제품 결정 근거는 PRODUCT.md.
+5. **Findings 필터 줄 아래 여백 10px** — `.findings-filters{margin-bottom:10px}`.
+6. **Journaling 과목 선택의 General 볼드** — 본문 과목 태그(`courseBoxInner`)와 과목 선택 메뉴(`openCourseMenu`)
+   양쪽에서 `General`을 `<span class="nav-code">`로 감쌌다. 기존 `.nav-code{font-weight:700}` /
+   `.cm-item .nav-code{color:var(--ink)}`를 타므로 새 CSS 없음 — 과목 코드(AL·BI…)와 같은 취급이 된다.
+
+**검증(로컬 `http://localhost:5500/prototypes/home.html`):** 저널 3건을 심어 ① BI 태그 1개짜리 Finding이 BI
+박스에만 들어가고(칩은 general·AOR·BI로 둔 채) ② AL·EWA 태그 2개짜리 Finding이 두 박스로 쪼개져 들어가며
+③ 태그 없는 Finding만 칩(AOR)으로 떨어지는 것, Future 섹션 내용은 섞이지 않는 것을 확인. 2열·여백 10px·
+Management 표기·General 볼드(`font-weight:700`, `--ink`)도 실측. 375px 모바일에서 가로 스크롤 없음,
+세 모듈(`future.js`/`journal.js`/`assignment.js`) 모두 런타임 오류 없이 로드됨.
+`home.html`의 캐시 버스터는 `phi-brain.css?v=20260914-2`, `journal.js?v=20260914-2`로 올렸다.
+
+### 사이드바 개명·순서, Future Item 주차(WK) 탐색기 (2026-09-13, 사용자 요구사항 · Claude Code 구현)
+
+- **Insight Archive → Findings 개명:** `home.html`의 사이드바 General 그룹 버튼 텍스트만 변경. 이 탭은 애초에
+  `data-view`가 없는 죽은 링크(연결된 화면 없음, `future.js`의 뷰 레지스트리에도 없음)라 텍스트 변경 외에 코드 영향 없음.
+- **사이드바 순서 변경:** General 그룹을 Future Item, Assignment Manage, Journal Archive, Insight Archive(기존 순서) →
+  **Assignment Manage, Future Item, Findings, Journal Archive**로 재배치(`home.html`만 수정, `future.js`의 뷰 전환은
+  `data-view` 속성으로 동작해 순서 무관).
+- **완료 취소는 이미 구현되어 있었음(확인만 함, 코드 변경 없음):** 2026-09-12 Future Items 구현부터 있던 기능 —
+  항목의 `.fi-check` 체크박스를 다시 누르면 `toggleDone()`이 `done`을 뒤집어 완료→미완료로 돌아간다(완료한 항목이
+  모이는 `<details class="fi-done">` 안에서도 같은 체크박스로 동작). 로컬 미리보기에서 항목 추가 → 완료 체크 →
+  "완료한 항목 1" 아코디언 펼침 → 체크 해제 → 미완료로 복귀·개수 갱신까지 실제로 재현해 확인.
+- **Future Item 주차(WK) 탐색기 신규 추가(AskUserQuestion으로 설계 확인 후 진행):** 과목/커스텀 박스 그리드는 그대로 두고
+  그 위에 Assignment Manage와 같은 모양의 `‹ Week NN (MM.DD~MM.DD) ›` 탐색기(`.am-week-nav`/`.am-week-label` 클래스 재사용,
+  새 CSS 토큰 없음)를 새 축으로 추가했다 — 사용자가 확정한 3가지: (1) 박스 그리드는 그대로, 주차 탐색기를 **새 축**으로
+  추가(그리드가 주차 축으로 완전히 재편되는 게 아니라, 탐색기로 고른 그 주에 만든 항목만 지금의 박스 그리드에 보임),
+  (2) 항목의 주차는 **만든 날짜(`createdAt`)** 기준, (3) **완료된 항목도** 주차 필터에 포함(박스별 "완료한 항목"
+  아코디언과 별개 축으로 동시에 적용).
+  - **주차 계산:** `future.js`에 `SEMESTER_START_MS`(2026-09-07)·`weekOf(ms)`·`weekRangeLabel(n)` 추가 —
+    Journal Archive(`journal.js`)·Assignment Manage 백엔드(`server/db.js`)와 같은 학기 시작일 상수를 쓰되, `journal.js`의
+    `weekOf`는 ISO 날짜 문자열을 받는 반면 이쪽은 `item.createdAt`이 타임스탬프(ms)라 그대로 받는 버전으로 따로 만들었다
+    (세 곳 모두 같은 상수를 각자 복사해 쓰는 기존 관례를 그대로 따름 — 공유 설정 파일은 아직 없음).
+  - **필터링:** `weekItems()`(현재 `viewWeek`에 해당하는 항목만) 헬퍼를 추가하고, 기존에 `state.items`를 직접 읽던
+    `itemsIn(key)`·`openCount(f)`의 기준을 `weekItems()`로 바꿔치기 — 박스 렌더링·필터 pill 개수·즐겨찾기·드래그 재정렬 등
+    `itemsIn`/`openCount`를 거치는 모든 화면이 자동으로 주차 필터를 상속받는다(개별 렌더 함수는 손대지 않음).
+  - **탐색기 상태:** `viewWeek`(현재 보고 있는 주차, 초기값은 오늘 기준 주차) — prev는 1주차 이하에서, next는
+    오늘이 속한 주차 이상에서 비활성화(미래 주차는 볼 수 없음, 항목이 없어도 1주차까지는 갈 수 있음).
+  - **새 항목은 항상 이번 주로:** `add()`가 커밋 전에 `viewWeek`를 오늘 기준 주차로 되돌린다 — 지난 주차를 보던 중에
+    새 항목을 추가해도 그 항목이 보이는 주로 화면이 따라간다(사라진 것처럼 보이는 혼란 방지).
+  - **위치:** `future.js`(주차 계산·상태·필터링·이벤트), `home.html`(`.fi-week-nav` 마크업, `#fi-top-row-slot` 바로 위),
+    `phi-brain.css`(`.fi-week-nav{margin:18px 0 0}` 한 줄, 기존 `.am-week-nav`/`.am-week-label` 재사용).
+  - **검증(로컬 미리보기):** Future Item 진입 시 탐색기가 `Week 01 (09.07~09.13)`로 뜨고 이전/다음 버튼이 둘 다
+    비활성화(오늘이 1주차라 그 이전도 이후도 없음)됨을 확인. 항목 추가 → 필터 개수(`All 1`, `임시 1`)와 박스 그리드에
+    즉시 반영됨을 확인 후 삭제해 정리. **미검증:** 실제로 여러 주차에 걸친 데이터가 있는 상태에서 이전 주 이동·빈 과거
+    주차 표시·현재 주로 자동 복귀는 코드 리뷰로만 확인했고 실제 여러-주차 데이터로 재현하지 않았다(오늘이 학기 1주차라
+    "지난 주"가 아직 존재하지 않음) — 다음 주가 시작되면 실기기로 한 번 더 확인 필요.
+  - **범위 밖(사용자에게 확인하지 않음, 다루지 않음):** 지난 주차 항목의 읽기 전용 여부(현재는 과거 주차를 보면서도
+    체크·수정·삭제·드래그가 그대로 가능 — "아카이브 = 못 건드림"으로 확정된 적 없어 막지 않았다), 박스 정렬(`boxOrder`)과
+    주차 축의 상호작용은 원래 박스는 순서, 주차는 그 안의 항목 표시 여부만 건드리는 구조라 서로 간섭하지 않는다.
+- 캐시 무효화 버전 갱신: `phi-brain.css` `20260913-14`→`20260913-15`, `future.js` `20260913-9`→`20260913-10`.
+- GitHub 배포 예정(로컬 확인만 완료, 아직 push 안 함).
 
 ### 커스텀 커서 (2026-09-12)
 
@@ -316,3 +509,8 @@ Codex 문서에는 없는 사실 — 이 저장소에는 문서 커밋(`fd53677`
 | 2026-09-13 | Claude Code | 사용자 요청 처리(3건): (1) **Journal Archive All 탭에 학기 몇 주차인지·요일 표시**: 각 행 메타에 `WK{n}`(`<span class="nav-code">`, ink색) + "M월 D일(요일)"을 맨 앞에 추가 — 주차 기준은 Assignment Manage 백엔드(`server/db.js`)와 같은 `SEMESTER_START='2026-09-07'`(학기가 바뀌면 이 상수만 바꾸면 됨)를 journal.js에도 그대로 상수로 둠, 그 이전 날짜는 음수/0 주차 대신 `Math.max(1, …)`로 WK1 표기(사용 중 실제로 나올 일은 거의 없는 방어적 처리). All 탭에만 적용, 과목 필터 카드 그리드는 대상 아님. (2) **Journaling 툴바 정리**: 에디터 도구줄의 "과목"(본문에 과목 박스를 넣던 버튼)과 "체크리스트" 버튼을 제거하고, 원래 아래 줄에 따로 있던 서식 버튼(B·I·U·S·인용·코드)을 "4F 템플릿" 옆 같은 줄로 합침(`.format-bar`를 없애고 `.editor-tools` 하나로 통합, 관련 CSS도 병합). 체크리스트는 신규 생성 경로만 제거했고, 기존에 저장된 항목의 완료 토글(원 클릭)은 그대로 남겨 과거 데이터가 깨지지 않게 함. (3) **과목 선택 방식 변경**: "과목" 버튼이 없어진 대신, 상단 "다룬 과목" 칩(필터 pill과 같은 스타일)을 누르면 그 과목의 과목 박스가 바로 커서 위치의 작성 중인 본문에 들어가도록 변경(`insertCourseBox(code)`로 코드 파라미터를 받아, 칩에서 호출할 땐 메뉴를 띄우지 않고 바로 그 과목으로 삽입) — 예전에는 칩은 "다룬 과목" 표시 전용, 본문 삽입은 별도 버튼+메뉴 선택이었던 두 경로를 하나로 합친 것. 칩을 다시 눌러 해제해도 이미 넣은 본문 내용은 그대로 둔다(표시만 끔). 로컬 미리보기에서 WK1/WK2 계산(9/13→WK1, 9/20→WK2, 8/30 이전 날짜→방어적 WK1)과 요일 표기, 서식 줄 통합, 과목 칩 클릭 시 본문에 과목 박스 삽입과 재클릭 시 해제(박스는 유지)까지 전부 확인 후 테스트 데이터 제거 | 실기기 확인 안 함 · 캐시 무효화 버전 갱신(`phi-brain.css` 20260913-13, `journal.js` 20260913-9) · GitHub 배포 예정 |
 | 2026-09-13 | Claude Code | 사용자 정정: 다룬 과목 칩이 클릭 시 `aria-pressed`를 토글해 굵게 표시되고 호버를 벗어나도 박스(배경)가 계속 남아 있던("선택 고정") 것을 없애 달라는 요청 — 칩 버튼에서 `aria-pressed` 속성 자체를 빼고 `renderCourses()`(선택 상태 렌더 함수)와 그 호출부 전부를 죽은 코드로 제거, 클릭은 이제 매번 조건 없이 `chosen.add(code)` 기록 + `insertCourseBox(code)` 삽입만 한다. `.course-chips .pill[aria-pressed="true"]{font-weight:700}` CSS 규칙은 처음엔 같이 지웠다가, Future Item 소속 칩(`#fi-scope-chips`)도 같은 `.course-chips` 클래스를 쓰는 진짜 단일 선택 라디오그룹이라 그쪽 굵게 표시가 같이 사라지는 회귀를 발견해 원복(주석으로 용도 구분 남김) — 다룬 과목 칩은 `aria-pressed`를 안 쓰니 그 규칙과 무관해짐. 로컬 미리보기에서 호버 시에만 박스가 나타나고 마우스를 떼면 사라짐, 클릭 시 본문 삽입과 저장 데이터의 `courses` 배열 반영, Future Item 소속 칩의 굵게 표시가 그대로 살아있음까지 확인 | 실기기 확인 안 함 · 캐시 무효화 버전 갱신(`phi-brain.css` 20260913-14, `journal.js` 20260913-10) |
 | 2026-09-13 | Claude Code | 버그 수정: 과목 칩을 눌러 본문에 과목 박스를 넣을 때마다 작성 섹션(에디터)이 맨 위로 스크롤되던 문제 — 원인은 칩 버튼에 포맷/삽입 버튼들과 달리 `mousedown` 시 `preventDefault()`가 없어서, 클릭이 에디터의 캐럿/포커스를 빼앗고 있었던 것. `ensureCaret()`이 "선택이 에디터 밖"으로 판단해 `editor.focus()`로 되돌리는데, 내용이 긴 `#editor{overflow-y:auto}`에 다시 포커스를 주면 브라우저가 편집기를 맨 위로 스크롤한다(그 뒤에 캐럿을 문서 끝으로 되돌려도 스크롤 위치는 이미 맨 위로 밀린 채였음). 다른 도구줄 버튼과 같은 방식(`chipsEl.addEventListener('mousedown', e => e.preventDefault())`)으로 고쳐, 클릭해도 기존 캐럿/스크롤 위치가 그대로 유지되게 함. 로컬 미리보기에서 긴 글(25줄 이상)을 쓴 뒤 에디터를 끝까지 스크롤하고 과목 칩을 눌러 스크롤 위치(`editor.scrollTop`)가 그대로 유지되면서 과목 박스가 캐럿(문서 맨 끝)에 정확히 삽입됨을 확인 후 테스트 데이터 제거 | 실기기 확인 안 함 · 캐시 무효화 버전 갱신(`journal.js` 20260913-11) |
+| 2026-09-13 | Claude Code | 사용자 요청 처리(4건, AskUserQuestion으로 Future Item 주차 설계 확인 후 진행): (1) 사이드바 "Insight Archive"를 실제 쓰임(findings 보관)에 맞게 "Findings"로 개명(`data-view` 없는 죽은 링크라 텍스트만 변경). (2) 사이드바 General 순서를 Assignment Manage, Future Item, Findings, Journal Archive로 재배치. (3) "Future Item 완료 취소"는 이미 2026-09-12부터 구현돼 있던 기능임을 로컬 미리보기로 재확인만 함(코드 변경 없음). (4) Future Item에 주차(WK) 탐색기 신규 추가 — 박스 그리드는 유지하고 그 위에 Assignment Manage와 같은 `.am-week-nav` 스타일의 `‹ Week NN (MM.DD~MM.DD) ›`를 새 축으로 추가, `createdAt` 기준으로 주차 계산, 완료 항목도 포함, `itemsIn`/`openCount`가 새 `weekItems()`를 거치도록 바꿔 기존 렌더 경로가 자동으로 주차 필터를 상속받게 함, 새 항목 추가 시 이번 주로 자동 복귀. 로컬 미리보기에서 탐색기 라벨·비활성화 상태·항목 추가 시 개수 반영까지 확인 후 테스트 데이터 제거 | 실기기 확인 안 함 · 여러 주차 데이터로 이전 주 이동은 미검증(오늘이 학기 1주차) · 캐시 무효화 버전 갱신(`phi-brain.css` 20260913-15, `future.js` 20260913-10) · GitHub 배포 예정 |
+| 2026-09-13 | Claude Code | Future Item 행 UI 사용자 요청 처리(4건, 사용자가 줄바꿈으로 뭉개진 행 스크린샷 첨부): (1) 행동 텍스트가 두 줄로 넘어가 아이콘과 겹치던 문제 — `.fi-text`를 줄바꿈(`overflow-wrap:anywhere`) 대신 한 줄 말줄임(`white-space:nowrap;overflow:hidden;text-overflow:ellipsis`, flex 자식이라 `min-width:0`도 같이)으로 바꾸고, 펜(수정)·시계(마감) 아이콘 버튼 두 개를 완전히 제거해 ✕(삭제) 하나만 항상 보이게 함(`ICO_EDIT`/`ICO_CLOCK` SVG 상수와 `.fi-edit-btn`/`.fi-due-btn` 클래스 전부 삭제). (2) 수정은 원래도 있던 `.fi-text` 더블클릭(`onListDblClick`)만 남기고, 마감은 "더블클릭으로 수정 상태에 들어갔을 때 + 버튼이 우측에 뜨는" 방식으로 새로 연결 — `.fi-due-add`(마감 없는 항목이 수정 상태일 때만 렌더)를 추가하고, 이미 마감이 있는 항목은 기존처럼 `.fi-due` 배지 자체를 더블클릭해서 바꾼다(수정 상태와 무관, 팝오버 앵커를 죽은 `.fi-due-btn` 대신 배지/버튼 자기 자신으로 바로잡음 — `setDue()`의 커밋 후 포커스 대상도 `.fi-delete`로 변경). (3) 마감 배지의 지난 마감 굵게 표시(`font-weight:700`) 제거 — 지난 마감은 여전히 `--ink`로 색만 진해지고 굵기는 그대로. (4) 행 텍스트(`.fi-text`)와 수정 중 입력창(`.fi-edit`)을 마감 배지와 같은 8pt로 통일(기존엔 기본 10pt 상속). 로컬 미리보기에서 JS로 실제 폼 제출·더블클릭·마감 팝오버(오늘 날짜 + 00:00 시간)까지 재현해 말줄임(`textOverflow:ellipsis`)·8pt(`10.6667px`)·+ 버튼 등장/소멸(마감 유무에 따라)·지난 마감 배지가 진한 색이지만 `font-weight:400`임을 각각 computed style로 확인 후 테스트 데이터 삭제, 콘솔 오류 없음 확인 | 실기기 확인 안 함 · 캐시 무효화 버전 갱신(`phi-brain.css` 20260913-16, `future.js` 20260913-11) · GitHub 배포 예정 |
+| 2026-09-13 | Claude Code | 사용자 요청 처리(2건): (1) 드래그 중 점선 테두리 제거 — Future Item에서 박스/필터로 끌 때 뜨는 "놓을 수 있는 곳" 표시(`.is-dragging [data-drop].drop-ok`)와 같은 박스 안에서 항목을 다른 항목 위로 끌 때 뜨는 표시(`.fi-row.row-drop-over`) 둘 다 점선(`dashed`)이었던 걸 옅은 회색/진한 잉크 실선(`solid`)으로 바꿨다 — `drop-ok`(끌 수 있는 곳 전부)는 `var(--line)` 옅은 회색, `row-drop-over`(포인터가 지금 있는 곳)는 박스 레벨의 `.drop-over`와 같은 `var(--ink)` 진한 실선으로 맞춰 "가능/지금 여기" 위계를 색 진하기로만 구분한다(정적 UI 상태인 `.fi-box.is-temp`·`.fi-box-add`의 점선 테두리는 드래그와 무관해 그대로 뒀다). (2) **실제 버그 수정 — 마감 없는 항목을 수정 상태에서 + 버튼으로 마감을 달려고 하면 아무 반응이 없던 문제:** 원인은 `.fi-edit`(수정 중인 텍스트 입력칸)가 포커스를 잃을 때(`focusout`) `onListFocusout` → `saveEdit()` → `render()`가 동기적으로 실행되는데, 마우스로 `+` 버튼을 누르면 `mousedown` 시점에 브라우저가 먼저 입력칸의 포커스를 빼앗아(`blur`) 이 재렌더링을 트리거하고, 그 재렌더링이 `editingId`를 지우면서 `+` 버튼(`editing && !dueAt`일 때만 존재) 자체를 클릭이 도착하기 전에 DOM에서 없애버린 것 — 실제 마우스 클릭에서만 나타나고 스크립트로 흉내 낸 클릭(`el.click()`)에서는 재현되지 않는 이유이기도 하다(포커스 이동이 없어서). `journal.js`의 과목 칩 버튼이 겪었던 것과 같은 종류의 버그라, 같은 해법(`mousedown`에서 `preventDefault()`로 포커스 이동 자체를 막아 `blur`가 먼저 발생하지 않게 함)을 `.fi-due-add`·`.fi-delete`에 위임 리스너로 적용했다. 로컬 미리보기에서 이번엔 **실제 마우스로**(스크립트 클릭이 아니라 좌표 계산 후 `computer` 더블클릭·클릭) 재현: 더블클릭으로 수정 상태 진입 → `+` 클릭 → 마감 팝오버가 뜨는 것까지 확인(이전엔 여기서 아무 일도 안 일어났음) | 실기기 확인 안 함 · 드래그 점선 제거는 시각 변경이라 실제 드래그 제스처로 재확인 필요(코드 리뷰로만 확인) · 캐시 무효화 버전 갱신(`phi-brain.css` 20260913-17, `future.js` 20260913-12) · GitHub 배포 예정 |
+| 2026-09-13 | Claude Code | 사용자 요청 처리(2건): (1) Future Item "완료 취소"를 실제 마우스로 다시 재현 확인(추가/체크/완료한 항목 펼치기/체크 해제까지) — 이전에 보고드린 대로 이미 동작하고 있어 코드 변경 없음. (2) **Journal Archive에 "삭제하기" 신규 구현:** 행/카드 `⋯` 메뉴에 "수정하기" 옆으로 "삭제하기"를 추가(`store.remove(date)` 신설). Future Item 삭제와 같은 패턴으로 확인창 없이 바로 지우고 "되돌리기" 토스트(`window.PhiBrain.ui.toast`)를 띄운다 — 되돌리면 원래 `{title,courses,html,savedAt}`이 그대로 복원된다. 지우는 날짜를 Journal Archive 안에서 편집 중이었으면 편집을 닫고 목록으로, Journaling 탭에서 보고 있던 날짜였으면 그 화면도 `load(date)`로 다시 그려 빈 문서로 되돌아가게 했다(방금 지운 초안이 계속 남아있는 것처럼 보이지 않도록). 즐겨찾기(`date::course` 키)도 `favorites.removeForDate(date)`로 같이 정리. 메뉴에 항목이 둘로 늘어난 김에 기존엔 없던 화살표 키 이동(`ArrowUp`/`ArrowDown`)도 course-menu와 같은 방식으로 추가. 로컬 미리보기에서 JS로 저널 시드 → 목록에서 삭제(빈 상태 확인, localStorage에서 실제로 지워짐 확인) → 토스트의 되돌리기 클릭(같은 호출 안에서 지연 없이 실행 — 별도 호출로 나눴다가 토스트가 자동으로 사라진 뒤라 실패했던 시행착오 있었음) → 완전히 복원됨 확인, "수정하기"는 회귀 없는지 별도로 재확인, 테스트 데이터 정리 | 실기기 확인 안 함 · 캐시 무효화 버전 갱신(`journal.js` 20260913-12) · GitHub 배포 예정 |
+| 2026-09-14 | Claude Code | 사용자 요청 처리(3건): (1) Assignment Manage 상단 툴바 정리 — "Gmail 연결됨" 텍스트를 `--gray`→`--ink`+굵게로 가시성을 올리고, "연결 해제" 버튼과 "마지막 동기화" 시각 표시를 없앴다(`assignment.js`의 `disconnectBtn`/`syncTime` 관련 코드도 죽은 코드로 함께 제거) — 다만 동기화 오류만큼은 조용히 숨기지 않는다는 원칙에 따라 `last_sync_error`가 있으면 상태 텍스트 뒤에 그대로 이어붙인다. 사이드바 순서 변경 이후 보고된 "과제관리 탭 오른쪽 박스 잘림"은 재현하지 못했지만(1100px·900px 모두 표·상세 패널 정상), 이 툴바가 좁은 폭에서 줄바꿈되며 crowd돼 있던 게 원인이었을 가능성이 높아 이번 정리로 같이 해소됐을 것으로 본다 — 여전히 보이면 스크린샷으로 다시 알려달라고 안내함. (2) **Findings 페이지 신규 구현(`docs/PRODUCT.md` "Findings" 절 참고):** 사이드바 죽은 링크에 `data-view="findings"`를 달아 `future.js`의 뷰 레지스트리(`views`)·해시 라우팅(`route()`, `#findings`/`#findings/AL` 형태, journal-archive와 같이 자기 해시를 지키도록 `show()`에서 예외 처리)에 등록. 화면은 `journal.js`에 구현 — 저널 본문의 "Finding" 소제목과 다음 소제목 사이 내용을 통째로 뽑아(`extractFindingHtml`, 안의 과목 박스는 쪼개지 않음) 그날의 "다룬 과목" 칩(`courses[]`) 각각에 배정(칩이 없으면 General) — Journal Archive의 본문-과목박스 기준(`courseChunks`)과 다르게 칩 기준을 택해, 매 Finding마다 본문에 과목 박스를 안 넣어도 놓치지 않게 했다. 필터 줄은 Journal Archive와 같은 `.fi-filters` 재사용, 박스 그리드는 Future Item과 같은 `.fi-list`/`.fi-box`(4열, 폭도 1500px로 동일) 재사용 — 새 CSS는 박스 안 항목 줄(`.findings-rows`/`.findings-item`/`.findings-date`)뿐이고 항목 내용 자체는 `.editor archive-preview`를 재사용해 원문 서식이 그대로 보인다. 구현 중 두 가지 버그를 로컬에서 바로 잡음: `courseName` 함수를 journal.js에 이미 있는 줄 모르고 새로 선언해 `SyntaxError`로 스크립트 전체가 죽었던 것(279번째 줄 기존 선언 재사용으로 해결), 그리고 이 과정에서 브라우저가 몇 차례 이전 버전 스크립트를 캐시해 증상이 뒤섞였던 것(하드 리로드로 확인). 로컬 미리보기에서 서로 다른 과목 조합(단일 과목/복수 과목/과목 없음) 3건을 실제로 심어 All 그리드(과목별 개수·내용 정확히 분산)·특정 과목 필터(그 박스만 전체 폭으로)·해시 딥링크(`#findings/EWA` 직접 진입)까지 확인 후 테스트 데이터 제거, 빈 상태(전 과목 "아직 없어요")도 확인, 콘솔 오류 0건 재확인. (3) 사이드바 재확인은 안 했음(별도 보고 없었음) | 실기기 확인 안 함 · 즐겨찾기·검색·Finding 외 4F 노출은 범위 밖으로 제외(PRODUCT.md 명시) · 캐시 무효화 버전 갱신(`phi-brain.css`·`future.js`·`journal.js` 전부 `20260914-1`, `assignment.js` `v=3`) · GitHub 배포 예정 |

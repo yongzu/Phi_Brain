@@ -33,6 +33,16 @@
   };
   const dueMs = iso => (iso ? new Date(iso.length === 10 ? `${iso}T23:59` : iso).getTime() : NaN);
 
+  // ---- weeks: same semester basis as Journal Archive (journal.js) / Assignment
+  // Manage (server/db.js) — if the semester start ever changes, update all three.
+  const SEMESTER_START_MS = new Date(2026, 8, 7).getTime(); // 2026-09-07
+  const weekOf = ms => Math.max(1, Math.floor((ms - SEMESTER_START_MS) / 86400000 / 7) + 1);
+  const weekRangeLabel = n => {
+    const md = ms => { const d = new Date(ms); return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };
+    const start = SEMESTER_START_MS + (n - 1) * 7 * 86400000;
+    return `Week ${String(n).padStart(2, '0')} (${md(start)}~${md(start + 6 * 86400000)})`;
+  };
+
   // ---- courses: one list, one order, used everywhere ----
   const COURSES = [
     ['AL', 'Aesthetic Literacy'], ['AOR', 'Art of Reading'], ['BI', 'Beautiful Interface'],
@@ -165,7 +175,10 @@
   }
 
   // ---- UI state ----
-  let filter = 'all';
+  // 선택한 박스 필터들(복수 선택, 사용자 확정) — 빈 배열 = All. 순서는 누른 순서가
+  // 아니라 늘 화면의 박스 순서로 정규화해 둔다(orderedFilters)
+  let filters = [];
+  let viewWeek = weekOf(Date.now()); // which week's items the grid/filters show; independent of the box filter
   let draftKey = 'unassigned'; // composer's membership; reset by each filter change
   let editingId = null;
   let editingBoxId = null; // custom box key being renamed
@@ -174,21 +187,37 @@
 
   const view = $('#view-future'), filtersEl = $('#fi-filters'), listEl = $('#fi-list'), sortEl = $('#fi-sort'), sortBtn = $('#fi-sort-btn');
   const topRowSlot = $('#fi-top-row-slot');
+  const weekPrevBtn = $('#fi-week-prev'), weekNextBtn = $('#fi-week-next'), weekLabelEl = $('#fi-week-label');
   const form = $('#fi-composer'), input = $('#fi-input'), scopeChipsEl = $('#fi-scope-chips');
   const menu = $('#fi-menu');
 
-  const itemsIn = key => state.items.filter(i => keyOf(i) === key);
-  const openCount = f => state.items.filter(i => !i.done && (f === 'all' || keyOf(i) === f)).length;
-  const visibleUnder = key => filter === 'all' || filter === key;
+  // 항목이 속한 주차 — 저장값이 아니라 매번 계산한다(사용자 확정: 지난주에 못 한
+  // 행동은 이번 주로 넘어오고, 지난주 화면에서는 사라진다).
+  //   완료한 항목 = 완료한 주(doneAt; 예전 데이터처럼 없으면 만든 주)에 남는다
+  //   미완료 항목 = 만든 주가 지났으면 늘 "이번 주"
+  // 데이터를 옮겨 쓰지 않으니 마이그레이션도 없고, 지난주에 넘어온 항목을 이번 주에
+  // 완료하면 이번 주 기록으로 남는다. 완료를 취소하면 다시 이번 주로 돌아온다.
+  const itemWeek = i => (i.done
+    ? weekOf(i.doneAt || i.createdAt)
+    : Math.max(weekOf(i.createdAt), weekOf(Date.now())));
+  const weekItems = () => state.items.filter(i => itemWeek(i) === viewWeek);
+  const itemsIn = key => weekItems().filter(i => keyOf(i) === key);
+  const openCount = f => weekItems().filter(i => !i.done && (f === 'all' || keyOf(i) === f)).length;
+  const visibleUnder = key => !filters.length || filters.includes(key);
 
   // ---- render ----
+  function renderWeekNav() {
+    weekLabelEl.textContent = weekRangeLabel(viewWeek);
+    weekPrevBtn.disabled = viewWeek <= 1;
+    weekNextBtn.disabled = viewWeek >= weekOf(Date.now());
+  }
   function renderFilters() {
     const f = k => {
       const n = openCount(k);
       const label = k === 'all' ? 'All' : shortLabel(k);
       const full = k === 'all' ? '전체' : k === 'general' ? 'General — 특정 과목이 아닌 항목' : k === 'unassigned' ? '임시 — 소속을 정하지 않은 항목' : fullLabel(k);
       return `<button type="button" class="pill fi-filter" data-filter="${k}"${k === 'all' ? '' : ` data-drop="${k}"`}`
-        + ` aria-pressed="${k === filter}" title="${esc(full)}" aria-label="${esc(full)}, 미완료 ${n}개">`
+        + ` aria-pressed="${k === 'all' ? !filters.length : filters.includes(k)}" title="${esc(full)}" aria-label="${esc(full)}, 미완료 ${n}개">`
         + `${label}${n ? `<span class="f-count" aria-hidden="true">${n}</span>` : ''}</button>`;
     };
     filtersEl.innerHTML = ['all', 'general', 'unassigned'].map(f).join('')
@@ -204,26 +233,20 @@
   }
 
   // pencil(수정)·시계(마감) — 삭제(✕)와 같은 .pill.pill-icon 스타일, currentColor
-  // 선이라 호버·색 전환은 CSS 하나로 셋 다 똑같이 먹는다
-  const ICO_EDIT = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M9.7 2.3l2 2L4.8 11.2l-2.7.7.7-2.7L9.7 2.3z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/></svg>';
-  const ICO_CLOCK = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.4" stroke="currentColor" stroke-width="1.1"/><path d="M7 4.2V7l2 1.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // 더블클릭으로 수정·삭제는 ✕ 버튼 하나만 항상 보인다 — 펜·시계 아이콘은 없앴다.
+  // 마감이 없는 항목은 수정 상태로 들어갔을 때만 우측에 + 버튼이 떠서 그걸로 새로
+  // 붙인다(마감이 이미 있으면 아래 배지를 더블클릭해서 바꾼다, 수정 상태와 무관).
   const rowHTML = i => {
     const overdue = !i.done && i.dueAt && dueMs(i.dueAt) < Date.now();
-    // the item text gets the row's full width on its own line; the deadline
-    // (if any) sits as a small boxed badge on a second line below it, instead
-    // of squeezing onto the same line and wrapping the text mid-word.
-    // 수정(펜)·마감(시계)·삭제(✕) 순으로 항상 보이는 아이콘 3개 — 수정은 텍스트
-    // 더블클릭과 같은 동작, 마감은 아래 fi-due-pop 팝오버(작성 카드와 같은
-    // 날짜/시간 선택 컴포넌트)를 연다. 마감 없는 항목은 둘째 줄 자체가 없다.
+    const editing = i.id === editingId;
     return `
-    <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${i.id === editingId ? '' : ' draggable="true"'}>
+    <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${editing ? '' : ' draggable="true"'}>
       <div class="fi-row-main">
         <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
-        ${i.id === editingId
+        ${editing
           ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
           : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}
-        <button type="button" class="pill pill-icon fi-edit-btn" aria-label="수정: ${esc(i.text)}">${ICO_EDIT}</button>
-        <button type="button" class="pill pill-icon fi-due-btn" aria-label="마감 설정: ${esc(i.text)}">${ICO_CLOCK}</button>
+        ${editing && !i.dueAt ? `<button type="button" class="pill pill-icon fi-due-add" aria-label="마감 추가: ${esc(i.text)}">+</button>` : ''}
         <button type="button" class="pill pill-icon fi-delete" aria-label="삭제: ${esc(i.text)}">✕</button>
       </div>
       ${i.dueAt ? `<span class="fi-due" title="더블클릭해서 수정">마감 ${dueLabel(i.dueAt)}</span>` : ''}
@@ -268,8 +291,9 @@
   function renderList() {
     [...$$('.fi-done', listEl), ...$$('.fi-done', topRowSlot)].forEach(d => (d.open ? openDone.add(d.dataset.done) : openDone.delete(d.dataset.done)));
     let html = '';
-    if (filter !== 'all') {
-      html = boxHTML(filter, { forced: true });
+    if (filters.length) {
+      // 고른 박스들만, 한 줄 최대 4개(.fi-list 4열 그대로) — 하나만 골라도 1/4 칸 고정
+      html = filters.map(k => boxHTML(k, { forced: true })).join('');
       topRowSlot.innerHTML = '';
     } else {
       // General과 임시는 늘 이 상단 줄에 반반씩 — General은 "특정 과목이 아니라고
@@ -288,9 +312,10 @@
   }
 
   function render(focus) {
+    renderWeekNav();
     renderFilters();
     renderList();
-    if (sortEl) sortEl.hidden = filter !== 'all';
+    if (sortEl) sortEl.hidden = filters.length > 0;
     renderScopeChips();
     if (editingId) { const e = $('.fi-edit', listEl); if (e) { e.focus(); e.select(); } return; }
     if (editingBoxId) { const e = $('.fi-box-name-edit', listEl); if (e) { e.focus(); e.select(); } return; }
@@ -299,32 +324,40 @@
   }
 
   // ---- filters ----
-  const hashFor = f => (f === 'all' ? '#future-item' : `#future-item/${f === 'unassigned' ? 'temp' : f === 'general' ? 'general' : f.slice(7)}`);
-  const filterFromHash = h => {
-    const raw = h.split('/')[1] || '';
+  // 복수 선택은 쉼표로: #future-item/BI,AL,temp
+  const keyToHashPart = f => (f === 'unassigned' ? 'temp' : f === 'general' ? 'general' : f.slice(7));
+  const hashFor = fs => (fs.length ? `#future-item/${fs.map(keyToHashPart).join(',')}` : '#future-item');
+  const hashPartToKey = raw => {
     const part = raw.toUpperCase();
-    if (!part) return 'all';
+    if (!part) return null;
     if (part === 'TEMP') return 'unassigned';
     if (part === 'GENERAL') return 'general';
     const code = ALIASES[part] || part;
     if (BOX_KEYS.includes(`course:${code}`)) return `course:${code}`;
     const custom = state.customBoxes.find(b => b.id.toUpperCase() === part || b.id === raw);
-    return custom ? `custom:${custom.id}` : 'all';
+    return custom ? `custom:${custom.id}` : null;
   };
-  function setFilter(f, focusFilter = false) {
-    filter = f;
-    draftKey = f === 'all' ? 'unassigned' : f; // default membership follows the filter
+  const filterFromHash = h => (h.split('/')[1] || '').split(',').map(hashPartToKey).filter(Boolean);
+  // 화면 순서(General·임시 → 과목/커스텀 그리드 순서)로 정렬 + 중복·모르는 키 제거
+  const orderedFilters = fs => ['general', 'unassigned', ...gridOrder()].filter(k => fs.includes(k));
+  function setFilters(fs, focusKey = null) {
+    filters = orderedFilters(fs);
+    // 새 행동의 기본 소속: 박스를 딱 하나 골랐을 때만 그 박스, 아니면 미지정
+    draftKey = filters.length === 1 ? filters[0] : 'unassigned';
     editingId = null;
-    if (currentView === 'future') history.replaceState(null, '', hashFor(f));
-    render(focusFilter ? `.fi-filter[data-filter="${f}"]` : null);
+    if (currentView === 'future') history.replaceState(null, '', hashFor(filters));
+    render(focusKey ? `.fi-filter[data-filter="${focusKey}"]` : null);
   }
+  // pill 클릭: All은 선택 해제, 나머지는 켜고 끄기(마지막 하나를 끄면 All로 돌아간다)
+  const toggleFilter = k => setFilters(k === 'all' ? [] : filters.includes(k) ? filters.filter(x => x !== k) : [...filters, k], k);
 
   // ---- actions ----
   function add(text, key, dueAt = null) {
     text = text.trim();
     if (!text) return false;
+    viewWeek = weekOf(Date.now()); // a new item always belongs to this week — follow it there
     const r = commit(s => { const it = newItem(text, key); it.dueAt = dueAt; s.items.push(it); });
-    if (r.ok && !visibleUnder(key)) toast(`${inPhrase(key)} 추가했어요`, { label: '보기', run: () => setFilter(key) });
+    if (r.ok && !visibleUnder(key)) toast(`${inPhrase(key)} 추가했어요`, { label: '보기', run: () => setFilters([key]) });
     return r.ok;
   }
 
@@ -352,7 +385,8 @@
     // keep keyboard focus nearby: finishing an item hands focus to its neighbour (or the 완료 area)
     const neighbour = item.done ? null : (row?.nextElementSibling || row?.previousElementSibling)?.dataset.id;
     const box = keyOf(item);
-    commit(s => {
+    const finishing = !item.done;
+    const r = commit(s => {
       const it = s.items.find(i => i.id === id);
       it.done = !it.done;
       it.doneAt = it.done ? Date.now() : null; // order (placedAt) stays as it was
@@ -360,6 +394,16 @@
       focus: item.done ? `[data-id="${id}"] .fi-check`
         : neighbour ? `[data-id="${neighbour}"] .fi-check` : `[data-done="${box}"] summary`,
     });
+    // 완료할 때만 알림(사용자 확정) — 완료 취소는 조용히. 저장 실패 시엔 commit이 이미 오류 토스트를 띄웠다
+    if (r.ok && finishing) toast(`${doneSubject(item.text)} 완료했어요`);
+  }
+  // "OOO를 완료했어요" — 긴 문장은 20자에서 줄이고, 조사(을/를)는 원문 마지막 글자의
+  // 받침으로 고른다. 한글로 끝나지 않으면(영문·숫자 등) 받침을 알 수 없어 "을(를)".
+  function doneSubject(text) {
+    const t = text.trim(), last = t.charCodeAt(t.length - 1);
+    const shown = [...t].length > 20 ? `${[...t].slice(0, 20).join('')}…` : t;
+    const josa = last >= 0xAC00 && last <= 0xD7A3 ? ((last - 0xAC00) % 28 ? '을' : '를') : '을(를)';
+    return shown + josa;
   }
 
   function saveEdit(id, value, cancel = false) {
@@ -378,7 +422,7 @@
     const dueAt = saneDue(value) || null;
     if (!item || dueAt === item.dueAt) return;
     commit(s => { const it = s.items.find(i => i.id === id); it.dueAt = dueAt; it.updatedAt = Date.now(); },
-      { focus: `[data-id="${id}"] .fi-due-btn` });
+      { focus: `[data-id="${id}"] .fi-delete` });
   }
 
   function remove(id) {
@@ -438,7 +482,7 @@
     // items in a deleted box fall back to 임시, same as any other now-unknown scope (sane())
     const affected = state.items.filter(i => i.scope === 'custom' && i.customId === id)
       .map(i => ({ id: i.id, scope: i.scope, courseId: i.courseId, customId: i.customId }));
-    if (filter === key) { filter = 'all'; draftKey = 'unassigned'; }
+    if (filters.includes(key)) { filters = filters.filter(k => k !== key); draftKey = filters.length === 1 ? filters[0] : 'unassigned'; }
     const r = commit(s => {
       s.customBoxes.splice(s.customBoxes.findIndex(b => b.id === id), 1);
       s.boxOrder = s.boxOrder.filter(k => k !== key);
@@ -869,7 +913,7 @@
   document.addEventListener('pointerdown', e => { if (!rowDueDateField.contains(e.target)) closeRowDueDatePicker(false); });
   document.addEventListener('pointerdown', e => { if (!rowDueTimeField.contains(e.target)) closeRowDueTimePicker(false); });
   document.addEventListener('pointerdown', e => {
-    if (rowDueId && !rowDuePop.contains(e.target) && !e.target.closest('.fi-due-btn')) closeRowDuePopover();
+    if (rowDueId && !rowDuePop.contains(e.target) && !e.target.closest('.fi-due-add') && !e.target.closest('.fi-due')) closeRowDuePopover();
   });
   rowDuePop.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeRowDuePopover(); } });
 
@@ -884,18 +928,29 @@
 
   sortBtn.addEventListener('click', () => (menuAnchor === sortBtn ? closeMenu() : openSortMenu(sortBtn)));
 
+  weekPrevBtn.addEventListener('click', () => { if (viewWeek > 1) { viewWeek--; render(); } });
+  weekNextBtn.addEventListener('click', () => { if (viewWeek < weekOf(Date.now())) { viewWeek++; render(); } });
+
+  // clicking a row's + / ✕ while its text is mid-edit would otherwise blur
+  // .fi-edit first — that fires onListFocusout → saveEdit() → render(), which
+  // wipes editingId and (for +) removes the very button being clicked before
+  // the click event reaches it. Blocking mousedown's default focus-shift keeps
+  // the input focused, so no blur/re-render happens before the click lands
+  // (same fix as journal.js's course-chip buttons).
+  view.addEventListener('mousedown', e => {
+    if (e.target.closest('.fi-due-add') || e.target.closest('.fi-delete')) e.preventDefault();
+  });
+
   // ---- list + filter clicks ----
   view.addEventListener('click', e => {
     const chip = e.target.closest('[data-scope-chip]');
     if (chip) { draftKey = chip.dataset.scopeChip; renderScopeChips(); input.focus(); return; }
     const f = e.target.closest('.fi-filter');
-    if (f) { setFilter(f.dataset.filter, true); return; }
-    const editBtn = e.target.closest('.fi-edit-btn');
-    if (editBtn) { editingId = editBtn.closest('.fi-row').dataset.id; render(); return; }
-    const dueBtn = e.target.closest('.fi-due-btn');
-    if (dueBtn) {
-      const id = dueBtn.closest('.fi-row').dataset.id;
-      rowDueId === id && !rowDuePop.hidden ? closeRowDuePopover() : openRowDuePopover(dueBtn, id);
+    if (f) { toggleFilter(f.dataset.filter); return; }
+    const dueAddBtn = e.target.closest('.fi-due-add');
+    if (dueAddBtn) {
+      const id = dueAddBtn.closest('.fi-row').dataset.id;
+      rowDueId === id && !rowDuePop.hidden ? closeRowDuePopover() : openRowDuePopover(dueAddBtn, id);
       return;
     }
     const del = e.target.closest('.fi-delete');
@@ -907,13 +962,14 @@
     const addBtn = e.target.closest('#fi-box-add-btn');
     if (addBtn) { addingBox = true; render(); }
   });
-  // 행동 텍스트·마감을 더블클릭하면 그 자리에서 바로 수정(마감이 없으면 "+ 마감"을
-  // 눌러 새로 정한다) — 클릭 한 번으로 여는 메뉴 없이 곧바로 편집 상태로 들어간다
+  // 행동 텍스트를 더블클릭하면 그 자리에서 바로 수정 상태로 들어간다(마감이 없으면
+  // 그 상태에서 우측에 뜨는 + 버튼으로 새로 정한다). 이미 붙은 마감 배지는 수정
+  // 상태와 무관하게 그 자체를 더블클릭해서 바꾼다.
   function onListDblClick(e) {
     const text = e.target.closest('.fi-text');
     if (text) { editingId = text.closest('.fi-row').dataset.id; render(); return; }
     const due = e.target.closest('.fi-due');
-    if (due) { const row = due.closest('.fi-row'); openRowDuePopover($('.fi-due-btn', row), row.dataset.id); }
+    if (due) { openRowDuePopover(due, due.closest('.fi-row').dataset.id); }
   }
   // General/임시 live in their own #fi-top-row-slot, outside #fi-list, but their
   // rows (checkbox, edit, due, ⋯) need the exact same handling — attach each
@@ -1109,7 +1165,7 @@
   };
 
   // ---- view switch (only the built views; other nav tabs stay inert) ----
-  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive') };
+  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive'), findings: $('#view-findings') };
   const navTabs = $$('.side-nav [data-view]');
   let currentView = 'journal';
   function show(name, { filter: f } = {}) {
@@ -1123,10 +1179,10 @@
       t.classList.toggle('active', on);
       on ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current');
     });
-    if (name === 'future') setFilter(f || filter);
-    // journal-archive owns its own hash (journal.js) — its filter lives in the
-    // URL too, so don't clear it here before that module gets a chance to read it
-    else if (name !== 'journal-archive') history.replaceState(null, '', location.pathname + location.search);
+    if (name === 'future') setFilters(f || filters); // 사이드바에서 들어오면(f 없음) 고르던 필터 유지
+    // journal-archive/findings own their own hash (journal.js) — their filter
+    // lives in the URL too, so don't clear it here before that module reads it
+    else if (name !== 'journal-archive' && name !== 'findings') history.replaceState(null, '', location.pathname + location.search);
     if (!reduce.matches) views[name].animate(
       [{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 320, easing: EASE });
     // other view modules (assignment.js, ...) load after this and need to know
@@ -1142,7 +1198,7 @@
   const route = () => {
     const h = location.hash;
     const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment'
-      : h.startsWith('#journal-archive') ? 'journal-archive' : 'journal';
+      : h.startsWith('#journal-archive') ? 'journal-archive' : h.startsWith('#findings') ? 'findings' : 'journal';
     show(name, { filter: filterFromHash(h) });
   };
   addEventListener('hashchange', route);

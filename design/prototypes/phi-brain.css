@@ -70,11 +70,18 @@
 /* ---------- 3. Side nav ---------- */
 .app-body{display:flex;align-items:flex-start}
 
-/* 300px: room for the longest course label ("IAE_Interviewing as
-   Exploration", ~187px) plus the Tab2 indent, the tab padding and the
-   10px hover shift, without wrapping. */
-.side-nav{width:300px;flex:0 0 300px;padding:32px 24px 40px var(--nav-gutter)}
+/* Sized to the longest label rather than a fixed 300px, so a wider font
+   fallback grows the column instead of overflowing it; 300px stays the floor
+   so the usual layout is unchanged, and the cap protects the content column. */
+.side-nav{width:max-content;min-width:300px;max-width:380px;flex:0 0 auto;padding:32px 24px 40px var(--nav-gutter)}
 .nav-group,.nav-list{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+/* The real cause of the clipped "IAE_Interviewing as Exploration" fill: the
+   General/Course lists are .accordion-content, which the style kit gives
+   overflow:hidden (for the mobile open/close animation), and as flex items
+   they shrink-wrap to their widest tab. Hover/active slides a tab 10px right
+   (translateX below), so the widest tab's right edge landed exactly 10px
+   outside its own list and got cut. This padding is that 10px of room. */
+.side-nav .nav-list{padding-right:10px}
 .nav-group+.nav-group{margin-top:16px}
 
 /*
@@ -89,6 +96,12 @@
 .nav-tab::before{content:'→';position:absolute;right:100%;top:50%;margin-right:8px;color:var(--ink);opacity:0;transform:translate(-3px,-50%);transition:opacity 140ms,transform 140ms}
 .nav-tab:hover,.nav-tab:focus-visible,.nav-tab.active{transform:translateX(10px);background:var(--fill);color:var(--ink)}
 .nav-tab:hover::before,.nav-tab:focus-visible::before,.nav-tab.active::before{opacity:1;transform:translate(0,-50%)}
+
+/* as a flex item in the column above, a sidebar tab would otherwise be
+   clamped to the nav's content width and the nowrap label would spill out of
+   its own fill box; max-content grows the box with the label instead. Scoped
+   to .side-nav — resume-list rows reuse .nav-tab and do want the clamp. */
+.side-nav .nav-tab{width:max-content}
 
 .tab1{font-weight:700;color:var(--ink);letter-spacing:-.16px}
 /* the topmost sidebar label only (General/Course group headers stay at base size) */
@@ -106,7 +119,7 @@
 
 @media(max-width:860px){
   .app-body{flex-direction:column}
-  .side-nav{width:100%;flex:none;padding:20px 24px}
+  .side-nav{width:100%;min-width:0;max-width:none;flex:none;padding:20px 24px}
   .nav-group,.nav-list{flex-direction:row;flex-wrap:wrap;gap:6px}
   .nav-accordion{flex-direction:column;flex-wrap:nowrap}
   .nav-accordion>summary{display:flex;align-items:center}
@@ -197,8 +210,10 @@
 .editor{position:relative;min-height:300px;padding:18px 0 28px;color:var(--ink);line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
 /* the live editor only — not .archive-preview, which should size to its
    content. Long entries scroll inside their own box instead of pushing the
-   과목/날짜 controls above out of easy reach as the page grows. */
-#editor{max-height:55vh;overflow-y:auto;overscroll-behavior:contain}
+   과목/날짜 controls above out of easy reach as the page grows.
+   Height: 기본 300px(공용 .editor 값 그대로), 최대 550px 고정(2026-09-14 사용자
+   지시 — 화면 높이 비례 55vh 대신 고정값). */
+#editor{max-height:550px;overflow-y:auto;overscroll-behavior:contain}
 .editor:focus-visible{outline:0}
 .editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:18px;left:0;color:var(--gray);pointer-events:none}
 /* headings are fill pills (same shape as the controls) so the 4F
@@ -275,6 +290,9 @@
 /* ---------- Future Items ---------- */
 .view-future{position:relative}
 .future-hint{margin:6px 0 0}
+/* week nav: reuses Assignment Manage's .am-week-nav/.am-week-label as-is —
+   same idea (browse one week at a time), same look, no new tokens */
+.fi-week-nav{margin:18px 0 0}
 
 /* toolbar: filters on the left, sort pinned to the far right, one row —
    sits between the General/임시 top row and the course grid */
@@ -315,7 +333,9 @@
    The section labels and the "+ 박스 추가" tile always span the full row; the
    drag-orderable course/custom boxes fall into a 4-per-row grid. */
 .fi-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
-.fi-list>.fi-section-label,.fi-list>.fi-box-add,.fi-list>.fi-box:only-child{grid-column:1/-1}
+/* 박스가 하나뿐이어도(필터로 하나만 골랐을 때) 전체 폭으로 늘리지 않는다 — Future Item은 1/4,
+   Findings는 1/2 칸 그대로(2026-09-14 사용자 지시, 예전 .fi-box:only-child 전체 폭 규칙 제거) */
+.fi-list>.fi-section-label,.fi-list>.fi-box-add{grid-column:1/-1}
 .fi-section-label{margin:12px 0 -4px;color:var(--gray)}
 .fi-box{padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
 .fi-box.is-temp{border-style:dashed}
@@ -355,22 +375,23 @@
 .fi-check:hover{background:var(--fill)}
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
-.fi-text{flex:1;min-width:80px;color:var(--ink);overflow-wrap:anywhere}
+.fi-text{flex:1;min-width:0;color:var(--ink);font-size:8pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* deadline: a small boxed badge on its own line, indented to sit under the
    text (checkbox width 10px + .fi-row-main gap 10px = 20px). No badge at all
-   when there's no due date — the clock icon button is how you add one. */
+   when there's no due date — the + button that shows while editing is how you add one. */
 .fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
-.fi-row.is-overdue .fi-due{color:var(--ink);font-weight:700}
-.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}
+.fi-row.is-overdue .fi-due{color:var(--ink)}
+.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:8pt}
 .fi-edit:focus-visible{outline:0}
-.fi-edit-btn,.fi-due-btn{flex:0 0 auto}
+.fi-due-add{flex:0 0 auto}
 .fi-delete{flex:0 0 auto;margin-right:-6px}
-/* 시계 아이콘을 누르면 뜨는 마감 팝오버 — 작성 카드의 날짜/시간 pill을 그대로
-   옮겨 담은 뜬 카드(course-menu와 같은 float 카드 스타일) */
+/* + 버튼(마감 없는 항목을 수정 상태에서 새로 붙일 때) 또는 이미 있는 마감 배지를
+   더블클릭했을 때 뜨는 팝오버 — 작성 카드의 날짜/시간 pill을 그대로 옮겨 담은
+   뜬 카드(course-menu와 같은 float 카드 스타일) */
 .fi-due-pop{position:absolute;z-index:30;display:flex;gap:8px;padding:6px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
 /* dragging one activity onto another (same box) reorders instead of moving boxes */
-.fi-row.row-drop-over{outline:1px dashed var(--ink);outline-offset:2px}
+.fi-row.row-drop-over{outline:1px solid var(--ink);outline-offset:2px}
 
 .fi-done{margin-top:4px}
 .fi-done summary{list-style:none;cursor:pointer}
@@ -380,7 +401,7 @@
 .fi-done[open] .caret{transform:rotate(180deg)}
 
 /* drag: every valid destination is outlined; the one under the pointer fills */
-.is-dragging [data-drop].drop-ok{outline:1px dashed var(--gray);outline-offset:2px}
+.is-dragging [data-drop].drop-ok{outline:1px solid var(--line);outline-offset:2px}
 .is-dragging [data-drop].drop-over{outline:1px solid var(--ink);background:var(--fill)}
 
 /* menu extras (the card itself is .course-menu) */
@@ -390,8 +411,14 @@
 .cm-item[aria-checked="true"]{color:var(--ink);font-weight:700}
 
 /* toast: bottom-centre card for undo / retry / where it went */
-.toast-wrap{position:fixed;left:0;right:0;bottom:24px;z-index:50;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
-.toast{display:flex;align-items:center;gap:10px;max-width:100%;padding:6px 6px 6px 18px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float);color:var(--ink);pointer-events:auto}
+/* bottom 24px → 124px (2026-09-14 사용자 지시: 100px 위로). 로고는 메시지 글자 높이(1em)에 맞춘
+   정사각 PNG — 장식이라 alt="" */
+.toast-logo{flex:0 0 auto;width:1em;height:1em;display:block}
+.toast-wrap{position:fixed;left:0;right:0;bottom:124px;z-index:50;display:flex;justify-content:center;pointer-events:none;padding:0 16px}
+.toast{display:flex;align-items:center;gap:10px;max-width:100%;padding:8px 6px 8px 18px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float);color:var(--ink);pointer-events:auto}
+/* 오른쪽 6px는 끝에 붙는 되돌리기/보기 버튼(자체 패딩 있음) 몫이다. 버튼 없는 알림("…완료했어요",
+   "N개 Future Item 등록됨")은 글자가 끝에 붙어 보여 왼쪽과 같은 18px로 맞춘다 */
+.toast:has(> .toast-act[hidden]){padding-right:18px}
 .toast.is-error .toast-msg{font-weight:700}
 .toast-act{color:var(--ink);background:var(--fill)}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
@@ -412,6 +439,7 @@
 .shell:has(.view-assignment:not([hidden])){max-width:920px}
 .shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
+.shell:has(.view-findings:not([hidden])){max-width:1500px}
 
 /* ---------- Assignment Manage ---------- */
 /* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
@@ -419,6 +447,7 @@
 .am-week-nav{display:flex;align-items:center;gap:8px}
 .am-week-label{color:var(--ink);font-variant-numeric:tabular-nums}
 .am-status-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--gray)}
+.am-gmail-status{color:var(--ink);font-weight:700}
 .am-progress{margin:10px 0 0;color:var(--gray);font-variant-numeric:tabular-nums}
 .am-backend-hint{margin:16px 0;color:var(--ink)}
 .am-backend-hint code{background:var(--fill);border-radius:var(--radius-sm);padding:1px 5px}
@@ -444,7 +473,8 @@
 .am-shortcut{color:var(--gray);padding:2px 4px;border-radius:var(--radius-sm)}
 .am-shortcut:hover{color:var(--ink);background:var(--fill)}
 
-.am-detail{position:fixed;right:32px;bottom:32px;width:320px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;padding:18px;box-shadow:var(--shadow-float);z-index:20}
+/* top/left는 assignment.js placeDetail()이 누른 상태 칸 기준으로 계산해 넣는다 */
+.am-detail{position:fixed;top:0;left:0;width:320px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;padding:18px;box-shadow:var(--shadow-float);z-index:20}
 .am-detail-close{position:absolute;top:10px;right:10px;color:var(--gray)}
 .am-detail-title{margin:0 18px 8px 0;font-size:1em;color:var(--ink)}
 .am-detail-status{display:flex;align-items:center;gap:6px;margin:0 0 10px;color:var(--ink)}
@@ -460,11 +490,14 @@
   .am-table thead{display:none}
   .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
   .am-table td{border-bottom:none;padding:2px 0}
-  .am-detail{left:16px;right:16px;bottom:16px;width:auto;max-width:none}
+  .am-detail{top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none}
 }
 
 /* ---------- Journal Archive ---------- */
 .view-archive{position:relative} /* positions #archive-menu, same as .view-future */
+/* 삭제 확인 단계: 같은 팝업 안의 질문 한 줄 + 굵은 "삭제"(새 색 없이 ink·볼드로만 구분) */
+.cm-confirm{margin:0;padding:5px 10px 7px;color:var(--ink);white-space:normal}
+.cm-item.cm-danger{color:var(--ink);font-weight:700}
 .archive-hint{margin:6px 0 16px}
 #archive-filters{margin-bottom:10px}
 /* each row is its own <details> dropdown, not nested in a section-level one —
@@ -480,11 +513,29 @@
    the live editor's own height reservation and inner padding */
 .archive-preview{min-height:0;padding:0 0 10px}
 
+/* ---------- Findings ---------- */
+/* box grid reuses Future Item's .fi-list/.fi-box, but at 2 per row instead of
+   4: a Finding is a paragraph of prose, not a to-do line, so it needs about
+   double the column width to stay readable. Rows inside each box are new: a
+   Finding excerpt (.archive-preview reused for its rich-text styling) + the
+   date it came from, hairline-divided instead of boxed again inside a box */
+.findings-hint{margin:6px 0 16px}
+.findings-filters{margin-bottom:10px}
+.findings-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.findings-list>.fi-box-empty{grid-column:1/-1}
+@media(max-width:560px){.findings-list{grid-template-columns:1fr}}
+.findings-rows{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column}
+.findings-item{padding:10px 0;border-top:1px solid var(--line)}
+.findings-item:first-child{border-top:0;padding-top:0}
+.findings-date{display:block;margin-top:2px;color:var(--gray);font-size:.78rem}
+
 /* course filter → card grid instead of the All list: one card per journal
    date that has that course, showing only that course's content. Same box
    language as Future Item's .fi-box, doubled up (2 per row instead of 4,
    taller padding) since a journal excerpt needs more room than a to-do line. */
-.archive-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+/* align-items:start — 그리드 기본값 stretch면 같은 줄의 긴 카드 높이만큼 짧은 카드도 늘어난다
+   (복수 선택으로 길이가 다른 과목 카드가 나란히 설 때 드러남, 2026-09-14 사용자 지적) */
+.archive-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 #archive-cards[hidden]{display:none}
 .archive-card{padding:20px 24px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
 .archive-card.is-fav{background:var(--fill)}
