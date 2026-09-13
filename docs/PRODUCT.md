@@ -247,6 +247,16 @@ Journal Archive와 같은 원칙 — **읽기 전용, 새 저장소 없음** —
   범위 밖) — 고치려면 Journaling/Journal Archive에서 원문을 고쳐야 한다.
 - **이번 범위 제외:** 검색, Finding이 아닌 다른 4F 유형 보기, 박스 순서 변경, 기기 간 동기화.
 
+## 온라인 전환 — 웹에서도 로컬과 동일하게 (사용자 확정 2026-09-14, 계획 단계 · 미구현)
+
+- **목표:** 배포 링크(`yongzu.github.io/Phi_Brain`)에서도 로컬과 같은 기능 — Assignment Manage 상세·직접 확인·즉시 새로고침·Gmail 연결,
+  그리고 **Journaling·Future Item·Findings·Journal Archive 데이터도 서버 DB로 옮겨 기기 간 동일하게.**
+- **결정 1 = A:** 화면 주소는 GitHub Pages 그대로, "Google로 로그인"을 추가하고 서버는 본인 계정만 허용. (B안 = Cloudflare 주소로 이전 + Cloudflare
+  로그인 잠금은 채택 안 함.)
+- **결정 2:** 저널·Future Item·Findings(저널에서 파생)·Journal Archive 즐겨찾기까지 모두 서버 DB로. localStorage는 캐시/오프라인 초안 용도로만.
+- **추천 백엔드(에이전트 제안, 사용자 동의 전제로 계획 작성):** Cloudflare Workers + D1(SQLite 호환) + Cron Trigger. 1인 사용 무료 범위, 가격·한도는
+  착수 시 재확인. 단계별 계획은 Claude Code가 사용자에게 제시(2026-09-14) — 착수 지시 전.
+
 ## 초기 화면 구조 제안 (현재 UI와 구분)
 
 상시 메뉴: 저널 / 과목 / 실행.

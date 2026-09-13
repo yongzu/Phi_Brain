@@ -1,0 +1,10 @@
+{
+  "name": "phi-brain-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "npx wrangler@4.131.1 dev",
+    "deploy": "npx wrangler@4.131.1 deploy"
+  }
+}

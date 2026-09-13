@@ -1,0 +1,27 @@
+// Phi Brain API — Cloudflare Worker (온라인 전환, docs/PRODUCT.md "온라인 전환").
+// Deploy: cd worker && npx wrangler@4.131.1 deploy
+//
+// Secrets (never in this file — `npx wrangler secret put <NAME>`):
+//   GOOGLE_CLIENT_ID   the OAuth client the "Google로 로그인" button uses (ID token audience)
+//   ALLOWED_EMAIL      the only Google account allowed in (single-user app)
+//   SESSION_SECRET     HMAC key for session tokens — rotating it signs everyone out
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": {
+    // the only pages allowed to call this API from a browser
+    "ALLOWED_ORIGINS": "https://yongzu.github.io,http://localhost:5500"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "phi-brain",
+      "database_id": "f8695609-be07-41b6-8949-d0da104501c0"
+    }
+  ]
+}

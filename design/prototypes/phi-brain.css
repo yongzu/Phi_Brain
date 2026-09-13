@@ -549,6 +549,15 @@
    in place — #archive-browse (filters+list/cards) hides while it's shown */
 #archive-compose-slot .archive-back{margin-bottom:16px}
 
+/* ---------- Account (profile drawer, 온라인 전환) ---------- */
+/* hairline-divided block at the top of the drawer; the Google button is Google's
+   own rendered iframe, so only its spacing is ours */
+.drawer-account{margin:0 0 32px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.drawer .drawer-account-title{margin:0 0 4px;font:inherit;font-weight:700;color:var(--ink)}
+.drawer .drawer-account .field-hint{margin:0 0 14px}
+.drawer .drawer-account-email{margin:0 0 10px;color:var(--ink)}
+.auth-google-btn{min-height:32px}
+
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start
    on the page's own white, all three lines in the secondary tone */

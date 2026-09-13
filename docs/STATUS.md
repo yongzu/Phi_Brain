@@ -1,11 +1,46 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (**M3 완료** — 일요일 23:59 주간 자동 동기화, 배포 사이트 읽기 전용 표) / Claude Code
+최종 갱신: 2026-09-14 (**온라인 전환 1단계 완료** — Cloudflare Worker·D1·Google 로그인 잠금) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 온라인 전환 0~1단계: Cloudflare 준비 + 서버 뼈대·로그인 잠금 (2026-09-14, 사용자 지시 · Claude Code) — **완료, 다음은 2단계**
+
+계획·결정은 `docs/PRODUCT.md` "온라인 전환"(A안: 화면은 GitHub Pages 유지 + Google 로그인, 저널·Future Item까지 전부 서버 DB로).
+
+**0단계(완료):** 사용자 Cloudflare 가입·wrangler OAuth 허용. workers.dev 서브도메인이 이메일 아이디로 자동 생성돼 사용자 선택으로
+`phibrain`으로 변경(API는 이름 변경 불가 → 워커 0개 상태에서 삭제 후 재등록, 실패 시 원복하도록 처리). 사용자가 Google OAuth 클라이언트에
+JS 원본 `https://yongzu.github.io`·`http://localhost:5500`, 리디렉션 URI `https://api.phibrain.workers.dev/auth/google/callback` 추가.
+
+**1단계(구현·배포 완료):**
+- `worker/`(신규): Cloudflare Worker `api` → **`https://api.phibrain.workers.dev`**, D1 `phi-brain`(APAC, id는 `wrangler.jsonc`에 — 비밀 아님).
+  wrangler는 `npx wrangler@4.131.1`로 고정(설치 파일 없음). Secrets: `GOOGLE_CLIENT_ID`, `ALLOWED_EMAIL`, `SESSION_SECRET`(무작위 생성, 값은 출력 안 함).
+- `worker/src/auth.js`: Google ID 토큰을 직접 검증(RS256 서명·Google JWKS 1시간 캐시·iss·aud·exp(60초 여유)·email_verified·허용 이메일) →
+  자체 세션 토큰(HMAC, 30일) 발급. **쿠키가 아니라 Bearer 토큰** — github.io와 workers.dev가 다른 사이트라 제3자 쿠키 차단에 걸리기 때문.
+  세션 검증 때마다 허용 이메일 재확인(`ALLOWED_EMAIL`/`SESSION_SECRET` 교체로 전체 로그아웃 가능).
+- `worker/src/index.js`: `GET /api/health`, `POST /api/session`, `GET /api/me`(세션 필요). CORS는 `ALLOWED_ORIGINS`(github.io, localhost:5500)만.
+  이후 단계의 데이터 API는 모두 `requireSession()` 뒤에 붙인다.
+- 프런트: `design/prototypes/config.js`(API 주소·Google 클라이언트 ID — 공개값), `auth.js`(GIS 버튼 → `/api/session` → 세션을 localStorage
+  `phi-brain:session`에 보관, `PhiBrain.auth.fetch()`가 Bearer 헤더 부착·401이면 로그아웃 상태로), 프로필 서랍 맨 위 "계정" 섹션
+  (로그아웃 상태: 안내 + Google 버튼 / 로그인: 이메일 · 로그인됨 + 로그아웃), 툴바 버튼 라벨 로그인 전 "로그인"·후 "프로필".
+  데이터는 아직 전부 브라우저 저장(2단계부터 이전).
+- 테스트 `worker/test/auth.test.js` 8개(가짜 RSA 키로 만든 JWKS: 정상·대소문자·다른 계정·다른 서명·페이로드 위조·aud/iss/exp/미인증 이메일/
+  알 수 없는 키/alg none·세션 왕복·세션 위조/만료/비밀 교체/계정 교체) **8/8**, 서버 테스트 39/39 유지.
+
+**검증(실서버):** health `{ok:true}`; 토큰 없이/위조 토큰으로 `/api/me` → 401; 가짜 credential → `malformed_token`; CORS 사전요청은
+github.io만 허용 헤더를 받고 다른 출처는 못 받음. 로컬 화면: GIS 버튼 렌더, 페이지에서 API 호출(health) 성공, 로그인 전 `/api/me` 401,
+Journaling·Future Item 정상 로드. **사용자가 본인 Chrome(localhost:5500)에서 실제 Google 로그인 성공 확인.** 첫 시도는
+`no registered origin`(invalid_client) — GIS는 로컬 테스트 시 `http://localhost:5500`과 함께 **포트 없는 `http://localhost`도** JS 원본에
+있어야 해서 사용자가 추가한 뒤 성공. 배포 주소(github.io)에서의 로그인은 push 후 아직 미확인 — 다음 세션 첫 확인 항목.
+
+**다음 세션에서 이어서 — 2단계(Assignment Manage 서버 이전):** `server/`의 스키마·`matching.js`·Gmail 조회를 Worker+D1로(ESM 변환,
+`node:https`→`fetch`, `node:sqlite`→D1 비동기), Gmail 연결 콜백 `https://api.phibrain.workers.dev/auth/google/callback`(Google에 등록 완료)에서
+refresh token을 D1에 암호화 저장, Cron Trigger `59 14 * * 0`, 프런트 `assignment.js`를 `PhiBrain.auth.fetch`로. 검증 후 GitHub Actions 주간
+동기화·공개 JSON 제거. 이후 3단계 저널 → 4단계 Future Item → 5단계 데이터 가져오기(데스크톱 localhost·github.io, 노트북)·개인정보처리방침 수정
+→ 6단계 백업·안정화(`docs/PRODUCT.md` "온라인 전환").
 
 ### M3: 일요일 23:59 주간 자동 동기화 + 배포 사이트 읽기 전용 표 (2026-09-14, 사용자 요구사항 · Claude Code 구현)
 
