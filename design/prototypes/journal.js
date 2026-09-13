@@ -203,6 +203,11 @@
   // 박스가 나타나고(공용 .pill:hover), 누르면 그 과목의 과목 박스를 작성 중인
   // 위치에 바로 넣는다. chosen에는 계속 기록해 저널 아카이브 과목 필터에 걸리게
   // 하지만, 화면에는 그 기록을 반영하지 않는다.
+  // mousedown에서 기본 동작을 막아야(포맷/삽입 버튼과 동일한 방식) 클릭이
+  // 에디터의 포커스·캐럿 위치를 빼앗지 않는다 — 그러지 않으면 ensureCaret()이
+  // "선택이 에디터 밖"으로 보고 editor.focus()로 되돌리면서, 포커스가 옮겨갈 때
+  // 브라우저가 문서 맨 위로 스크롤을 되돌리는 버그가 있었다.
+  chipsEl.addEventListener('mousedown', e => e.preventDefault());
   chipsEl.addEventListener('click', e => {
     const b = e.target.closest('[data-code]');
     if (!b) return;
