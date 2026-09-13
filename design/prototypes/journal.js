@@ -38,6 +38,12 @@
   const monthDay = s => { const [, m, d] = s.split('-').map(Number); return `${m}월 ${d}일`; };
   const clock = ts => new Date(ts).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
   const today = daysAgo(0);
+  // wk#/요일 표시(Journal Archive All 탭): 학기 1주차 기준은 Assignment Manage와
+  // 같은 server/db.js의 SEMESTER_START — 학기가 바뀌면 그 값만 바꾸면 된다.
+  const SEMESTER_START = '2026-09-07';
+  const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  const weekOf = s => Math.max(1, Math.floor((fromIso(s) - fromIso(SEMESTER_START)) / 86400000 / 7) + 1);
+  const monthDayDow = s => `${monthDay(s)}(${DOW[fromIso(s).getDay()]})`;
 
   // ---- storage (may be unavailable: private mode, blocked site data) ----
   const KEY = 'phi-brain:journal:';
@@ -196,12 +202,17 @@
   function renderCourses() {
     chipsEl.querySelectorAll('[data-code]').forEach(b => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.code))));
   }
+  // 과목 칩을 누르면(선택 상태로 바뀔 때) 그 과목의 과목 박스를 작성 중인
+  // 위치에 바로 넣는다 — 예전 툴바의 "과목" 버튼+메뉴 선택을 한 번의 클릭으로
+  // 대신한다. 다시 눌러 해제할 때는 이미 넣은 내용은 그대로 두고 표시만 끈다.
   chipsEl.addEventListener('click', e => {
     const b = e.target.closest('[data-code]');
     if (!b) return;
-    chosen.has(b.dataset.code) ? chosen.delete(b.dataset.code) : chosen.add(b.dataset.code);
+    const code = b.dataset.code;
+    if (chosen.has(code)) { chosen.delete(code); renderCourses(); scheduleSave(); return; }
+    chosen.add(code);
     renderCourses();
-    scheduleSave();
+    insertCourseBox(code);
   });
   titleInput.addEventListener('input', scheduleSave);
 
@@ -259,19 +270,6 @@
     afterEdit();
   }
 
-  function toggleChecklist() {
-    ensureCaret();
-    document.execCommand('defaultParagraphSeparator', false, 'p');
-    const ul = blockOf(getSelection().anchorNode)?.closest('ul');
-    if (ul?.classList.contains('checklist')) document.execCommand('insertUnorderedList'); // toggle off
-    else if (ul) ul.classList.add('checklist'); // a pasted bullet list becomes a checklist
-    else {
-      document.execCommand('insertUnorderedList');
-      blockOf(getSelection().anchorNode)?.closest('ul')?.classList.add('checklist');
-    }
-    afterEdit();
-  }
-
   // ---- course box: marks which course the lines below it belong to ----
   // 'general' is a legitimate box value too — same "특정 과목 아님" meaning as
   // the 다룬 과목 chip, just with no 3-letter code/full name pair to show
@@ -282,15 +280,18 @@
   const courseMenu = $('#course-menu');
   let menuBox = null; // the course box the menu is open for
 
-  function insertCourseBox() {
+  // code가 주어지면(다룬 과목 칩에서 호출) 바로 그 과목으로 박스를 넣고 메뉴는
+  // 열지 않는다 — code가 없을 때만 메뉴로 고른다(현재는 이 경로로 호출하는 곳이
+  // 없지만, 과목 박스 자체를 고르지 않고 넣는 경우를 위해 남겨둔다).
+  function insertCourseBox(code = '') {
     ensureCaret();
     let top = blockOf(getSelection().anchorNode);
     while (top && top.parentNode !== editor) top = top.parentNode; // the editor-level block holding the caret
     const box = document.createElement('div');
     box.className = 'course-box';
     box.contentEditable = 'false';
-    box.dataset.course = '';
-    box.innerHTML = courseBoxInner('');
+    box.dataset.course = code;
+    box.innerHTML = courseBoxInner(code);
     let line;
     if (top && top.tagName === 'P' && top.textContent.trim() === '') { top.before(box); line = top; } // reuse an empty line
     else {
@@ -300,7 +301,7 @@
     }
     caretIn(line);
     afterEdit();
-    openCourseMenu(box);
+    if (!code) openCourseMenu(box);
   }
 
   function openCourseMenu(box) {
@@ -399,7 +400,7 @@
   }
   document.addEventListener('selectionchange', refreshFormatState);
 
-  const COMMANDS = { template: toggleTemplate, course: insertCourseBox, check: toggleChecklist };
+  const COMMANDS = { template: toggleTemplate };
   document.querySelectorAll('[data-cmd], [data-fmt]').forEach(btn => {
     btn.addEventListener('mousedown', e => e.preventDefault()); // keep the editor's selection
     btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
@@ -577,11 +578,12 @@
   // menu) and stops its click from also toggling the accordion underneath.
   const archiveRowHTML = e => {
     const courseLabel = e.courses.map(c => (c === 'general' ? 'General' : c)).join(' · ');
-    const meta = [courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · ');
+    const dateTag = `<span class="nav-code">WK${weekOf(e.date)}</span> ${esc(monthDayDow(e.date))}`;
+    const rest = esc([courseLabel, e.savedAt ? clock(e.savedAt) : ''].filter(Boolean).join(' · '));
     return `<li>
       <details class="resume-row archive-entry" data-date="${e.date}"${openArchive.has(e.date) ? ' open' : ''}>
         <summary class="resume-summary">
-          <span class="ri-title">${esc(e.title)}</span><span class="ri-meta">${esc(meta)}</span>
+          <span class="ri-title">${esc(e.title)}</span><span class="ri-meta">${dateTag}${rest ? ` · ${rest}` : ''}</span>
           <button type="button" class="pill pill-icon archive-more" data-more="${e.date}" aria-haspopup="menu" aria-label="저널 메뉴: ${esc(e.title)}">⋯</button>
           <span class="caret" aria-hidden="true">▾</span>
         </summary>

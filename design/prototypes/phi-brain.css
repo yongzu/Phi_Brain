@@ -173,13 +173,13 @@
 
 /* ---- journal: the one document ---- */
 .editor-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:10px;border-top:1px solid var(--line)}
+/* 4F 템플릿과 서식 버튼(굵게 등, 드래그한 글자에 적용 — 눌림 상태는 현재
+   선택 영역 기준)이 한 줄에 같이 있다 */
 .editor-tools{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.editor-tools b{font-weight:700}
+.editor-tools i{font-style:italic;font-synthesis:style}
 .tool-sep{width:1px;height:12px;background:var(--line);margin:0 6px}
 
-/* format bar — glyph buttons for the dragged text; pressed = current selection has it */
-.format-bar{display:flex;align-items:center;gap:2px;margin:4px 0 0 -9px}
-.format-bar b{font-weight:700}
-.format-bar i{font-style:italic;font-synthesis:style}
 .ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
 .ico-code{letter-spacing:-.5px}
 
@@ -264,6 +264,7 @@
 .resume-list{list-style:none;margin:0;padding:4px 0 10px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .resume-list .ri-title{color:var(--ink)}
 .resume-list .ri-meta{color:var(--gray);margin-left:8px}
+.resume-list .ri-meta .nav-code{color:var(--ink);margin-right:2px}
 .todo-list li{padding:6px var(--tab-pad-x);color:var(--gray)}
 .todo-list .nav-code{color:var(--ink);margin-right:8px}
 .resume-hint{padding-left:calc(24px + var(--tab-pad-x));margin:0 0 12px}
