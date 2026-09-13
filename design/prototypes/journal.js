@@ -102,7 +102,7 @@
     editor.querySelectorAll('.course-box[data-course="EAI"]').forEach(box => { box.dataset.course = 'EWA'; box.innerHTML = courseBoxInner('EWA'); });
     $('#fi-register').checked = false;
     dirty = false;
-    renderDate(); renderCourses(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
+    renderDate(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
     setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
@@ -198,20 +198,16 @@
   // ---- courses (optional hint for the AI) — always expanded, like Future
   // Item's scope chips; no accordion to open/close ----
   chipsEl.innerHTML = JOURNAL_SCOPES.map(([code, name]) =>
-    `<button type="button" class="pill" data-code="${code}" aria-pressed="false" title="${code}_${name}">${code === 'general' ? 'General' : code}</button>`).join('');
-  function renderCourses() {
-    chipsEl.querySelectorAll('[data-code]').forEach(b => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.code))));
-  }
-  // 과목 칩을 누르면(선택 상태로 바뀔 때) 그 과목의 과목 박스를 작성 중인
-  // 위치에 바로 넣는다 — 예전 툴바의 "과목" 버튼+메뉴 선택을 한 번의 클릭으로
-  // 대신한다. 다시 눌러 해제할 때는 이미 넣은 내용은 그대로 두고 표시만 끈다.
+    `<button type="button" class="pill" data-code="${code}" title="${code}_${name}">${code === 'general' ? 'General' : code}</button>`).join('');
+  // 과목 타이포는 토글도, 선택 고정 표시도 없다 — 호버하면 다른 pill과 똑같이
+  // 박스가 나타나고(공용 .pill:hover), 누르면 그 과목의 과목 박스를 작성 중인
+  // 위치에 바로 넣는다. chosen에는 계속 기록해 저널 아카이브 과목 필터에 걸리게
+  // 하지만, 화면에는 그 기록을 반영하지 않는다.
   chipsEl.addEventListener('click', e => {
     const b = e.target.closest('[data-code]');
     if (!b) return;
     const code = b.dataset.code;
-    if (chosen.has(code)) { chosen.delete(code); renderCourses(); scheduleSave(); return; }
     chosen.add(code);
-    renderCourses();
     insertCourseBox(code);
   });
   titleInput.addEventListener('input', scheduleSave);
@@ -332,7 +328,6 @@
     menuBox.dataset.course = code;
     menuBox.innerHTML = courseBoxInner(code);
     chosen.add(code); // a course marked in the body is also a course covered today
-    renderCourses();
     closeCourseMenu(true);
     afterEdit();
   });
@@ -484,7 +479,6 @@
     if (!text.includes('\n')) { document.execCommand('insertText', false, text); return; }
     ensureCaret();
     document.execCommand('insertHTML', false, pastedTextToHtml(text));
-    renderCourses();
   });
   editor.addEventListener('click', e => {
     const box = e.target.closest('.course-box');

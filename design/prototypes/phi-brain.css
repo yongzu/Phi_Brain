@@ -169,6 +169,9 @@
 
 .courses{margin:14px 0 0}
 .course-chips{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 0}
+/* 다룬 과목(#course-chips)에는 이제 aria-pressed를 아예 안 쓴다(토글이 아니라
+   클릭=삽입 동작) — 이 규칙은 Future Item 소속 칩(#fi-scope-chips, 진짜 단일
+   선택)에만 적용된다 */
 .course-chips .pill[aria-pressed="true"]{font-weight:700}
 
 /* ---- journal: the one document ---- */
