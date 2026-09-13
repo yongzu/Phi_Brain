@@ -5,8 +5,8 @@
   "firstWeek": 0,
   "lastWeek": 16,
   "lastSyncedAt": "2026-09-13T17:42:30.769Z",
-  "lastRunAt": "2026-09-13T17:46:57.853Z",
-  "lastError": "oauth2.googleapis.com/token 401 (invalid_client)",
+  "lastRunAt": "2026-09-13T17:49:04.501Z",
+  "lastError": "Google 앱 설정값이 맞지 않아요 — GitHub Secrets의 GOOGLE_CLIENT_ID·GOOGLE_CLIENT_SECRET을 확인하세요",
   "courses": [
     {
       "id": "al",
