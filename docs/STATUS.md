@@ -38,6 +38,11 @@ Pages 재배포 → 사이트에 "마지막 동기화 실패" 표시, 기존 확
 `1//`로 시작하지 않음** → 사용자에게 두 Secret 재입력 요청. 이를 위해 `export-snapshot.js`에 붙여넣은 값 앞뒤 공백 제거, `invalid_client`
 안내 문구, 인증 오류 시 예/아니오 형식 점검 로그·annotation 추가(값·길이·일부 문자열은 절대 출력 안 함). 워크플로의 checkout·setup-node를
 v5로 올림(Node 20 폐기 경고) — 사용자가 Secrets를 고친 뒤 push해 재실행.
+**재실행(02:59 KST) — 성공.** 사용자가 두 Secret을 재입력(값은 Claude Code가 화면 출력 없이 클립보드로만 옮기고 예/아니오 형식 점검 후 붙여넣기 안내).
+[run 34773210879](https://github.com/yongzu/Phi_Brain/actions/runs/34773210879): sync·deploy 모두 성공, 봇 커밋 `deed542`, `lastError: null`.
+배포 사이트 확인: `https://yongzu.github.io/Phi_Brain/prototypes/home.html#assignment` → "읽기 전용 · 9월 14일 오전 2:59 동기화",
+기본 2주차(2/24), 0주차 17/24, 백엔드 안내 없음. 다음 자동 실행은 **2026-09-20(일) 23:59 KST**.
+남은 경고: `actions/configure-pages@v5`·`deploy-pages@v4`가 Node 20 대상이라 Node 24로 강제 실행된다는 안내(동작에는 문제 없음, 새 버전 나오면 교체).
 
 ### M1: 제목 기준 과목·과제/셀프피드백 인식, 폼 주차(0~16) 기준 표 (2026-09-14, 사용자 요구사항 · Claude Code 구현)
 
