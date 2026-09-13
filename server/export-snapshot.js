@@ -24,6 +24,24 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+// values pasted into GitHub Secrets easily pick up a trailing newline or space
+for (const k of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN']) {
+  if (process.env[k] !== undefined) process.env[k] = process.env[k].trim();
+}
+
+// On a credential error, report only yes/no format checks — never a value, a
+// length, or a fragment (the Actions log of a public repo is public).
+function credentialHints() {
+  const id = process.env.GOOGLE_CLIENT_ID || '', secret = process.env.GOOGLE_CLIENT_SECRET || '', rt = process.env.GMAIL_REFRESH_TOKEN || '';
+  const quoted = v => /^["']|["']$/.test(v);
+  return {
+    clientIdSet: !!id, clientIdEndsWithGoogleusercontent: id.endsWith('.apps.googleusercontent.com'), clientIdHasNamePrefix: /^GOOGLE_CLIENT_ID\s*=/.test(id), clientIdQuoted: quoted(id),
+    secretSet: !!secret, secretStartsWithGOCSPX: secret.startsWith('GOCSPX-'), secretHasNamePrefix: /^GOOGLE_CLIENT_SECRET\s*=/.test(secret), secretQuoted: quoted(secret),
+    looksSwapped: secret.endsWith('.apps.googleusercontent.com') || id.startsWith('GOCSPX-'),
+    refreshTokenSet: !!rt, refreshTokenStartsWith1slash: rt.startsWith('1//'),
+  };
+}
+
 const { refreshAccessToken } = require('./googleOAuth');
 const { searchMessageIds, fetchEmail } = require('./gmail');
 const { matchEmail } = require('./matching');
@@ -43,6 +61,7 @@ function localRefreshToken() {
 function describeError(err) {
   const code = err.body?.error;
   if (code === 'invalid_grant') return 'Gmail 인증이 만료됐어요 — 로컬에서 Gmail을 다시 연결하고 GMAIL_REFRESH_TOKEN을 갱신하세요';
+  if (code === 'invalid_client') return 'Google 앱 설정값이 맞지 않아요 — GitHub Secrets의 GOOGLE_CLIENT_ID·GOOGLE_CLIENT_SECRET을 확인하세요';
   if (/Missing required env var|GMAIL_REFRESH_TOKEN/.test(err.message)) return `설정 누락: ${err.message.replace(/ — see .*$/, '')}`;
   return `${err.message}${code ? ` (${code})` : ''}`.slice(0, 200);
 }
@@ -90,6 +109,12 @@ async function main() {
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
     fs.writeFileSync(OUT, serialize(snap));
     console.error(`sync failed: ${snap.lastError}`);
+    if (['invalid_client', 'invalid_grant', 'unauthorized_client'].includes(err.body?.error)) {
+      const hints = JSON.stringify(credentialHints());
+      console.error(`credential format checks: ${hints}`);
+      // also as a run annotation (shown on the run summary page) — booleans only
+      if (process.env.GITHUB_ACTIONS) console.log(`::warning title=credential format checks::${hints}`);
+    }
     process.exitCode = 1;
   }
 }
