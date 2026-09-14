@@ -593,8 +593,8 @@
 #archive-cards[hidden]{display:none}
 .archive-favs{margin-top:10px} /* 저널 목록과 즐겨찾기 묶음 사이 10px(사용자 지시 2026-09-14) */
 .archive-favs .fi-section-label{margin:0 0 8px}
-.archive-card{padding:20px 24px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
-.archive-card.is-fav{background:var(--fill)}
+/* 즐겨찾기해도 카드 배경은 흰색 그대로 — 별표로만 구분(사용자 지시 2026-09-14) */
+.archive-card{padding:20px 24px 16px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;background:var(--bg)}
 .archive-card-head{margin-bottom:4px}
 .archive-card-body{padding-bottom:0}
 @media(max-width:720px){.archive-cards{grid-template-columns:1fr}}

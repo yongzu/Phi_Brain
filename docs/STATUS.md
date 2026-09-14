@@ -1,11 +1,17 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (Assignment Manage 과제 내용 열 40px 왼쪽) / Claude Code
+최종 갱신: 2026-09-14 (Archive 즐겨찾기 카드 흰색 · Course Agent 이름) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Journal Archive 즐겨찾기 카드 흰색 유지 · 왼쪽 메뉴 Course → Course Agent (2026-09-14, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260914-33`: `.archive-card.is-fav{background:fill}` 삭제, `.archive-card` 배경 흰색(`--bg`) — 즐겨찾기는 별표로만 구분.
+- `home.html`: 왼쪽 메뉴 그룹 이름 "Course" → "Course Agent"(과목 목록·동작 그대로).
+- 검증(로컬, 가짜 저널 1개·즐겨찾기): 즐겨찾기 카드 배경 rgb(255,255,255), 메뉴 "Management / Course Agent". 테스트 데이터 삭제.
 
 ### Assignment Manage: 과제 내용 열 40px 왼쪽으로 (2026-09-14, 사용자 지시 · Claude Code)
 
