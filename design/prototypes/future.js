@@ -253,6 +253,7 @@
     <li class="fi-row${i.done ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}" data-id="${i.id}"${editing ? '' : ' draggable="true"'}>
       <div class="fi-row-main">
         <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
+        <span class="fi-num" aria-hidden="true"></span>
         ${editing
           ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
           : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}

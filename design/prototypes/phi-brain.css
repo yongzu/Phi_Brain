@@ -363,8 +363,8 @@
 .fi-box-add-input{width:100%;max-width:200px;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);text-align:center}
 .fi-box-add-input:focus-visible{outline:0}
 
-.fi-rows{list-style:none;margin:0;padding:0}
-.fi-row{display:flex;flex-direction:column;gap:4px;min-height:32px;padding:2px 0}
+.fi-rows{list-style:none;margin:0;padding:0;counter-reset:fi-row}
+.fi-row{display:flex;flex-direction:column;gap:4px;min-height:32px;padding:2px 0;counter-increment:fi-row}
 .fi-row[draggable="true"]{cursor:grab}
 .fi-row.is-drag-src{opacity:.4}
 /* flex-wrap so the 3 action icons drop to their own line under the text in
@@ -377,12 +377,16 @@
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
 .fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* 8pt → 10pt (사용자 지시 2026-09-14) */
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
+/* 순서 번호(사용자 지시 2026-09-14): 체크 원과 문장 사이, 박스의 목록마다 1부터(완료한 항목 목록은 따로).
+   CSS 카운터라 끌어서 순서를 바꾸면 번호도 따라간다. 1~2자리 번호가 같은 폭이라 문장 시작이 맞는다 */
+.fi-num{flex:0 0 18px;margin-right:-6px;text-align:right;font-size:10pt;color:var(--gray);font-variant-numeric:tabular-nums}
+.fi-num::before{content:counter(fi-row) "."}
 /* deadline: a small boxed badge on its own line, indented to sit under the
-   text (checkbox width 10px + .fi-row-main gap 10px = 20px). No badge at all
+   text (checkbox 10px + gap 10px + number 18px + gap 10px − 6px = 42px). No badge at all
    when there's no due date — the + button that shows while editing is how you add one. */
-.fi-due{align-self:flex-start;margin-left:20px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
+.fi-due{align-self:flex-start;margin-left:42px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
 .fi-row.is-overdue .fi-due{color:var(--ink)}
-.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:8pt}
+.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:10pt} /* 보기(.fi-text)와 같은 10pt */
 .fi-edit:focus-visible{outline:0}
 .fi-due-add{flex:0 0 auto}
 .fi-delete{flex:0 0 auto;margin-right:-6px}

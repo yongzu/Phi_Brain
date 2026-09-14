@@ -7,6 +7,14 @@
 
 ## 현재 단계
 
+### Future Item 순서 번호 · 수정칸 10pt (2026-09-14, 사용자 지시 · Claude Code)
+
+- `future.js`(`?v=20260914-6`) 행에 `<span class="fi-num" aria-hidden="true">` 추가(스크린리더는 목록 순서로 충분해 번호는 숨김).
+  `phi-brain.css`(`?v=20260914-20`): `.fi-rows{counter-reset}`·`.fi-row{counter-increment}`·`.fi-num::before{content:counter(fi-row) "."}`(목록마다 1부터, 완료 목록 따로),
+  `.fi-due` margin-left 20px → 42px, `.fi-edit` 8pt → 10pt.
+- 검증(로컬, 로그아웃, 가짜 항목 3개 + 완료 1개 + 마감 1개): 스크린샷 "1. 2. 3." / 완료한 항목 "1.", 마감 배지 왼쪽 = 문장 왼쪽(691px), 더블클릭 수정칸 13.33px·번호 유지.
+  프런트만 바뀌어 Worker 배포 없음.
+
 ### Findings 박스 즐겨찾기 · 닉네임 · Future Item 글씨 10pt (2026-09-14, 사용자 요구사항 3건 · Claude Code)
 
 **서버:** `migrations/0004_findings_favorites_settings.sql`(`findings_favorites` course PK·created_at, `settings` key/value), `src/settings.js` —
