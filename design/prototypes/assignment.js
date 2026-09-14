@@ -305,7 +305,24 @@
   }
   addEventListener('scroll', placeDetail, { passive: true, capture: true }); // 표 가로 스크롤 포함
   addEventListener('resize', placeDetail);
-  function closeDetail() { detailAnchor = null; noteState = null; if (!detail.hidden) popOut(detail); }
+  function closeDetail() {
+    // a paste that wasn't saved yet is kept for this course/week, so closing by accident doesn't lose it
+    if (noteState?.mode === 'edit' && noteState.draft?.raw.trim() && noteState.draft.raw !== (noteState.note?.raw || '')) {
+      unsavedDrafts.set(`${noteState.courseId}:${currentWeekNo}`, { ...noteState.draft });
+    }
+    detailAnchor = null; noteState = null;
+    if (!detail.hidden && detail.dataset.open) popOut(detail);
+  }
+  const unsavedDrafts = new Map();
+  // 팝업 밖을 누르면 닫는다(사용자 지시 2026-09-14). 팝업을 연 그 칸은 제외 — 그 칸 클릭은 아래 click에서 열고 닫기(토글).
+  // 토스트(되돌리기·표시하기)도 제외. 칸이 표 다시 그리기로 바뀌어도 선택자로 다시 찾는다.
+  document.addEventListener('pointerdown', e => {
+    if (detail.hidden || !detail.dataset.open || detailAnchor == null) return;
+    if (detail.contains(e.target) || e.target.closest('.toast')) return;
+    const anchor = tbody.querySelector(detailAnchor);
+    if (anchor && anchor.contains(e.target)) return;
+    closeDetail();
+  });
   async function openDetail(targetId) {
     const d = await apiJson(`/targets/${targetId}`);
     if (!d) return;
@@ -374,10 +391,18 @@
 
   tbody.addEventListener('click', e => {
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
-    if (btn) { openDetail(Number(btn.dataset.targetId)); return; }
+    if (btn) {
+      const sel = `.am-status[data-target-id="${btn.dataset.targetId}"]`;
+      if (detailAnchor === sel && !detail.hidden && detail.dataset.open) { closeDetail(); return; } // same cell again = close
+      openDetail(Number(btn.dataset.targetId));
+      return;
+    }
     if (e.target.closest('[data-note-login]')) { toast('로그인하면 과제 공지를 붙여넣고 마감을 볼 수 있어요'); return; }
     const noteBtn = e.target.closest('[data-note-course]');
-    if (noteBtn) openNote(noteBtn.dataset.noteCourse);
+    if (noteBtn) {
+      if (detailAnchor === `[data-note-course="${noteBtn.dataset.noteCourse}"]` && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
+      openNote(noteBtn.dataset.noteCourse);
+    }
   });
 
   // ---- 과제 내용 팝오버: 보기 / 붙여넣기·수정 ----
@@ -405,6 +430,8 @@
     noteState.menu = false;
     // editing a saved notice stays in its week unless the user picks another; a new paste defaults to the week it names
     noteState.draft = { raw: n?.raw || '', dueAt: n?.dueAt || null, lateDueAt: n?.lateDueAt || null, dueTouched: !!n?.dueManual, week: WEEK_NOW(), weekChosen: !!n };
+    const kept = unsavedDrafts.get(`${noteState.courseId}:${currentWeekNo}`);
+    if (kept) { noteState.draft = kept; unsavedDrafts.delete(`${noteState.courseId}:${currentWeekNo}`); } // what was pasted before closing
   }
 
   function noteHeader(row, withMenu) {
@@ -531,6 +558,7 @@
     if (res.status === 409) { st.conflict = { note: body.note, sameWeek }; refreshNoteLive(); return; }
     if (!res.ok) { toast(body.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : '저장하지 못했어요', null, 'error'); return; }
     toast(sameWeek ? '과제 내용을 저장했어요' : `${d.week}주차에 저장했어요`);
+    st.mode = 'view'; // saved — nothing to keep as an unsaved paste
     if (!sameWeek) { closeDetail(); await loadWeek(d.week); openNote(st.courseId); return; }
     await loadWeek(WEEK_NOW());
     if (noteState === st) { st.note = rowOf(st.courseId)?.note || body.note; st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
