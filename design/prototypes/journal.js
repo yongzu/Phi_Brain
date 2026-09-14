@@ -5,7 +5,8 @@
     localStorage when not (journal-store.js, 온라인 전환 3단계). A saved draft is only a
     draft: nothing is filed into a course until 정리하기 → review →
     confirm, which needs the AI step that isn't connected yet. So
-    정리하기 shows its real states (정리 중 → 실패 → 다시 시도) honestly.
+    정리하기 shows its real states (정리 중 → 실패 → 다시 정리하기) honestly; signed out it
+    says where the draft went ("이 브라우저에 저장했어요") instead of the failure.
   - The editor is one document; 4F are headings (fill pills) inside it,
     each carrying its guiding question for the hover hint.
 */
@@ -522,9 +523,11 @@
     organize.disabled = true;
     setStatus('정리 중…', 'busy');
     setTimeout(() => {
-      setStatus('정리하지 못했어요 · AI가 아직 연결되지 않았어요', 'error');
       organize.disabled = false;
-      organize.textContent = '다시 시도';
+      organize.textContent = '다시 정리하기';
+      // 로그아웃(브라우저 저장) 상태에서는 실패 문구 대신 저장된 곳을 알려준다(사용자 지시 2026-09-14)
+      if (store.mode === 'local' && store.get(current)) { setStatus('이 브라우저에 저장했어요'); return; }
+      setStatus('정리하지 못했어요 · AI가 아직 연결되지 않았어요', 'error');
     }, 1600);
   });
 
