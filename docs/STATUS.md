@@ -7,6 +7,27 @@
 
 ## 현재 단계
 
+### Findings 박스 즐겨찾기 · 닉네임 · Future Item 글씨 10pt (2026-09-14, 사용자 요구사항 3건 · Claude Code)
+
+**서버:** `migrations/0004_findings_favorites_settings.sql`(`findings_favorites` course PK·created_at, `settings` key/value), `src/settings.js` —
+`PUT/DELETE /api/findings/favorites/:course`, `GET/PUT /api/settings`(닉네임 공백 정리·20자 초과 400·빈 문자열이면 삭제). `GET /api/journals`에 `findingsFavorites` 추가.
+테스트 `test/settings.test.js` 3개 → **Worker 68/68**.
+
+**프런트:**
+1. Findings 별표 — `journal-store.js`(`?v=3`) `findingsFavorites.all()/toggle()`(로그아웃 = `phi-brain:findings:favorites`, 로그인 = 서버 + 계정 캐시, 실패 시 되돌리고 토스트),
+   서버로 올리기 때 브라우저 별표도 추가. `journal.js`(`?v=20260914-13`) 박스 헤더 별표, All에서 즐겨찾기/과목 줄로 나눔, 필터 시 고른 순서 유지.
+2. 닉네임 — `auth.js`(`?v=3`): 로그인 시 `/api/settings`로 불러와 `phi-brain:nickname:<email>`에 사본, 더블클릭/Enter/F2로 인라인 입력(한글 조합 중 Enter 무시),
+   저장 실패 시 되돌리고 토스트, 우상단 버튼 = 닉네임 || "프로필". `home.html` `#auth-nickname`(계정 제목 위), CSS `.drawer-nickname`·`.profile-trigger` 말줄임.
+3. `.fi-text` 8pt → 10pt. (`phi-brain.css?v=20260914-19`)
+- 옛 문구 정리: 상단 프로토타입 안내·Findings 안내·서랍 로그아웃 안내의 "이 브라우저에만 저장/데이터 이전은 준비 중"(3·4단계 이후 사실과 다름).
+
+**검증(로컬 wrangler dev + 로컬 D1, 가짜 세션·가짜 테스트 저널):** 로그아웃 — Findings 박스 3개 별표 3개, EWA 별표 → [즐겨찾기] EWA★ [과목] general BI, general 추가 →
+EWA★ general★ 순서, 포커스 유지, 필터 BI,EWA → 필터 순서 그대로, 서랍 닉네임 숨김·버튼 "로그인". 로그인 — 닉네임 "닉네임을 입력해보세요"(회색, 계정 제목 위) →
+더블클릭 입력 "  파이   테스트  " Enter → "파이 테스트"·우상단 버튼 "파이 테스트"·서버 저장, 새로고침 후 유지, Esc → 변경 없음. Findings BI 별표 → 서버 `["BI"]`,
+브라우저 별표는 그대로. `.fi-text` 계산값 13.33px. 스크린샷으로 Findings 즐겨찾기 줄·Future Item 글씨·우상단 닉네임 확인.
+
+**배포:** 원격 D1 `0004` 적용 → Worker `1f754cd2` 배포 → push. 실서버: health 정상, `/api/settings`·`/api/findings/favorites/*` 토큰 없이 401, 원격 settings 0·findings_favorites 0·journals 2·future_state 1(사용자 데이터 유지). 사용자 확인 대기(실제 사이트에서 닉네임·Findings 별표).
+
 ### 서버로 올리기: 안내 문구 버튼 → 팝업 (2026-09-14, 사용자 지시 · Claude Code)
 
 - 이유(사용자): 화면 위쪽 안내 문구에 있어 잘 안 보임.

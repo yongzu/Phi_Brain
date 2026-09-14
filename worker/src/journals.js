@@ -1,6 +1,6 @@
 // 온라인 전환 3단계: Journaling API on D1. All routes sit behind the session.
 //
-//   GET    /api/journals                       every journal + archive favorites
+//   GET    /api/journals                       every journal + archive favorites + starred Findings boxes
 //   PUT    /api/journals/:date                 save { title, courses, html, savedAt, baseVersion, force? }
 //   DELETE /api/journals/:date?baseVersion=n   delete (and its favorites)
 //   PUT    /api/journals/:date/favorites/:course   star a card
@@ -42,11 +42,16 @@ export function cleanJournal(body) {
 }
 
 export async function listJournals(db) {
-  const [journals, favorites] = await db.batch([
+  const [journals, favorites, findings] = await db.batch([
     db.prepare('SELECT * FROM journals ORDER BY date DESC'),
     db.prepare('SELECT date, course FROM journal_favorites ORDER BY created_at'),
+    db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, course'),
   ]);
-  return { journals: journals.results.map(toJournal), favorites: favorites.results.map(f => `${f.date}::${f.course}`) };
+  return {
+    journals: journals.results.map(toJournal),
+    favorites: favorites.results.map(f => `${f.date}::${f.course}`),
+    findingsFavorites: findings.results.map(f => f.course),
+  };
 }
 
 const getRow = (db, date) => db.prepare('SELECT * FROM journals WHERE date = ?').bind(date).first();

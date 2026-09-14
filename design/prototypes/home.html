@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-18">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-19">
 </head>
 <body>
 
@@ -68,7 +68,7 @@
 
 <main class="shell">
 
-  <p class="prototype-note">디자인 프로토타입 — AI 정리는 아직 연결되지 않았고, 작성한 내용은 이 브라우저에만 저장됩니다.</p>
+  <p class="prototype-note">디자인 프로토타입 — AI 정리는 아직 연결되지 않았어요. 작성한 내용은 로그인하면 서버에, 로그인하지 않으면 이 브라우저에 저장돼요.</p>
 
   <div class="view view-journal" id="view-journal">
   <!-- 1. context: date, optional title, optional courses -->
@@ -332,7 +332,7 @@
       <header class="journal-head">
         <h1 class="journal-heading" id="findings-heading">Findings</h1>
       </header>
-      <p class="field-hint findings-hint">저널의 Finding 중 과목 태그를 단 내용만 과목별로 모아 보여줘요 — 이 브라우저에 저장된 것만.</p>
+      <p class="field-hint findings-hint">저널의 Finding 중 과목 태그를 단 내용만 과목별로 모아 보여줘요. 별표를 누르면 그 박스가 위로 올라와요.</p>
 
       <nav class="fi-filters findings-filters" id="findings-filters" aria-label="과목 필터"></nav>
 
@@ -364,9 +364,11 @@
   </div>
   <!-- 온라인 전환 1단계: 로그인. 데이터는 아직 이 브라우저에 저장된다(이후 단계에서 서버로 이전) -->
   <section class="drawer-account" aria-labelledby="account-heading">
+    <!-- 닉네임(로그인 상태만, auth.js): 더블클릭 또는 Enter로 수정 — 우상단 버튼 이름도 이 닉네임 -->
+    <p class="drawer-nickname" id="auth-nickname" tabindex="0" role="button" title="더블클릭해서 닉네임 수정" hidden></p>
     <h3 class="drawer-account-title" id="account-heading">계정</h3>
     <div id="auth-signed-out">
-      <p class="field-hint">로그인하면 데스크톱·노트북 어디서 열어도 같은 데이터를 쓸 수 있게 돼요. (데이터 이전은 준비 중)</p>
+      <p class="field-hint">로그인하면 데스크톱·노트북 어디서 열어도 같은 저널·Future Item·과제 현황을 쓸 수 있어요.</p>
       <div class="auth-google-btn" id="auth-google-btn"></div>
     </div>
     <div id="auth-signed-in" hidden>
@@ -427,10 +429,10 @@
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
 <script src="future.js?v=20260914-5"></script>
-<script src="auth.js?v=2"></script>
+<script src="auth.js?v=3"></script>
 <script src="future-sync.js?v=2"></script>
-<script src="journal-store.js?v=2"></script>
-<script src="journal.js?v=20260914-12"></script>
+<script src="journal-store.js?v=3"></script>
+<script src="journal.js?v=20260914-13"></script>
 <script src="assignment.js?v=9"></script>
 <script src="import-dialog.js?v=1"></script>
 </body>

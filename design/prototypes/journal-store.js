@@ -18,6 +18,7 @@
   const auth = window.PhiBrain.auth;
   const LOCAL_KEY = 'phi-brain:journal:';
   const LOCAL_FAV_KEY = 'phi-brain:journal-archive:favorites';
+  const LOCAL_FINDINGS_FAV_KEY = 'phi-brain:findings:favorites'; // starred Findings boxes (course keys, in starred order)
   const ls = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
@@ -37,6 +38,8 @@
     dates: () => ls.keys().filter(k => k.startsWith(LOCAL_KEY)).map(k => k.slice(LOCAL_KEY.length)),
     favorites: () => new Set(ls.get(LOCAL_FAV_KEY) || []),
     saveFavorites: s => ls.set(LOCAL_FAV_KEY, [...s]),
+    findingsFavorites: () => (Array.isArray(ls.get(LOCAL_FINDINGS_FAV_KEY)) ? ls.get(LOCAL_FINDINGS_FAV_KEY).filter(k => typeof k === 'string') : []),
+    saveFindingsFavorites: list => ls.set(LOCAL_FINDINGS_FAV_KEY, list),
   };
 
   // ---- server (signed in) ----
@@ -45,6 +48,7 @@
   let entries = new Map();            // date → { title, courses, html, savedAt, version|null }
   let tombstones = new Map();         // date → version of a delete not yet sent
   let favs = new Set();
+  let findingsFavs = [];              // starred Findings boxes, in starred order
   let pending = new Set();            // dates with unsent writes (entries or tombstones)
   const conflicts = new Map();        // date → server copy (null = deleted elsewhere)
   const inflight = new Set();
@@ -59,7 +63,7 @@
     clearTimeout(persistTimer);
     const k = cacheKey();
     if (!k || mode !== 'server') return;
-    ls.set(k, { entries: [...entries], tombstones: [...tombstones], favorites: [...favs], pending: [...pending] });
+    ls.set(k, { entries: [...entries], tombstones: [...tombstones], favorites: [...favs], findingsFavorites: findingsFavs, pending: [...pending] });
   }
   function persist() {
     clearTimeout(persistTimer);
@@ -71,6 +75,7 @@
     entries = new Map(c.entries || []);
     tombstones = new Map(c.tombstones || []);
     favs = new Set(c.favorites || []);
+    findingsFavs = Array.isArray(c.findingsFavorites) ? c.findingsFavorites : [];
     pending = new Set(c.pending || []);
   }
 
@@ -157,7 +162,7 @@
     let res;
     try { res = await auth.fetch('/api/journals'); } catch { offline = true; scheduleRetry(); emit('change', { reason: 'offline' }); return; }
     if (!res.ok || mode !== 'server') return;
-    const { journals, favorites } = await res.json();
+    const { journals, favorites, findingsFavorites } = await res.json();
     offline = false;
     const next = new Map(journals.map(j => [j.date, { title: j.title, courses: j.courses, html: j.html, savedAt: j.savedAt, version: j.version }]));
     // unsent local edits win on this device until they're sent (and conflict-checked)
@@ -167,6 +172,7 @@
     }
     entries = next;
     favs = new Set(favorites);
+    findingsFavs = Array.isArray(findingsFavorites) ? findingsFavorites : [];
     loaded = true;
     persist();
     emit('change', { reason: 'loaded' });
@@ -276,6 +282,30 @@
       },
     },
 
+    // ---- Findings 박스 즐겨찾기 (2026-09-14 사용자 요구사항): same place as the journals ----
+    findingsFavorites: {
+      all: () => (mode === 'local' ? local.findingsFavorites() : [...findingsFavs]),
+      toggle(course) {
+        if (mode === 'local') {
+          const list = local.findingsFavorites();
+          local.saveFindingsFavorites(list.includes(course) ? list.filter(k => k !== course) : [...list, course]);
+          return;
+        }
+        const on = !findingsFavs.includes(course);
+        findingsFavs = on ? [...findingsFavs, course] : findingsFavs.filter(k => k !== course); // new stars go last; starred order never shuffles
+        persist();
+        auth.fetch(`/api/findings/favorites/${encodeURIComponent(course)}`, { method: on ? 'PUT' : 'DELETE' })
+          .then(r => { if (!r.ok) throw new Error(); })
+          .catch(() => {
+            if (mode !== 'server') return;
+            findingsFavs = on ? findingsFavs.filter(k => k !== course) : [...findingsFavs, course];
+            persist();
+            emit('change', { reason: 'favorite' });
+            emit('notice', { type: 'favorite-failed' });
+          });
+      },
+    },
+
     // ---- 서버로 올리기: this browser's signed-out journals ----
     // → { upload: [date…] not on the server, conflicts: [date…] same date with different content }
     importCandidates() {
@@ -308,6 +338,10 @@
         } catch {
           total.failed.push(...chunk);
         }
+      }
+      // this browser's starred Findings boxes travel along (stars only add, never remove)
+      for (const course of local.findingsFavorites().filter(k => !findingsFavs.includes(k))) {
+        try { await auth.fetch(`/api/findings/favorites/${encodeURIComponent(course)}`, { method: 'PUT' }); } catch {}
       }
       await fetchServer();
       return total;

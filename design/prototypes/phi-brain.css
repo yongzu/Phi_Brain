@@ -65,7 +65,7 @@
 */
 .brand-word-wrap{height:25px;overflow:hidden;display:block}
 .brand-word{height:29.43px;width:auto;display:block;margin-top:-0.7px}
-.profile-trigger{margin-left:auto}
+.profile-trigger{margin-left:auto;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 닉네임이 들어가도 한 줄 */
 
 /* ---------- 3. Side nav ---------- */
 .app-body{display:flex;align-items:flex-start}
@@ -375,7 +375,7 @@
 .fi-check:hover{background:var(--fill)}
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
-.fi-text{flex:1;min-width:0;color:var(--ink);font-size:8pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* 8pt → 10pt (사용자 지시 2026-09-14) */
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* deadline: a small boxed badge on its own line, indented to sit under the
    text (checkbox width 10px + .fi-row-main gap 10px = 20px). No badge at all
@@ -567,6 +567,10 @@
 .drawer .drawer-account-title{margin:0 0 4px;font:inherit;font-weight:700;color:var(--ink)}
 .drawer .drawer-account .field-hint{margin:0 0 14px}
 .drawer .drawer-account-email{margin:0 0 10px;color:var(--ink)}
+/* 닉네임: 계정 제목 위, 볼드. 비어 있으면 회색 안내. 더블클릭·Enter로 같은 자리에서 입력 */
+.drawer .drawer-nickname{margin:0 0 16px;font-weight:700;color:var(--ink);cursor:text;word-break:break-all}
+.drawer .drawer-nickname.is-empty{font-weight:400;color:var(--gray)}
+.drawer .drawer-nickname-input{width:100%;font:inherit;font-weight:700;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:2px 6px;margin:-2px -6px}
 .auth-google-btn{min-height:32px}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */

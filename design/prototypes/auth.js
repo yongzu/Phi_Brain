@@ -19,6 +19,8 @@
   const SESSION_KEY = 'phi-brain:session';
   const SIGNED_OUT_KEY = 'phi-brain:signed-out'; // set by 로그아웃 — no automatic sign-in until the next manual one
   const RENEW_AFTER_MS = 24 * 3600 * 1000;
+  const NICKNAME_MAX = 20; // same cap as the server (worker/src/settings.js)
+  const nicknameKey = email => `phi-brain:nickname:${String(email).toLowerCase()}`;
   const ls = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
@@ -30,6 +32,7 @@
   const signedOutEl = $('#auth-signed-out'), signedInEl = $('#auth-signed-in');
   const emailEl = $('#auth-email'), buttonSlot = $('#auth-google-btn'), signOutBtn = $('#auth-signout');
   const trigger = $('#drawer-trigger');
+  const nicknameEl = $('#auth-nickname');
 
   const listeners = new Set();
   let session = (() => {
@@ -84,12 +87,86 @@
     return res;
   }
 
+  // ---- 닉네임 (사용자 요구사항 2026-09-14): 서버에 저장, 이 브라우저엔 바로 보여주기용 사본 ----
+  let nickname = '';
+  let editingNickname = false;
+  const cachedNickname = () => (session ? ls.get(nicknameKey(session.email)) || '' : '');
+  async function loadNickname() {
+    if (!session) return;
+    nickname = cachedNickname();
+    render();
+    try {
+      const res = await apiFetch('/api/settings');
+      if (!res.ok || !session) return;
+      const body = await res.json();
+      nickname = body.nickname || '';
+      nickname ? ls.set(nicknameKey(session.email), nickname) : ls.remove(nicknameKey(session.email));
+      render();
+    } catch { /* offline — the cached one stays */ }
+  }
+  async function saveNickname(next) {
+    const value = next.replace(/\s+/g, ' ').trim().slice(0, NICKNAME_MAX);
+    if (!session || value === nickname) { render(); return; }
+    const before = nickname;
+    nickname = value;
+    value ? ls.set(nicknameKey(session.email), value) : ls.remove(nicknameKey(session.email));
+    render();
+    try {
+      const res = await apiFetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: value }) });
+      if (!res.ok) throw new Error(String(res.status));
+    } catch {
+      if (!session) return;
+      nickname = before; // put the old one back so the screen doesn't claim what the server doesn't have
+      before ? ls.set(nicknameKey(session.email), before) : ls.remove(nicknameKey(session.email));
+      render();
+      toast('닉네임을 저장하지 못했어요', null, 'error');
+    }
+  }
+  function editNickname() {
+    if (!session || editingNickname) return;
+    editingNickname = true;
+    nicknameEl.classList.remove('is-empty');
+    nicknameEl.innerHTML = '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'drawer-nickname-input';
+    input.maxLength = NICKNAME_MAX;
+    input.value = nickname;
+    input.placeholder = '닉네임';
+    input.setAttribute('aria-label', `닉네임 — Enter 저장, Esc 취소 (최대 ${NICKNAME_MAX}자)`);
+    nicknameEl.append(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = save => {
+      if (done) return;
+      done = true;
+      editingNickname = false;
+      save ? saveNickname(input.value) : render();
+      nicknameEl.focus();
+    };
+    input.addEventListener('keydown', e => {
+      if (e.isComposing) return; // 한글 조합 중 Enter는 확정용
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); } // Esc closes the input, not the drawer
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+  nicknameEl.addEventListener('dblclick', editNickname);
+  nicknameEl.addEventListener('keydown', e => { if (e.target === nicknameEl && (e.key === 'Enter' || e.key === 'F2')) { e.preventDefault(); editNickname(); } });
+
   function render() {
     const inNow = !!session;
     signedOutEl.hidden = inNow;
     signedInEl.hidden = !inNow;
     emailEl.textContent = session?.email || '';
-    trigger.textContent = inNow ? '프로필' : '로그인';
+    trigger.textContent = inNow ? (nickname || '프로필') : '로그인';
+    nicknameEl.hidden = !inNow;
+    if (!editingNickname) {
+      nicknameEl.textContent = nickname || '닉네임을 입력해보세요';
+      nicknameEl.classList.toggle('is-empty', !nickname);
+      nicknameEl.setAttribute('aria-label', nickname ? `닉네임: ${nickname} — 더블클릭 또는 Enter로 수정` : '닉네임 입력 — 더블클릭 또는 Enter');
+    }
   }
 
   // GIS loads async from accounts.google.com — render the button once it's there
@@ -131,8 +208,11 @@
   }
 
   signOutBtn.addEventListener('click', signOut);
+  nickname = cachedNickname();
   render();
   mountGoogleButton();
+  if (session) loadNickname();
+  listeners.add(s => { nickname = ''; editingNickname = false; if (s) loadNickname(); else render(); });
 
   // a session that was valid at load can still be revoked server-side — renewing checks it too
   if (session) renewSession();

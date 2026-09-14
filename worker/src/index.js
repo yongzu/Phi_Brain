@@ -11,6 +11,7 @@ import { runSyncBatch, SyncError, DEFAULT_BATCH } from './assignment/sync.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
+import { settingsApi } from './settings.js';
 
 const allowedOrigins = env => (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -163,6 +164,10 @@ export default {
       if (url.pathname === '/api/session/refresh' && request.method === 'POST') {
         const { token, exp } = await signSession(env.SESSION_SECRET, { email: session.email });
         return json(200, { token, email: session.email, expiresAt: exp * 1000 });
+      }
+      if (url.pathname === '/api/settings' || url.pathname.startsWith('/api/findings/')) {
+        const res = await settingsApi(request, env, url, json);
+        if (res) return res;
       }
       if (url.pathname === '/api/future') {
         const res = await futureApi(request, env, url, json);

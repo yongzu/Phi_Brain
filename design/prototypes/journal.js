@@ -944,10 +944,13 @@
         <div class="editor archive-preview">${e.html}</div>
         <span class="findings-date">${esc(monthDay(e.date))}</span>
       </li>`).join('');
+    const isFav = store.findingsFavorites.all().includes(key);
+    const plain = key === 'general' ? 'General' : key;
     return `<section class="fi-box" data-box="${key}">
       <header class="fi-box-head">
         <h2 class="fi-box-title">${label}</h2>
         <span class="resume-count" aria-label="${entries.length}개">${entries.length}</span>
+        <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
       ${entries.length ? `<ul class="findings-rows">${rows}</ul>` : '<p class="fi-box-empty">아직 없어요.</p>'}
     </section>`;
@@ -962,12 +965,33 @@
     findingsFiltersEl.innerHTML = pill('all', 'All', total)
       + findingsKeys(box).map(k => pill(k, k === 'general' ? 'General' : k, box.get(k).length)).join('');
   }
+  // 즐겨찾기(사용자 요구사항 2026-09-14): Future Item 박스와 같은 별표. All에서는 별표한 박스를 "즐겨찾기" 줄에
+  // 별표한 순서대로 먼저, 나머지는 "과목" 줄에. 과목 필터를 고른 상태에서는 고른 순서 그대로(별표만 표시).
   function renderFindingsList(box) {
     const keys = findingsKeys(box);
-    findingsListEl.innerHTML = !keys.length
-      ? '<p class="fi-box-empty">아직 없어요. 저널의 Finding 아래에 과목 태그를 달면 여기에 모여요.</p>'
-      : (findingsFilters.length ? findingsFilters : keys).map(k => findingsBoxHTML(k, box)).join('');
+    if (!keys.length) {
+      findingsListEl.innerHTML = '<p class="fi-box-empty">아직 없어요. 저널의 Finding 아래에 과목 태그를 달면 여기에 모여요.</p>';
+      return;
+    }
+    if (findingsFilters.length) {
+      findingsListEl.innerHTML = findingsFilters.map(k => findingsBoxHTML(k, box)).join('');
+      return;
+    }
+    const starred = store.findingsFavorites.all().filter(k => keys.includes(k));
+    const rest = keys.filter(k => !starred.includes(k));
+    findingsListEl.innerHTML = starred.length
+      ? `<p class="fi-section-label">즐겨찾기</p>${starred.map(k => findingsBoxHTML(k, box)).join('')}`
+        + (rest.length ? `<p class="fi-section-label">과목</p>${rest.map(k => findingsBoxHTML(k, box)).join('')}` : '')
+      : rest.map(k => findingsBoxHTML(k, box)).join('');
   }
+  findingsListEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-findings-fav]');
+    if (!b) return;
+    const key = b.dataset.findingsFav;
+    store.findingsFavorites.toggle(key);
+    renderFindingsList(findingsByBox());
+    findingsListEl.querySelector(`[data-findings-fav="${key}"]`)?.focus();
+  });
   // 화면 순서로 정렬 + 내용 없는 과목(딥링크로 들어온 빈 과목 포함)은 뺀다
   function applyFindingsFilters(fs, box) {
     findingsFilters = findingsKeys(box).filter(k => fs.includes(k));
