@@ -1043,6 +1043,9 @@
     }
   });
 
+  // 지난 할 일 = Future Item — redraw when that board arrives from the server or switches with sign-in/out
+  document.addEventListener('phibrain:future-changed', renderResume);
+
   addEventListener('pagehide', () => save());
   load(today);
 })();

@@ -501,7 +501,7 @@
 .cm-confirm{margin:0;padding:5px 10px 7px;color:var(--ink);white-space:normal}
 .cm-item.cm-danger{color:var(--ink);font-weight:700}
 .archive-hint{margin:6px 0 16px}
-.archive-hint .pill{margin-left:6px;vertical-align:middle}
+.archive-hint .pill,.fi-sync-hint .pill{margin-left:6px;vertical-align:middle}
 #archive-filters{margin-bottom:10px}
 /* each row is its own <details> dropdown, not nested in a section-level one —
    drop resume-list's accordion indent and stretch rows to the full width so

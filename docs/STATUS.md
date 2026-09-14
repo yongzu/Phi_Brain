@@ -7,6 +7,36 @@
 
 ## 현재 단계
 
+### 온라인 전환 4단계: Future Item 서버 저장(단순한 방식) + 자동 로그인 (2026-09-14, 사용자 지시 · Claude Code) — **구현·로컬 검증 완료, 배포 대기**
+
+**사용자 결정:** Future Item은 항목 단위 병합 대신 **보드 전체를 한 문서로 저장하는 단순한 방식**(동시 수정 시 물어봄). 자동 로그인도 함께.
+
+**서버:** `migrations/0003_future_items.sql`(`future_state` 1행: data JSON·version), `src/future.js` — `GET /api/future`(없으면 `{data:null, version:0}`),
+`PUT /api/future`(baseVersion 다르면 409 + 서버 사본, force로만 덮어씀, UPDATE `WHERE version = ?`, 형태 검사·잘못된 항목 제거·1MB 초과 413).
+`POST /api/session/refresh`(유효한 세션 → 새 30일 토큰). 테스트 `test/future.test.js` 5개 → **Worker 65/65**.
+
+**프런트:**
+- `future.js`(`?v=20260914-5`): 저장 경로만 교체 가능하게 — `loadState`에서 `normalizeBoard` 분리, `commit()`이 `backend.save` 사용,
+  `PhiBrain.futureStore`(`snapshot`/`localBoard`/`replace`/`useBackend`), 교체 시 `phibrain:future-changed` 이벤트(journal.js "지난 할 일" 다시 그림).
+  로그아웃 동작·기존 키 `phi-brain:future:v2`는 그대로.
+- `future-sync.js`(신규, auth.js 뒤): 로그인 = 서버 보드(계정별 캐시 `phi-brain:future-sync:v1:<email>`로 즉시 표시 후 GET), 모든 commit을 최신 보드
+  통째로 한 번에 하나씩 PUT, 끊기면 20초 뒤·online 때 재시도, 409인데 서버 사본이 같으면 저장된 것으로(3단계와 같은 대비), 다르면 `#fi-sync-hint`에 선택지.
+  "서버로 올리기" = 이 브라우저 보드 중 서버에 없는 id의 항목·박스·즐겨찾기·순서를 합쳐 저장(브라우저 원본은 그대로).
+- `auth.js`(`?v=2`): 세션이 하루 넘었으면 로드 때 `/api/session/refresh`로 30일 연장(=기존 `/api/me` 확인 대체), GIS `auto_select`·`use_fedcm_for_prompt` +
+  세션 없고 `phi-brain:signed-out` 표시 없으면 `google.accounts.id.prompt()`(자동 로그인), 로그인 도중 세션이 풀리면(401) 한 번 더 시도.
+  로그아웃 누르면 표시를 남겨 자동 로그인 안 함, 다음 직접 로그인 때 지움. 자동으로 들어오면 토스트 "○○로 자동 로그인했어요".
+- `home.html` `#fi-sync-hint`, 스크립트 순서 future → auth → future-sync → journal-store → journal, `phi-brain.css?v=20260914-17`, `journal.js?v=20260914-11`.
+- `privacy.html`: Future Item 서버 저장, 세션 자동 연장·자동 로그인 사실 반영.
+
+**검증(로컬 wrangler dev + 로컬 D1, 가짜 세션):** 로그아웃에서 항목 2개 추가 → 브라우저 저장·안내 문구. 3일 된 세션으로 새로고침 → 토큰 교체·만료 30일 후,
+서버 보드 비어 있음 + 토스트·안내 "이 브라우저에만 있는 Future Item 2개" → 올리기 → 서버 v1에 2개·브라우저 원본 유지·안내 숨김 → 로그인 상태에서 추가 → 서버 v2.
+다른 기기 흉내(API로 A 수정) 후 D 추가 → 충돌 안내 + pill 2개 → 다른 기기 내용 → A 수정본·D 없음·v3. 다시 충돌 → 이 기기 내용 → 서버 v5에 F 포함, 대기 없음.
+Journaling "지난 할 일"에 서버 항목 표시. 로그아웃 → 브라우저 보드(A·B)로 복귀, 표시 저장, prompt 호출 0. 서버에서 거부되는 세션으로 새로고침 → 401 → 로그아웃 상태 →
+Google 자동 로그인 시도 확인(콘솔 "Not signed in with the identity provider" — 테스트 브라우저엔 Google 계정이 없어서). **실제 Google 계정 자동 로그인은 배포 후 사용자 확인 필요.**
+참고: 로그인 직후 저널·Future Item 가져오기 토스트가 동시에 뜨면 나중 것만 보임(토스트가 하나) — 각 화면의 안내 문구에는 계속 남음.
+
+**남은 일:** 원격 D1 `0003` → 배포 → push. 사용자: 기기마다 Future Item "서버로 올리기", 자동 로그인 체감 확인.
+
 ### Archive 펼친 본문 여백 10px · 빈 저널 저장 안 함 (2026-09-14, 사용자 지시 · Claude Code)
 
 - `phi-brain.css`(`?v=20260914-16`): `.archive-entry .accordion-content` 위 패딩 0 → 10px(펼친 본문과 제목 줄 사이).

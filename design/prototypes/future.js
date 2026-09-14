@@ -2,8 +2,11 @@
   Future Items — concrete actions (Activity), managed like a to-do list.
   Flow: 빠르게 작성 → 과목별 분류 → 실행 → 완료.
 
-  - Saved in this browser's localStorage only (key phi-brain:future:v2).
-    There is no server, account or cross-device sync yet.
+  - Signed out: saved in this browser's localStorage (key phi-brain:future:v2).
+    Signed in: the whole board is kept on the server as one versioned
+    document (future-sync.js, 온라인 전환 4단계) — this file only swaps where
+    commit() saves to (futureStore.useBackend) and accepts a board from outside
+    (futureStore.replace).
   - One membership per item: a course, a user-added custom box, General, or
     임시 (unassigned). General = "decided: belongs to no course"; 임시 = "not
     decided yet". They are separate scopes, not fake courses.
@@ -105,27 +108,32 @@
     ? [...new Map(list.filter(b => b && typeof b.id === 'string' && typeof b.name === 'string' && b.name.trim())
         .map(b => [b.id, { id: b.id, name: b.name }])).values()]
     : [];
+  // a board from anywhere (this browser, the server, an import) → a board this file can trust
+  function normalizeBoard(s) {
+    if (s && Array.isArray(s.items)) {
+      const customBoxes = saneCustomBoxes(s.customBoxes);
+      // BOX_KEYS hasn't been refreshed with these customBoxes yet (that
+      // happens right after the board is swapped in) — validate against a local
+      // key set instead of the shared isKey()/BOX_KEYS to avoid the order dependency.
+      const knownKeys = new Set(['general', ...COURSES.map(c => `course:${c[0]}`), ...customBoxes.map(b => `custom:${b.id}`)]);
+      const saneWithKeys = item => {
+        const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) };
+        const key = normalized.scope === 'course' ? `course:${normalized.courseId}` : normalized.scope === 'custom' ? `custom:${normalized.customId}` : normalized.scope;
+        return (key === 'unassigned' || knownKeys.has(key)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null };
+      };
+      return {
+        items: s.items.map(saneWithKeys),
+        favorites: [...new Set((s.favorites || []).map(k => k === 'course:EAI' ? 'course:EWA' : k))].filter(k => knownKeys.has(k)),
+        customBoxes,
+        boxOrder: Array.isArray(s.boxOrder) ? s.boxOrder.filter(k => typeof k === 'string') : [],
+      };
+    }
+    return { items: [], favorites: [], customBoxes: [], boxOrder: [] };
+  }
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY));
-      if (s && Array.isArray(s.items)) {
-        const customBoxes = saneCustomBoxes(s.customBoxes);
-        // BOX_KEYS hasn't been refreshed with these customBoxes yet (that
-        // happens right after loadState returns) — validate against a local
-        // key set instead of the shared isKey()/BOX_KEYS to avoid the order dependency.
-        const knownKeys = new Set(['general', ...COURSES.map(c => `course:${c[0]}`), ...customBoxes.map(b => `custom:${b.id}`)]);
-        const saneWithKeys = item => {
-          const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) };
-          const key = normalized.scope === 'course' ? `course:${normalized.courseId}` : normalized.scope === 'custom' ? `custom:${normalized.customId}` : normalized.scope;
-          return (key === 'unassigned' || knownKeys.has(key)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null };
-        };
-        return {
-          items: s.items.map(saneWithKeys),
-          favorites: [...new Set((s.favorites || []).map(k => k === 'course:EAI' ? 'course:EWA' : k))].filter(k => knownKeys.has(k)),
-          customBoxes,
-          boxOrder: Array.isArray(s.boxOrder) ? s.boxOrder.filter(k => typeof k === 'string') : [],
-        };
-      }
+      if (s && Array.isArray(s.items)) return normalizeBoard(s);
     } catch { /* fall through to migration */ }
     // v1 → v2. Each v1 item already had exactly one course or none, so nothing is split or dropped.
     let v1 = [];
@@ -148,6 +156,8 @@
   }
   let state = loadState();
   refreshBoxKeys();
+  // where commit() saves: this browser by default; future-sync.js swaps in the server while signed in
+  let backend = { save: persistState };
   const find = id => state.items.find(i => i.id === id);
   // the course/custom grid's display order: the user's saved preference, with
   // any box that isn't in it yet (a course, or a freshly-added custom box)
@@ -167,7 +177,7 @@
   function commit(fn, { focus, retry } = {}) {
     const before = clone(state);
     const value = fn(state);
-    if (persistState(state)) { render(focus); return { ok: true, value }; }
+    if (backend.save(state)) { render(focus); return { ok: true, value }; }
     state = before;
     render(focus);
     toast('저장하지 못했어요. 바꾼 내용을 되돌렸어요.', { label: '다시 시도', run: retry || (() => commit(fn, { focus })) }, 'error');
@@ -1192,7 +1202,19 @@
   }
   navTabs.forEach(t => t.addEventListener('click', () => show(t.dataset.view)));
 
-  window.PhiBrain = { COURSES, ALIASES, future, show, getCurrentView: () => currentView, ui: { popIn, popOut, toast } };
+  // for future-sync.js (loads after auth.js): read the board, replace it, choose where saves go
+  const futureStore = {
+    snapshot: () => ({ items: clone(state.items), favorites: [...state.favorites], customBoxes: clone(state.customBoxes), boxOrder: [...state.boxOrder] }),
+    localBoard: loadState, // this browser's own board (what "서버로 올리기" uploads)
+    replace(board) {
+      state = normalizeBoard(board);
+      refreshBoxKeys();
+      render();
+      document.dispatchEvent(new CustomEvent('phibrain:future-changed'));
+    },
+    useBackend(b) { backend = b || { save: persistState }; },
+  };
+  window.PhiBrain = { COURSES, ALIASES, future, futureStore, show, getCurrentView: () => currentView, ui: { popIn, popOut, toast } };
   // the hash is the address of a view/filter: first load, an edited URL, back/forward
   // (our own replaceState calls don't fire hashchange, so this never loops)
   const route = () => {

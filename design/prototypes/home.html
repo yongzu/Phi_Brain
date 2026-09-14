@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-16">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-17">
 </head>
 <body>
 
@@ -155,6 +155,7 @@
         <h1 class="journal-heading" id="future-heading">Future Item</h1>
       </header>
       <p class="field-hint future-hint">실행할 행동을 적고, 과목별로 나눠 실천하고, 완료로 옮겨요. 과제 제출 상태(Assignment Manage)와는 따로 관리돼요.</p>
+      <p class="field-hint fi-sync-hint" id="fi-sync-hint" aria-live="polite" hidden></p>
 
       <form class="fi-composer" id="fi-composer" autocomplete="off">
         <div class="course-chips fi-scope-chips" id="fi-scope-chips" role="radiogroup" aria-label="소속 선택"></div>
@@ -414,10 +415,11 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260914-4"></script>
-<script src="auth.js?v=1"></script>
+<script src="future.js?v=20260914-5"></script>
+<script src="auth.js?v=2"></script>
+<script src="future-sync.js?v=1"></script>
 <script src="journal-store.js?v=2"></script>
-<script src="journal.js?v=20260914-10"></script>
+<script src="journal.js?v=20260914-11"></script>
 <script src="assignment.js?v=9"></script>
 </body>
 </html>
