@@ -440,7 +440,7 @@
    so it gets a wider cap of its own; Journaling and Journal Archive share
    the same 900px cap (2026-09-13). */
 .shell:has(.view-journal:not([hidden])){max-width:900px}
-.shell:has(.view-assignment:not([hidden])){max-width:920px}
+.shell:has(.view-assignment:not([hidden])){max-width:1200px} /* 920px → 1200px(사용자 지시 2026-09-14: 과제 내용 열이 생겨 넓힘) */
 .shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
 .shell:has(.view-findings:not([hidden])){max-width:1500px}
@@ -466,7 +466,7 @@
 .am-table th:not(:first-child){padding-left:calc(var(--tab-pad-x) * 2)}
 .am-table td{padding:8px var(--tab-pad-x);border-bottom:1px solid var(--line);vertical-align:middle}
 .am-table tr:last-child td{border-bottom:none}
-.am-course-name{color:var(--ink);padding:4px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
+.am-course-name{white-space:nowrap;color:var(--ink);padding:4px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;transition:background 140ms}
 .am-course-name:hover{background:var(--fill)}
 
 .am-cell{display:inline-flex;align-items:center;gap:6px}
@@ -489,7 +489,7 @@
 .am-note-btn:hover{background:var(--fill);color:var(--ink)}
 .am-note-btn.is-set{color:var(--ink)}
 /* Future Item 마감 배지(.fi-due)와 같은 상자 — 표 칸에서는 오른쪽 끝, 누를 수 없음 */
-.am-note-due{margin-left:0;flex:0 0 auto;cursor:default} /* "자세히보기" 바로 옆(칸 gap 6px) — 예전엔 칸 오른쪽 끝(사용자 지시로 좁힘) */
+.am-note-due{margin-left:0;flex:0 0 auto;align-self:center;cursor:default;font-size:1em} /* .fi-due의 align-self:flex-start를 되돌려 "자세히보기"와 글자 높이를 맞춤 */ /* 글자 크기만 "자세히보기"와 같게, 패딩(2px 6px)은 .fi-due 그대로 */ /* "자세히보기" 바로 옆(칸 gap 6px) — 예전엔 칸 오른쪽 끝(사용자 지시로 좁힘) */
 .am-note-due.is-overdue{color:var(--ink)}
 .am-detail.is-note{width:440px}
 .am-note-head{display:flex;align-items:flex-start;gap:6px;margin:0 22px 8px 0}

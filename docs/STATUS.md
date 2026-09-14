@@ -7,6 +7,14 @@
 
 ## 현재 단계
 
+### Assignment Manage: 본문 폭 1200px · 과목명 한 줄 · 마감 글자 크기·높이 맞춤 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260914-24`: `.shell:has(.view-assignment…){max-width:920px → 1200px}`, `.am-course-name{white-space:nowrap}`,
+  `.am-note-due{font-size:1em; align-self:center}`(패딩은 `.fi-due` 2px 6px 그대로).
+- 검증 중 발견: 처음엔 글자 크기만 맞춰도 글자 시작 높이가 2px 어긋났고 정렬 방식을 바꿔도 그대로 → 재사용한 `.fi-due`의 `align-self:flex-start`가 원인. 이 탭에서만 center로.
+- 검증(로컬, 1440px, 가짜 세션·가짜 공지): 본문 폭 1125px(좌우 패딩 제외), 과목명 12개 모두 한 줄(높이 27px), "자세히보기"·마감 글자 13.33px, 배지 패딩 2px 6px,
+  글자 위 441.8px / 아래 457.8px로 두 요소 동일, 간격 6px, 행 높이 변화 없음(44px). 프런트만 바뀌어 Worker 배포 없음.
+
 ### Assignment Manage: 제출 확인 칸 검정 · 마감 배지 간격 좁힘 (2026-09-14, 사용자 지시 · Claude Code)
 
 - `assignment.js?v=14` `confirmedClass()`: 상태가 `confirmed_mail`("제출 확인")·`confirmed_manual`("직접 확인")이면 `.is-confirmed`(버튼·읽기 전용 라벨 모두).
