@@ -461,10 +461,11 @@
    창이 좁아 28%가 모자라면 이 폭을 지키고 나머지 열이 줄어든다(사용자 지시 2026-09-14: 미확인 줄과 겹침 수정) */
 .am-table th:first-child,.am-table td:first-child{width:280px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로 */
 /* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
-/* Assignment·Self-Feedback 같은 폭 22% — 본문 1064px(표 1000px)에서 280 / 220 / 280 / 220 */
-.am-table th:nth-child(2),.am-table td:nth-child(2),.am-table th:nth-child(4),.am-table td:nth-child(4){width:22%}
+/* 과제 내용 열을 40px 왼쪽으로(사용자 지시 2026-09-14): Assignment 22% → 18%, 과제 내용 280 → 320px, Self-Feedback은 남는 폭(자동) —
+   본문 1064px(표 1000px)에서 280 / 180 / 320 / 220으로 Self-Feedback 시작점은 그대로 */
+.am-table th:nth-child(2),.am-table td:nth-child(2){width:18%}
 /* 과제 내용 열은 "자세히보기 + 지각 마감 9월20일 23:59"가 한 줄에 들어가는 고정 폭 */
-.am-table th:nth-child(3),.am-table td:nth-child(3){width:280px} /* 270 → 280px: Self-Feedback 조금 오른쪽으로(사용자 지시 2026-09-14) */
+.am-table th:nth-child(3),.am-table td:nth-child(3){width:320px}
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
 /* the status button carries its own left padding (an extra --tab-pad-x) so its
    dot sits one --tab-pad-x further right than a plain header — match it here */
@@ -473,7 +474,7 @@
 /* 창이 좁아 네 열이 다 안 들어가면 열을 짜부라뜨리지 않고 표만 가로로 스크롤(과목명 280px + 상태 2열 + 과제 내용) — 640px 이하는 아래 세로 쌓기 */
 @media (min-width:641px){
   .view-assignment section{overflow-x:auto}
-  .am-table{min-width:780px}
+  .am-table{min-width:900px} /* 이보다 좁으면 Assignment·Self-Feedback의 "제출 확인 ↗"(약 136px)가 안 들어가 표만 가로 스크롤 */
 }
 .am-table td{padding:8px var(--tab-pad-x);border-bottom:1px solid var(--line);vertical-align:middle}
 .am-table tr:last-child td{border-bottom:none}

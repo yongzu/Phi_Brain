@@ -1,11 +1,17 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (프로필 서랍 속도·흐림 · Assignment 표 폭) / Claude Code
+최종 갱신: 2026-09-14 (Assignment Manage 과제 내용 열 40px 왼쪽) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 과제 내용 열 40px 왼쪽으로 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260914-32`: Assignment 22% → 18%, 과제 내용 280 → 320px, Self-Feedback 폭 지정 없음(남는 폭). 본문 1064px(표 1000px)에서 280/180/320/220 —
+  과제 내용 시작점 40px 왼쪽, Self-Feedback 시작점은 그대로. 641px 이상 표 최소 폭 780 → 900px(더 좁으면 표만 가로 스크롤).
+- 검증(로컬, 읽기 전용 표): 1680px 창 280/180/320/220·스크롤 없음·"제출 확인 ↗" 칸 안, 1280px 창 280/162/320/139·스크롤 없음·Assignment/Self-Feedback 내용이 칸 안(여유 30/12px).
 
 ### 프로필 서랍 더 빠르게·흐림 약하게 · Assignment Manage 표 폭 맞춤 (2026-09-14, 사용자 지시 · Claude Code)
 
