@@ -458,6 +458,11 @@
 
   // ---- custom boxes (과목 섹션에 박스 추가) ----
   function addCustomBox(name) {
+    // Enter commits → render() removes the focused input → its focusout calls
+    // this again (still connected mid-removal); without this guard that second
+    // call saved a duplicate box that only showed up on the next render.
+    // Also stops Esc (cancelAddBox) from turning into an add the same way.
+    if (!addingBox) return;
     name = name.trim();
     addingBox = false;
     if (!name) { render(); return; }
