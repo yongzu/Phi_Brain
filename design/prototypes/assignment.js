@@ -175,13 +175,15 @@
     const overdue = pastDue && (status === 'unconfirmed' || status === 'conflict');
     return `<span class="fi-due am-note-due${overdue ? ' is-overdue' : ''}">${late ? '지각 마감' : '마감'} ${notice.dueLabel(late ? note.lateDueAt : note.dueAt)}</span>`;
   }
+  // 칸 글자는 늘 "자세히보기"(사용자 지시 2026-09-14 — 저장 후에도 제목 미리보기 없이 고정).
+  // 저장 전은 회색, 저장 후는 검정 — 채워졌는지는 글자색과 마감 배지로만 구분한다.
   function renderNoteCell(row) {
     if (row.note === undefined) { // read-only file mode: nothing stored, nothing to open
-      return `<td><span class="am-note-cell"><button type="button" class="am-note-btn" data-note-login>과제 내용</button></span></td>`;
+      return `<td><span class="am-note-cell"><button type="button" class="am-note-btn" data-note-login>자세히보기</button></span></td>`;
     }
-    const title = row.note ? (notice.parseNotice(row.note.raw).title || '과제 내용') : '과제 내용';
+    const label = row.note ? `${row.code} 과제 내용 보기` : `${row.code} 과제 공지 붙여넣기`;
     return `<td><span class="am-note-cell">
-      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" title="${esc(row.note ? title : '과제 공지 붙여넣기')}">${esc(title)}</button>
+      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" aria-label="${esc(label)}">자세히보기</button>
       ${dueBadge(row.note, row.assignment.status)}
     </span></td>`;
   }

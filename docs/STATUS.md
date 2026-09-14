@@ -7,6 +7,13 @@
 
 ## 현재 단계
 
+### Assignment Manage 과제 내용 칸 글자 "자세히보기"로 고정 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `assignment.js?v=13` `renderNoteCell`: 저장 전·후·읽기 전용 모두 칸 글자 "자세히보기"(저장 후 제목 한 줄 표시 제거). 저장 전 회색·저장 후 검정(`.is-set`)과 마감 배지는 그대로,
+  `aria-label` "<과목> 과제 공지 붙여넣기 / 과제 내용 보기". 팝업 안 제목·정리 보기는 변경 없음.
+- 참고: 작업 시작 시 `home.html`에 커밋 안 된 `assignment.js?v=12` 변경(코드 변경 없이 버전만)이 있어 v13으로 이어서 올림.
+- 검증(로컬, 가짜 세션·가짜 공지 PC 2주차): AL "자세히보기"(회색·배지 없음), PC "자세히보기"(검정)·"마감 9월 19일 23:59". 프런트만 바뀌어 Worker 배포 없음.
+
 ### Assignment Manage 팝업 밖 클릭으로 닫기 (2026-09-14, 사용자 지시 · Claude Code)
 
 - `assignment.js?v=11`: `document` `pointerdown` — 팝업이 열려 있고 누른 곳이 팝업·토스트·팝업을 연 칸이 아니면 `closeDetail()`.
