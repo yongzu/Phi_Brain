@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-20">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-21">
 </head>
 <body>
 
@@ -314,6 +314,11 @@
              내용만 뽑아 카드로 보여준다(둘 중 하나만 항상 보임, journal.js가 토글) -->
         <ul class="resume-list archive-list" id="archive-list"></ul>
         <div class="archive-cards" id="archive-cards" hidden></div>
+        <!-- All: 별표한 (날짜, 과목) 카드를 목록 아래 10px 띄워 모아 보여준다(사용자 지시 2026-09-14) -->
+        <section class="archive-favs" id="archive-favs" aria-label="즐겨찾기" hidden>
+          <p class="fi-section-label">즐겨찾기</p>
+          <div class="archive-cards" id="archive-fav-cards"></div>
+        </section>
       </section>
     </div>
     <!-- "수정하기"를 누르면 Journaling의 .journal 작성 섹션이 통째로 여기로
@@ -432,7 +437,7 @@
 <script src="auth.js?v=3"></script>
 <script src="future-sync.js?v=2"></script>
 <script src="journal-store.js?v=3"></script>
-<script src="journal.js?v=20260914-13"></script>
+<script src="journal.js?v=20260914-14"></script>
 <script src="assignment.js?v=9"></script>
 <script src="import-dialog.js?v=1"></script>
 </body>

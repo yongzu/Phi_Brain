@@ -18,6 +18,7 @@
   const heading = $('#journal-heading'), status = $('#save-status'), organize = $('#organize');
   const chipsEl = $('#course-chips');
   const archiveFiltersEl = $('#archive-filters'), archiveListEl = $('#archive-list'), archiveCardsEl = $('#archive-cards');
+  const archiveFavsEl = $('#archive-favs'), archiveFavCardsEl = $('#archive-fav-cards');
   // the whole composer moves into #archive-compose-slot when editing from
   // Journal Archive, then back here (its original spot) when done
   const journalSection = document.querySelector('.journal'), viewJournal = $('#view-journal');
@@ -700,6 +701,20 @@
       renderArchiveList(archiveEntries());
     }));
   }
+  // All 목록 아래 즐겨찾기 묶음(사용자 지시 2026-09-14): 별표한 (날짜, 과목) 카드를 최신 날짜 → 과목 순으로,
+  // 과목이 여럿 섞이므로 카드 메타에 과목을 붙인다. 별표를 끄면 여기서 바로 빠진다. 없으면 묶음째 숨김.
+  function renderArchiveFavorites(entries) {
+    const favSet = favorites.all();
+    const byDate = new Map(entries.map(e => [e.date, e]));
+    const cards = [...favSet].map(k => {
+      const [date, course] = k.split('::');
+      const e = byDate.get(date);
+      return e && e.courses.includes(course) ? { e, course } : null;
+    }).filter(Boolean).sort((a, b) => b.e.date.localeCompare(a.e.date) || ARCHIVE_KEYS.indexOf(a.course) - ARCHIVE_KEYS.indexOf(b.course));
+    archiveFavsEl.hidden = !cards.length;
+    archiveFavCardsEl.innerHTML = cards.map(({ e, course }) => archiveCardHTML(e, course, favSet, true)).join('');
+    wireArchiveMoreButtons(archiveFavCardsEl);
+  }
   // All: 기존 목록. 과목 필터(하나 이상): 고른 과목이 들어간 (날짜, 과목)마다 그 과목
   // 내용만 뽑은 카드 그리드 — 둘 중 하나만 보이도록 archiveListEl/archiveCardsEl을 토글
   function renderArchiveList(entries) {
@@ -708,12 +723,14 @@
     if (!archiveFilters.length) {
       archiveCardsEl.hidden = true;
       archiveListEl.hidden = false;
+      renderArchiveFavorites(entries);
       if (!entries.length) { archiveListEl.innerHTML = '<li class="archive-empty">아직 쓴 저널이 없어요</li>'; return; }
       archiveListEl.innerHTML = entries.map(archiveRowHTML).join('');
       archiveListEl.querySelectorAll('.archive-entry').forEach(d => window.StyleKit?.createAccordion(d));
       wireArchiveMoreButtons(archiveListEl);
       return;
     }
+    archiveFavsEl.hidden = true;
     archiveListEl.hidden = true;
     archiveCardsEl.hidden = false;
     // 카드 한 장 = (날짜, 과목). 정렬: 즐겨찾기 먼저 → 최신 날짜 → 같은 날은 과목 순서

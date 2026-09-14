@@ -7,6 +7,14 @@
 
 ## 현재 단계
 
+### Journal Archive: All 목록 아래 즐겨찾기 묶음 (2026-09-14, 사용자 지시 · Claude Code)
+
+- 해석이 두 가지라 질문 → 사용자 선택: "All 목록 아래에 즐겨찾기 묶음"(과목 필터 카드 화면은 변경 없음).
+- `home.html` `#archive-favs`(라벨 + `#archive-fav-cards`), `phi-brain.css?v=20260914-21` `.archive-favs{margin-top:10px}`,
+  `journal.js?v=20260914-14` `renderArchiveFavorites()` — All일 때만, 저장된 즐겨찾기 키 중 저널·과목이 실제로 있는 것만 카드로(최신 날짜 → 과목 순, 과목 표시), 없으면 숨김.
+- 검증(로컬, 로그아웃, 가짜 저널 3개·즐겨찾기 2개): 목록 3행 아래 간격 10px·카드 2장(12일 BI, 10일 EWA), 별표 끄면 즉시 빠짐·전부 끄면 묶음 숨김,
+  과목 필터(BI)에서는 묶음 숨김, All로 돌아오면 다시 표시. 스크린샷 확인. 프런트만 바뀌어 Worker 배포 없음.
+
 ### Future Item 순서 번호 · 수정칸 10pt (2026-09-14, 사용자 지시 · Claude Code)
 
 - `future.js`(`?v=20260914-6`) 행에 `<span class="fi-num" aria-hidden="true">` 추가(스크린리더는 목록 순서로 충분해 번호는 숨김).
