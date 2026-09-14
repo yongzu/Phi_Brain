@@ -96,6 +96,6 @@ test('the tidied view: sections as headings, nested lists, links, nothing unesca
 });
 
 test('labels match Future Item\'s due badge wording', () => {
-  assert.equal(dueLabel('2026-09-20T23:59'), '9월 20일 23:59');
-  assert.equal(dueLabelWithDow('2026-09-15T23:59'), '9월 15일(화) 23:59');
+  assert.equal(dueLabel('2026-09-20T23:59'), '9월20일 23:59');
+  assert.equal(dueLabelWithDow('2026-09-15T23:59'), '9월15일(화) 23:59');
 });

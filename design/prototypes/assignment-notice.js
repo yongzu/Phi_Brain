@@ -151,12 +151,12 @@
     if (!at) return '';
     const [d, t] = at.split('T');
     const [, m, day] = d.split('-').map(Number);
-    return `${m}월 ${day}일${t ? ` ${t.slice(0, 5)}` : ''}`;
+    return `${m}월${day}일${t ? ` ${t.slice(0, 5)}` : ''}`; // 9월14일 붙여쓰기(사용자 지시 2026-09-14)
   };
   const dueLabelWithDow = at => {
     if (!at) return '';
     const [y, m, d] = at.slice(0, 10).split('-').map(Number);
-    return `${m}월 ${d}일(${DOW[new Date(y, m - 1, d).getDay()]})${at.length > 10 ? ` ${at.slice(11, 16)}` : ''}`;
+    return `${m}월${d}일(${DOW[new Date(y, m - 1, d).getDay()]})${at.length > 10 ? ` ${at.slice(11, 16)}` : ''}`;
   };
 
   return { parseNotice, renderNotice, dueLabel, dueLabelWithDow, findTitle, findWeek, findCourse, MAX_LENGTH: 20000 };

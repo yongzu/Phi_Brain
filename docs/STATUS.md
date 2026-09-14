@@ -1,11 +1,23 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (프로필 서랍: 닉네임 위치 · 계정 한 줄 · 링크 박스) / Claude Code
+최종 갱신: 2026-09-14 (Assignment Manage: Self-Feedback 위치 · 마감 붙여쓰기 · 링크 메뉴) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: Self-Feedback 왼쪽으로 · 마감 날짜 붙여쓰기 · 제출 확인 칸 링크 메뉴 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260914-30`: 과제 내용 열을 자동 폭 → 고정 270px("자세히보기 + 지각 마감 9월20일 23:59" 한 줄), 남는 폭은 Self-Feedback 열로.
+  1440px 창 기준 Self-Feedback 시작점이 약 108px 왼쪽으로. 1280px 창에서는 원래 과제 내용 열이 ~279px라 거의 그대로.
+- `assignment-notice.js?v=2` `dueLabel`·`dueLabelWithDow`: "9월 14일" → "9월14일"(표 배지·팝오버 모두). 테스트 기대값도 수정 → notice 7/7.
+- `assignment.js?v=15`: 로그인 상태에서 상태가 "제출 확인"(메일)인 칸의 ↗는 메뉴 버튼 — "과제 제출폼 ↗" / "제출한 메일 ↗"(가장 최근 확인메일의 Gmail 스레드,
+  누를 때 `/targets/:id`에서 가져옴, 없으면 "제출한 메일 없음"). 직접 확인·미확인·읽기 전용 표는 예전처럼 제출폼 바로 열기. 밖 클릭·Esc·스크롤로 닫힘, 방향키 이동.
+  `home.html` `#am-link-menu`(course-menu 카드 재사용). Worker 변경·배포 없음.
+- 사용자 요청 4(로그인 시 과제 내용 서버 저장): 이미 구현·배포돼 있음(`PUT /api/assignment/notes`, D1 `assignment_notes`) — 실서버 해당 경로 토큰 없이 401 확인. 코드 변경 없음.
+- 검증(로컬 dev-server + 가짜 API·가짜 세션): 열 폭 280/171/270/180(1280px), 배지 "마감 9월19일 23:59", 메일 확인 칸 2개에만 메뉴 버튼, 메뉴 항목 href(제출폼·mail.google.com 스레드)·새 탭,
+  열 때 첫 항목 포커스·가져온 뒤에도 포커스 유지, 버튼 아래 위치·오른쪽 끝은 화면 안으로. 스크린샷은 창이 가려져 못 찍음. 실제 로그인 상태는 사이트에서 확인 필요.
 
 ### 프로필 서랍: 닉네임 위치 · 계정 한 줄 · 링크 호버/클릭 박스 (2026-09-14, 사용자 지시 · Claude Code)
 

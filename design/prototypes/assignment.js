@@ -152,7 +152,11 @@
   // 제출이 확인된 칸(메일 확인·직접 확인)은 검정 글씨(사용자 지시 2026-09-14) — 미확인·해당 없음은 회색 그대로
   const confirmedClass = status => (status === 'confirmed_mail' || status === 'confirmed_manual' ? ' is-confirmed' : '');
   function renderCell(courseCode, kindLabel, cell) {
-    const shortcut = safeHref(cell.url)
+    // 메일로 제출이 확인된 칸(로그인 상태)은 ↗가 메뉴 — 과제 제출폼 / 제출한 메일(사용자 지시 2026-09-14). 그 밖은 제출폼 바로 열기
+    const mailMenu = cell.status === 'confirmed_mail' && cell.targetId != null;
+    const shortcut = mailMenu
+      ? `<button type="button" class="am-shortcut" data-link-target="${cell.targetId}" data-form-url="${safeHref(cell.url) ? esc(cell.url) : ''}" aria-haspopup="menu" aria-expanded="false" title="${esc(kindLabel)} 링크" aria-label="${esc(kindLabel)} 제출폼 또는 제출한 메일 열기">↗</button>`
+      : safeHref(cell.url)
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
     // read-only mode has no detail panel (no mail details are published) — a plain label, not a button
@@ -393,7 +397,62 @@
     if (currentWeekNo != null) loadWeek(currentWeekNo);
   }
 
+  // ---- 제출 확인 칸 ↗ 메뉴: 과제 제출폼 / 제출한 메일 ----
+  // 메일 주소(Gmail 스레드)는 표에 없어서 누를 때 /targets/:id 상세에서 가장 최근 확인메일을 가져온다
+  const linkMenu = $('#am-link-menu');
+  let linkMenuAnchor = null;
+  function closeLinkMenu(focusBack = false) {
+    if (!linkMenuAnchor) return;
+    linkMenuAnchor.setAttribute('aria-expanded', 'false');
+    if (focusBack) linkMenuAnchor.focus();
+    linkMenuAnchor = null;
+    popOut(linkMenu);
+  }
+  async function openLinkMenu(btn) {
+    closeDetail();
+    linkMenuAnchor = btn;
+    btn.setAttribute('aria-expanded', 'true');
+    const formUrl = btn.dataset.formUrl;
+    const item = (href, label) => href
+      ? `<a class="cm-item" role="menuitem" href="${esc(href)}" target="_blank" rel="noopener">${label}</a>`
+      : `<span class="cm-item" aria-disabled="true">${label}</span>`;
+    const draw = mail => {
+      linkMenu.innerHTML = item(formUrl, '과제 제출폼 ↗') + item(mail, mail === undefined ? '제출한 메일 찾는 중…' : mail ? '제출한 메일 ↗' : '제출한 메일 없음');
+      linkMenu.hidden = false;
+      const r = btn.getBoundingClientRect(), w = linkMenu.offsetWidth, h = linkMenu.offsetHeight, edge = 16;
+      let top = r.bottom + 6;
+      if (top + h > innerHeight - edge) top = r.top - 6 - h;
+      linkMenu.style.top = `${Math.max(edge, top)}px`;
+      linkMenu.style.left = `${Math.max(edge, Math.min(r.left, innerWidth - edge - w))}px`;
+    };
+    draw(undefined);
+    popIn(linkMenu);
+    linkMenu.querySelector('a.cm-item')?.focus();
+    const d = await apiJson(`/targets/${btn.dataset.linkTarget}`);
+    if (linkMenuAnchor !== btn) return; // closed or another one opened while waiting
+    const thread = d?.evidence?.length ? d.evidence[d.evidence.length - 1].gmail_thread_id : null;
+    const hadFocus = linkMenu.contains(document.activeElement);
+    draw(thread ? `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(thread)}` : null);
+    if (hadFocus) linkMenu.querySelector('a.cm-item')?.focus(); // redraw replaced the focused item
+  }
+  linkMenu.addEventListener('click', e => { if (e.target.closest('a.cm-item')) closeLinkMenu(); });
+  linkMenu.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); closeLinkMenu(true); return; }
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const items = [...linkMenu.querySelectorAll('a.cm-item')], i = items.indexOf(document.activeElement);
+    items[(i + step + items.length) % items.length]?.focus();
+  });
+  document.addEventListener('pointerdown', e => {
+    if (linkMenuAnchor && !linkMenu.contains(e.target) && !linkMenuAnchor.contains(e.target)) closeLinkMenu();
+  });
+  addEventListener('scroll', () => closeLinkMenu(), { passive: true, capture: true });
+  addEventListener('resize', () => closeLinkMenu());
+
   tbody.addEventListener('click', e => {
+    const linkBtn = e.target.closest('[data-link-target]');
+    if (linkBtn) { linkMenuAnchor === linkBtn ? closeLinkMenu() : (closeLinkMenu(), openLinkMenu(linkBtn)); return; }
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
     if (btn) {
       const sel = `.am-status[data-target-id="${btn.dataset.targetId}"]`;
