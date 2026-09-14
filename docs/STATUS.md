@@ -1,13 +1,13 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (**온라인 전환 2단계 배포 완료, Gmail 연결 대기** — Assignment Manage를 Worker+D1로) / Claude Code
+최종 갱신: 2026-09-14 (**온라인 전환 2단계 완료** — 배포 사이트에서 Gmail 연결·동기화 확인, 정리 작업만 남음 — Assignment Manage를 Worker+D1로) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
 
-### 온라인 전환 2단계: Assignment Manage 서버 이전 (2026-09-14, 사용자 지시 · Claude Code) — **배포 완료, `GOOGLE_CLIENT_SECRET` 등록·Gmail 연결 대기**
+### 온라인 전환 2단계: Assignment Manage 서버 이전 (2026-09-14, 사용자 지시 · Claude Code) — **완료(실사용 확인), 옛 주간 동기화 정리 대기**
 
 **작업 환경 메모:** 이번 세션 PC에는 기존 클론·`server/.env`·로컬 DB가 없어 저장소를 새로 받아 작업했고, 처음엔 wrangler가 로그인돼 있지 않아
 배포를 사용자 로그인 뒤로 미뤘다(아래 "배포"). Windows에서 `wrangler dev`/`d1 --local`은 경로가 길면(scratch 경로 등) 전부 `internal error`로 실패 —
@@ -59,15 +59,18 @@ CORS는 github.io만 허용, 원격 D1 과녁 408·과목 12·0주차 08-31·Gma
 TOKEN_KEY — **`GOOGLE_CLIENT_SECRET`은 아직 없음.**
 **Windows 메모:** 사용자 PowerShell에서 `npx`는 실행 정책(`npx.ps1` 차단)에 걸린다 → 명령을 안내할 때는 `npx.cmd`로 쓸 것.
 
+**실사용 확인(2026-09-14 11:23 KST):** 사용자가 `GOOGLE_CLIENT_SECRET` 등록 — 기존 보안 비밀번호는 다시 볼 수 없어 Google 콘솔에서
+**새 비밀번호를 추가**(기존 `****EE3a`는 GitHub Actions용으로 유지). 첫 등록은 복사 없이 붙여넣어 틀린 값이 들어가 연결 실패 → 새 값으로
+덮어써 해결. **배포 사이트(github.io)에서 로그인·Gmail 연결 성공**(1단계 미확인 항목도 해결). 동기화는 배치로 나뉘어 끝까지 완료:
+`sync_pending 0`, 판정 메시지 35통, 메일 근거 30건, 검토 대기 0, `last_sync_error` 없음. 확인 칸 25칸(0주차 17·1주차 6·2주차 2) —
+기존 공개 JSON의 22칸이 **전부 포함**되고, 추가 3칸(1주차 AL·EWA·IPS 셀프피드백)은 JSON 마지막 동기화(02:59) 이후 제출분.
+(중간 조회 때 `sync_pending 1`·0주차 EWA/VT 셀프피드백 누락은 아직 안 읽은 배치였고, 끝난 뒤 채워짐.)
+
 **남은 일(순서대로):**
-1. **사용자:** `worker` 폴더에서 `npx.cmd wrangler@4.131.1 secret put GOOGLE_CLIENT_SECRET` → Google Cloud 콘솔의 클라이언트 보안 비밀번호 붙여넣기
-   (에이전트는 비밀값을 입력하지 않는다). 등록 전에는 "연결하기"가 "서버에 Gmail 설정이 아직 없어요"로 멈춘다.
-2. **사용자:** 배포 사이트에서 로그인 → 연결하기 → 새로고침. 확인 칸이 기존 JSON(0주차 17/24 등)과 같거나 그 이후 제출만큼 늘었는지 대조.
-   github.io에서의 로그인(1단계 미확인 항목)도 여기서 같이 확인된다.
-3. 검증 후(사용자 확인): `.github/workflows/assignment-sync.yml`·`server/export-snapshot.js`·`server/snapshot.js`·공개 JSON 제거, GitHub Secrets
+1. 사용자가 화면에서 몇 칸(상세·직접 확인 등) 더 써 보고 문제없다고 확인하면: `.github/workflows/assignment-sync.yml`·`server/export-snapshot.js`·`server/snapshot.js`·공개 JSON 제거, GitHub Secrets
    `GMAIL_REFRESH_TOKEN` 등 삭제, `assignment.js`의 읽기 전용 폴백을 "로그인해 주세요" 안내로 교체, `server/` 전체 정리 여부 결정
    (지금은 matching 규칙이 `server/`와 `worker/`에 두 벌 — 규칙을 고치면 둘 다 고칠 것).
-4. 참고: 이전 로컬 DB의 수동 표시(직접 확인/해당 없음)는 이 PC에 없어 옮기지 않았다. 공개 JSON에는 `"manual"`이 0칸이라 메일 근거는 첫 동기화로 전부 다시 채워진다.
+2. 참고: 이전 로컬 DB의 수동 표시(직접 확인/해당 없음)는 이 PC에 없어 옮기지 않았다. 공개 JSON에는 `"manual"`이 0칸이라 메일 근거는 첫 동기화로 전부 다시 채워진다.
    개인정보처리방침에 새 저장 항목(메시지 ID 판정 기록, 서버 저장 위치 Cloudflare) 반영은 5단계에서.
 
 ### 온라인 전환 0~1단계: Cloudflare 준비 + 서버 뼈대·로그인 잠금 (2026-09-14, 사용자 지시 · Claude Code) — **완료, 다음은 2단계**
