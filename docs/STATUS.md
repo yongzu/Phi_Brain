@@ -1,11 +1,19 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (Assignment Manage: Self-Feedback 위치 · 마감 붙여쓰기 · 링크 메뉴) / Claude Code
+최종 갱신: 2026-09-14 (프로필 서랍 속도·흐림 · Assignment 표 폭) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 프로필 서랍 더 빠르게·흐림 약하게 · Assignment Manage 표 폭 맞춤 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260914-31`: 서랍(theme.css §6) 덮어쓰기 — 열고 닫기·배경 전환 520ms → 360ms, 열린 배경 흐림 8px → 5px. 이징·style-kit 원본은 그대로.
+- Assignment Manage: 과제 내용 열 270 → 280px(Self-Feedback 약 14px 오른쪽), Assignment·Self-Feedback 모두 22%, 본문 최대 폭 1200 → 1064px(표 1000px = 280/220/280/220) —
+  Self-Feedback 오른쪽에 남던 빈 폭을 없앰.
+- 검증(로컬): 서랍 transition 0.36s·phi-brain.css의 blur(5px) 규칙이 theme.css 뒤에 적용. 1680px 창 열 280/220/280/220·가로 스크롤 없음, 1280px 창 280/171/280/171·스크롤 없음.
+  (창이 가려져 흐림 정도·속도는 눈으로 확인 못 함)
 
 ### Assignment Manage: Self-Feedback 왼쪽으로 · 마감 날짜 붙여쓰기 · 제출 확인 칸 링크 메뉴 (2026-09-14, 사용자 지시 · Claude Code)
 

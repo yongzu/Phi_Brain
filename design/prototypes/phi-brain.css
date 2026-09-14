@@ -440,7 +440,7 @@
    so it gets a wider cap of its own; Journaling and Journal Archive share
    the same 900px cap (2026-09-13). */
 .shell:has(.view-journal:not([hidden])){max-width:900px}
-.shell:has(.view-assignment:not([hidden])){max-width:1200px} /* 920px → 1200px(사용자 지시 2026-09-14: 과제 내용 열이 생겨 넓힘) */
+.shell:has(.view-assignment:not([hidden])){max-width:1064px} /* 920 → 1200 → 1064px(사용자 지시 2026-09-14: Self-Feedback 열 오른쪽에 남던 빈 폭을 없애 본문 폭을 표에 맞춤) */
 .shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
 .shell:has(.view-findings:not([hidden])){max-width:1500px}
@@ -461,10 +461,10 @@
    창이 좁아 28%가 모자라면 이 폭을 지키고 나머지 열이 줄어든다(사용자 지시 2026-09-14: 미확인 줄과 겹침 수정) */
 .am-table th:first-child,.am-table td:first-child{width:280px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로 */
 /* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
-.am-table th:nth-child(2),.am-table td:nth-child(2){width:19%}
-/* 과제 내용 열은 "자세히보기 + 지각 마감 9월20일 23:59"가 한 줄에 들어가는 고정 폭 — 남는 폭은 마지막 Self-Feedback 열 오른쪽으로 가서
-   Self-Feedback이 왼쪽으로 당겨진다(사용자 지시 2026-09-14: 여백이 너무 큼) */
-.am-table th:nth-child(3),.am-table td:nth-child(3){width:270px}
+/* Assignment·Self-Feedback 같은 폭 22% — 본문 1064px(표 1000px)에서 280 / 220 / 280 / 220 */
+.am-table th:nth-child(2),.am-table td:nth-child(2),.am-table th:nth-child(4),.am-table td:nth-child(4){width:22%}
+/* 과제 내용 열은 "자세히보기 + 지각 마감 9월20일 23:59"가 한 줄에 들어가는 고정 폭 */
+.am-table th:nth-child(3),.am-table td:nth-child(3){width:280px} /* 270 → 280px: Self-Feedback 조금 오른쪽으로(사용자 지시 2026-09-14) */
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
 /* the status button carries its own left padding (an extra --tab-pad-x) so its
    dot sits one --tab-pad-x further right than a plain header — match it here */
@@ -601,6 +601,12 @@
 /* "수정하기" moves the live Journaling composer into #archive-compose-slot
    in place — #archive-browse (filters+list/cards) hides while it's shown */
 #archive-compose-slot .archive-back{margin-bottom:16px}
+
+/* ---------- Profile drawer motion (theme.css §6 덮어쓰기) ----------
+   사용자 지시 2026-09-14: 열고 닫기 520ms → 360ms(너무 느림), 배경 흐림 8px → 5px(약간 낮춤). 이징은 그대로 */
+.drawer{transition-duration:360ms}
+.drawer::backdrop{transition-duration:360ms}
+.drawer.open::backdrop{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 
 /* ---------- Account (profile drawer, 온라인 전환) ---------- */
 /* hairline-divided block at the top of the drawer; the Google button is Google's
