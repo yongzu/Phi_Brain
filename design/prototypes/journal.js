@@ -850,7 +850,7 @@
   document.addEventListener('pointerdown', e => {
     if (archiveMenuAnchor && !archiveMenu.contains(e.target) && !archiveMenuAnchor.contains(e.target)) closeArchiveMenu(false);
   });
-  // where the list comes from (uploading this browser's journals is the import-dialog.js popup)
+  // where the list comes from
   const archiveHint = $('#archive-hint');
   function renderArchiveHint() {
     if (store.mode === 'local') {
@@ -858,10 +858,7 @@
       return;
     }
     if (!store.loaded) { archiveHint.textContent = store.offline ? '서버에 연결하지 못해 이 기기에 보관된 저널을 보여줘요.' : '서버에서 저널을 불러오는 중…'; return; }
-    const { conflicts } = store.importCandidates();
-    let html = '로그인한 모든 기기에서 같은 저널이 보여요.';
-    if (conflicts.length) html += ` 같은 날짜에 서버와 다른 내용이 있어 올리지 않은 저널: ${conflicts.map(d => esc(monthDay(d))).join(', ')}`;
-    archiveHint.innerHTML = html;
+    archiveHint.textContent = '로그인한 모든 기기에서 같은 저널이 보여요.';
   }
 
   function renderArchive() {

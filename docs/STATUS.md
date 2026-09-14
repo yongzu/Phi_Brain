@@ -1,11 +1,22 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (**온라인 전환 3단계 구현** — 저널을 서버로, 기존 브라우저 저널 가져오기 포함) / Claude Code
+최종 갱신: 2026-09-14 (서버로 올리기 삭제 · 프로필 서랍 Phi LMS 링크) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 서버로 올리기 삭제 · 프로필 서랍 링크 정리 (2026-09-14, 사용자 지시 · Claude Code)
+
+- 사용자 지시: 로그아웃 상태에서 쓴 기록을 로그인 뒤 서버로 올리는 기능 삭제 — 서버 저장은 로그인 상태에서만. 로그아웃 상태의 브라우저 저장 자체는 그대로 둠(내 해석).
+- 삭제: `import-dialog.js`, `home.html` `#import-dialog`, `phi-brain.css` `.import-*`, `journal-store.js` `importCandidates/importLocal`, `future-sync.js` 같은 함수·공개 항목,
+  `journal.js` Archive 안내의 "올리지 않은 저널" 문구. `future.js` `localBoard`는 로그아웃 시 브라우저 보드 복원에 계속 쓰여 주석만 수정.
+  서버 `POST /api/journals/import`는 그대로 둠(프런트에서 호출 안 함, Worker 배포 없음). `privacy.html` 문구 "서버로 옮겨지지 않습니다"로 수정.
+- 프로필 서랍: "과목 관리"·"데이터 내보내기"·"GitHub 저장소" 삭제, 그 자리에 "Phi LMS"(https://lms.phi.design/, 새 탭), 그 아래 "공간예약하기"(https://booking.phi.design/, 새 탭). 푸터 GitHub 링크는 그대로.
+- 캐시 버전: `phi-brain.css?v=20260914-28`, `future.js?v=20260914-7`, `future-sync.js?v=3`, `journal-store.js?v=4`, `journal.js?v=20260914-15`.
+- 검증(로컬 dev-server, 로그아웃): 서랍 링크 "Phi LMS" 하나·href·target 확인, `#import-dialog` 없음, `futureSync` 공개 항목 mode/pending/version/loaded, 스크립트 오류 없음(GSI 로컬 경고만).
+  로그인 상태는 로컬에서 확인 못 함.
 
 ### Assignment Manage: 과목명이 미확인과 겹치던 문제 수정 (2026-09-14, 사용자 지시 · Claude Code)
 

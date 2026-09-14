@@ -8,8 +8,8 @@
     in between, nothing is merged or overwritten: the hint under the heading
     asks which one to keep. Unsent changes and the last copy are kept per
     account (phi-brain:future-sync:v1:<email>) and sent on reconnect/next load.
-  - This browser's own signed-out board is never touched; its items that the
-    server doesn't have (by id) can be added with "서버로 올리기" (import-dialog.js popup).
+  - This browser's own signed-out board is never touched and never uploaded —
+    signed-out and signed-in boards stay separate (사용자 지시 2026-09-14: 서버로 올리기 삭제).
 */
 (() => {
   const { futureStore: board, auth, ui: { toast } } = window.PhiBrain;
@@ -31,29 +31,6 @@
   function persist() {
     const k = cacheKey();
     if (k && mode === 'server') ls.set(k, { data: board.snapshot(), version, pending });
-  }
-
-  // ---- 이 브라우저에만 있는 항목: by id, plus custom boxes they need ----
-  function importCandidates() {
-    if (mode !== 'server' || !loaded) return [];
-    const onServer = new Set(board.snapshot().items.map(i => i.id));
-    return board.localBoard().items.filter(i => !onServer.has(i.id));
-  }
-  function importLocal() {
-    const local = board.localBoard(), cur = board.snapshot();
-    const ids = new Set(cur.items.map(i => i.id));
-    const boxIds = new Set(cur.customBoxes.map(b => b.id));
-    const added = local.items.filter(i => !ids.has(i.id));
-    const merged = {
-      items: [...cur.items, ...added],
-      favorites: [...new Set([...cur.favorites, ...local.favorites])],
-      customBoxes: [...cur.customBoxes, ...local.customBoxes.filter(b => !boxIds.has(b.id))],
-      boxOrder: [...cur.boxOrder, ...local.boxOrder.filter(k => !cur.boxOrder.includes(k))],
-    };
-    board.replace(merged);
-    save();
-    renderHint();
-    return added.length;
   }
 
   // ---- hint under the heading: where things are saved, and anything that needs a decision ----
@@ -177,6 +154,5 @@
 
   window.PhiBrain.futureSync = {
     get mode() { return mode; }, get pending() { return pending; }, get version() { return version; }, get loaded() { return loaded; },
-    importCandidates, importLocal,
   };
 })();

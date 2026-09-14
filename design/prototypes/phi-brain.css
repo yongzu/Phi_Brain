@@ -545,16 +545,6 @@
 .cm-item.cm-danger{color:var(--ink);font-weight:700}
 .archive-hint{margin:6px 0 16px}
 .archive-hint .pill,.fi-sync-hint .pill{margin-left:6px;vertical-align:middle}
-/* 서버로 올리기 팝업 — 화면 가운데 카드, 배경은 프로필 서랍과 같은 흐림 */
-.import-dialog{width:min(400px,calc(100vw - 32px));margin:auto;padding:24px;border:0;border-radius:var(--radius);corner-shape:squircle;background:var(--bg);color:var(--ink);box-shadow:var(--shadow-float)}
-.import-dialog::backdrop{background:#00000012;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.import-dialog[open]{animation:import-in 280ms var(--ease-out)}
-@keyframes import-in{from{opacity:0;filter:blur(6px);transform:translateY(-4px)}to{opacity:1;filter:none;transform:none}}
-@media (prefers-reduced-motion:reduce){.import-dialog[open]{animation:none}}
-.import-title{margin:0 0 12px;font:inherit;font-weight:700}
-.import-counts{margin:0 0 12px;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 16px}
-.import-note{margin:0 0 20px;color:var(--gray);word-break:keep-all}
-.import-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px}
 #archive-filters{margin-bottom:10px}
 /* each row is its own <details> dropdown, not nested in a section-level one —
    drop resume-list's accordion indent and stretch rows to the full width so

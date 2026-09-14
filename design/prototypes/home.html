@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-27">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-28">
 </head>
 <body>
 
@@ -348,17 +348,6 @@
 </main>
 </div>
 
-<!-- 서버로 올리기 popup (import-dialog.js): after sign-in, this browser's signed-out journals / Future Items -->
-<dialog class="import-dialog" id="import-dialog" aria-labelledby="import-title">
-  <h2 class="import-title" id="import-title">이 브라우저에만 있는 기록이 있어요</h2>
-  <ul class="import-counts" id="import-counts"></ul>
-  <p class="import-note">서버로 올리면 로그인한 모든 기기에서 볼 수 있어요. 이 브라우저의 원본은 지우지 않고, 서버에 같은 날짜의 다른 저널이 있으면 덮어쓰지 않고 건너뛰어요.</p>
-  <div class="import-actions">
-    <button type="button" class="pill" id="import-later">나중에</button>
-    <button type="button" class="btn-primary" id="import-upload">서버로 올리기</button>
-  </div>
-</dialog>
-
 <dialog class="drawer" id="drawer">
   <div class="drawer-header">
     <div>
@@ -381,9 +370,8 @@
       <button type="button" class="pill pill-start" id="auth-signout">로그아웃</button>
     </div>
   </section>
-  <p><a href="#">과목 관리</a></p>
-  <p><a href="#">데이터 내보내기</a></p>
-  <p><a href="https://github.com/yongzu/Phi_Brain">GitHub 저장소 ↗</a></p>
+  <p><a href="https://lms.phi.design/" target="_blank" rel="noopener noreferrer">Phi LMS</a></p>
+  <p><a href="https://booking.phi.design/" target="_blank" rel="noopener noreferrer">공간예약하기</a></p>
 </dialog>
 
 <footer class="site-footer">
@@ -433,13 +421,12 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260914-6"></script>
+<script src="future.js?v=20260914-7"></script>
 <script src="auth.js?v=3"></script>
-<script src="future-sync.js?v=2"></script>
-<script src="journal-store.js?v=3"></script>
-<script src="journal.js?v=20260914-14"></script>
+<script src="future-sync.js?v=3"></script>
+<script src="journal-store.js?v=4"></script>
+<script src="journal.js?v=20260914-15"></script>
 <script src="assignment-notice.js?v=1"></script>
 <script src="assignment.js?v=14"></script>
-<script src="import-dialog.js?v=1"></script>
 </body>
 </html>

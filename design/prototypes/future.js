@@ -1206,7 +1206,7 @@
   // for future-sync.js (loads after auth.js): read the board, replace it, choose where saves go
   const futureStore = {
     snapshot: () => ({ items: clone(state.items), favorites: [...state.favorites], customBoxes: clone(state.customBoxes), boxOrder: [...state.boxOrder] }),
-    localBoard: loadState, // this browser's own board (what "서버로 올리기" uploads)
+    localBoard: loadState, // this browser's own signed-out board (shown again after sign-out)
     replace(board) {
       state = normalizeBoard(board);
       refreshBoxKeys();

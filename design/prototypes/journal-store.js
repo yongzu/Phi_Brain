@@ -4,8 +4,8 @@
 
   - Signed out → exactly the old behavior: this browser's localStorage
     (phi-brain:journal:<date>, phi-brain:journal-archive:favorites).
-    Those keys are never touched in signed-in mode — they are what
-    "서버로 올리기" (import) uploads, and they stay as the browser's backup.
+    Those keys are never touched in signed-in mode and are never uploaded
+    (사용자 지시 2026-09-14: 서버로 올리기 삭제 — 서버 저장은 로그인 상태에서만).
   - Signed in → an in-memory copy of the server's journals (GET /api/journals).
     Writes land in memory at once and are pushed in the background with the
     version the device last saw; an edit made on another device in between
@@ -304,47 +304,6 @@
             emit('notice', { type: 'favorite-failed' });
           });
       },
-    },
-
-    // ---- 서버로 올리기: this browser's signed-out journals ----
-    // → { upload: [date…] not on the server, conflicts: [date…] same date with different content }
-    importCandidates() {
-      if (mode !== 'server' || !loaded) return { upload: [], conflicts: [] };
-      const upload = [], conflicting = [];
-      for (const date of local.dates().sort()) {
-        const d = local.get(date);
-        if (!d || (!d.html && !d.title)) continue;
-        const onServer = entries.get(date);
-        if (!onServer) upload.push(date);
-        else if (!sameContent(onServer, d)) conflicting.push(date);
-      }
-      return { upload, conflicts: conflicting };
-    },
-    async importLocal() {
-      const { upload } = store.importCandidates();
-      const localFavs = local.favorites();
-      const total = { imported: [], same: [], conflicts: [], invalid: [], failed: [] };
-      for (let i = 0; i < upload.length; i += 10) {
-        const chunk = upload.slice(i, i + 10);
-        const journals = chunk.map(date => ({
-          date, ...clean(local.get(date)),
-          favorites: [...localFavs].filter(k => k.startsWith(date + '::')).map(k => k.slice(date.length + 2)),
-        }));
-        try {
-          const res = await auth.fetch('/api/journals/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ journals }) });
-          if (!res.ok) throw new Error(String(res.status));
-          const r = await res.json();
-          for (const k of ['imported', 'same', 'conflicts', 'invalid']) total[k].push(...r[k]);
-        } catch {
-          total.failed.push(...chunk);
-        }
-      }
-      // this browser's starred Findings boxes travel along (stars only add, never remove)
-      for (const course of local.findingsFavorites().filter(k => !findingsFavs.includes(k))) {
-        try { await auth.fetch(`/api/findings/favorites/${encodeURIComponent(course)}`, { method: 'PUT' }); } catch {}
-      }
-      await fetchServer();
-      return total;
     },
 
     onChange: fn => { listeners.change.add(fn); return () => listeners.change.delete(fn); },
