@@ -440,7 +440,7 @@
    so it gets a wider cap of its own; Journaling and Journal Archive share
    the same 900px cap (2026-09-13). */
 .shell:has(.view-journal:not([hidden])){max-width:900px}
-.shell:has(.view-assignment:not([hidden])){max-width:1064px} /* 920 → 1200 → 1064px(사용자 지시 2026-09-14: Self-Feedback 열 오른쪽에 남던 빈 폭을 없애 본문 폭을 표에 맞춤) */
+.shell:has(.view-assignment:not([hidden])){max-width:1054px} /* 920 → 1200 → 1064 → 1054px(표 990px + 좌우 32px, 사용자 지시 2026-09-14) */
 .shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
 .shell:has(.view-findings:not([hidden])){max-width:1500px}
@@ -459,13 +459,14 @@
 .am-table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px}
 /* 과목명은 늘 한 줄이라 가장 긴 이름(IAE_Interviewing as Exploration + ↗ = 224px + 칸 패딩 24px)이 들어가는 최소 폭을 둔다 —
    창이 좁아 28%가 모자라면 이 폭을 지키고 나머지 열이 줄어든다(사용자 지시 2026-09-14: 미확인 줄과 겹침 수정) */
-.am-table th:first-child,.am-table td:first-child{width:280px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로 */
+/* 열 사이 간격 80px 통일(사용자 지시 2026-09-14) — 가장 넓은 내용 기준으로 잰 값:
+   과목명 끝(IAE ↗) → Assignment ●, "직접 확인 ↗" 끝 → "자세히보기", "지각 마감 9월28일 23:59" 끝 → Self-Feedback ●, 마지막 ↗ 끝 → 표 오른쪽 끝이 모두 80px.
+   표 990px에서 286 / 189 / 308 / 207. 창이 좁아 표가 줄면 비율대로 간격만 줄어든다(과목명 열은 고정). 두 자리 월(10월~)은 과제 내용 뒤 간격이 약 7px 줄어듦 */
+.am-table th:first-child,.am-table td:first-child{width:286px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로 */
 /* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
-/* 과제 내용 열을 40px 왼쪽으로(사용자 지시 2026-09-14): Assignment 22% → 18%, 과제 내용 280 → 320px, Self-Feedback은 남는 폭(자동) —
-   본문 1064px(표 1000px)에서 280 / 180 / 320 / 220으로 Self-Feedback 시작점은 그대로 */
-.am-table th:nth-child(2),.am-table td:nth-child(2){width:18%}
-/* 과제 내용 열은 "자세히보기 + 지각 마감 9월20일 23:59"가 한 줄에 들어가는 고정 폭 */
-.am-table th:nth-child(3),.am-table td:nth-child(3){width:320px}
+.am-table th:nth-child(2),.am-table td:nth-child(2){width:19.09%} /* 990px에서 189px */
+
+.am-table th:nth-child(3),.am-table td:nth-child(3){width:31.11%} /* 990px에서 308px, Self-Feedback은 남는 폭(207px) */
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
 /* the status button carries its own left padding (an extra --tab-pad-x) so its
    dot sits one --tab-pad-x further right than a plain header — match it here */
