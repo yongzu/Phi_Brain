@@ -1,20 +1,20 @@
 /*
   Assignment Manage — weekly assignment/self-feedback submission status
-  across the 12 courses. Talks to the Assignment Manage backend
-  (server/index.js) when it's running locally. When it isn't — always the
-  case on the deployed GitHub Pages site — it falls back to the public status
-  file the weekly sync writes (data/assignment-status.json, M3) and shows it
-  read-only; only if that file is missing too does it show the honest
-  "backend not running" hint. Never fake/virtual data.
+  across the 12 courses.
+
+  온라인 전환 2단계: talks to the Phi Brain API (Cloudflare Worker, worker/src/
+  assignment/) through PhiBrain.auth.fetch — the same on localhost and on the
+  deployed site. Signed out (or the API unreachable), it falls back to the public
+  status file the old weekly GitHub Actions sync wrote (data/assignment-status.json)
+  and shows it read-only; only if that file is missing too does it show the
+  "server unreachable" hint. Never fake/virtual data.
 
   Separate from Future Item: completing either one never touches the other.
 */
 (() => {
   const $ = (s, root = document) => root.querySelector(s);
   const { ui: { popIn, popOut, toast } } = window.PhiBrain;
-
-  // Change this if the backend runs on a different host/port (see server/.env.example).
-  const API_BASE = 'http://localhost:5600';
+  const auth = window.PhiBrain.auth;
 
   const STATUS_LABEL = {
     unconfirmed: '미확인',
@@ -23,8 +23,24 @@
     not_applicable: '해당 없음',
     conflict: '확인 필요',
   };
+  // server error codes (worker/src/assignment/sync.js) → what the user can do about it
+  const SYNC_ERROR = {
+    not_connected: 'Gmail을 먼저 연결해 주세요',
+    reconnect_required: 'Gmail 연결이 만료됐어요 — 다시 연결해 주세요',
+    server_not_configured: '서버에 Gmail 설정이 아직 없어요',
+    gmail_429: 'Gmail 요청이 많아 잠시 막혔어요 — 조금 뒤 다시 시도해 주세요',
+  };
+  const syncErrorText = code => SYNC_ERROR[code] || `동기화 실패 (${code})`;
+  const CONNECT_RESULT = {
+    connected: ['Gmail을 연결했어요 — 제출 상태를 새로고침할게요', null],
+    denied: ['Gmail 연결을 취소했어요', 'error'],
+    scope_missing: ['Gmail 읽기 권한을 체크해야 연결돼요 — 다시 연결해 주세요', 'error'],
+    no_refresh_token: ['Gmail 연결 정보를 받지 못했어요 — 다시 연결해 주세요', 'error'],
+    error: ['Gmail을 연결하지 못했어요', 'error'],
+  };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const safeHref = url => (typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null);
+  const kstTime = iso => new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   const table = $('#am-table'), tbody = $('#am-tbody'), progressEl = $('#am-progress');
   const backendHint = $('#am-backend-hint');
@@ -35,13 +51,13 @@
 
   let weeks = [];
   let currentWeekNo = null;
-  let loaded = false;
+  let snapshot = null; // the loaded status file — set only while in read-only mode
+  let pendingConnectResult = null;
 
   // ---- read-only mode: the weekly sync's status file (server/snapshot.js) ----
   const SNAPSHOT_URL = 'data/assignment-status.json';
-  let snapshot = null; // set once the file is loaded and the backend is unreachable
   const SNAPSHOT_STATUS = { mail: 'confirmed_mail', manual: 'confirmed_manual' };
-  // same shape as the backend's /api/weeks/:n/matrix, so render() is shared
+  // same shape as the API's /weeks/:n/matrix, so render() is shared
   function snapshotMatrix(weekNo) {
     const cells = snapshot.weeks[weekNo] || {};
     const rows = snapshot.courses.map(c => {
@@ -55,49 +71,61 @@
     const all = rows.flatMap(r => [r.assignment.status, r.selfFeedback.status]);
     return { week: { week_no: weekNo }, rows, progress: { done: all.filter(s => s !== 'unconfirmed').length, total: all.length } };
   }
-  // default week — same approximation as the backend's getCurrentWeekNo (Korean date)
-  function snapshotCurrentWeek() {
+  // default week — same approximation as the API's currentWeekNo (Korean date)
+  function snapshotCurrentWeek(snap) {
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
-    const days = Math.floor((Date.parse(today) - Date.parse(snapshot.semesterStart)) / 86400000);
-    return Math.min(snapshot.lastWeek, Math.max(snapshot.firstWeek, Math.floor(days / 7) + 1));
+    const days = Math.floor((Date.parse(today) - Date.parse(snap.semesterStart)) / 86400000);
+    return Math.min(snap.lastWeek, Math.max(snap.firstWeek, Math.floor(days / 7) + 1));
   }
-  async function initSnapshot() {
-    if (!snapshot) {
+  // → true when the table is showing the file
+  async function initSnapshot({ unreachable = false } = {}) {
+    let snap = snapshot;
+    if (!snap) {
       try {
         const res = await fetch(SNAPSHOT_URL, { cache: 'no-store' });
-        if (!res.ok) return;
-        snapshot = await res.json();
-      } catch { return; }
+        if (res.ok) snap = await res.json();
+      } catch {}
     }
+    if (!snap) {
+      if (unreachable) showUnreachable();
+      else { table.hidden = true; progressEl.textContent = ''; gmailStatus.textContent = '로그인하면 제출 상태를 볼 수 있어요'; refreshBtn.hidden = connectBtn.hidden = true; }
+      return false;
+    }
+    snapshot = snap;
     backendHint.hidden = true;
     table.hidden = false;
-    weeks = Array.from({ length: snapshot.lastWeek - snapshot.firstWeek + 1 }, (_, i) => ({ week_no: snapshot.firstWeek + i }));
+    weeks = Array.from({ length: snap.lastWeek - snap.firstWeek + 1 }, (_, i) => ({ week_no: snap.firstWeek + i }));
     refreshBtn.hidden = true;
     connectBtn.hidden = true;
-    const synced = snapshot.lastSyncedAt
-      ? new Date(snapshot.lastSyncedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-      : null;
-    gmailStatus.textContent = synced ? `읽기 전용 · ${synced} 동기화` : '읽기 전용 · 아직 동기화 전';
+    gmailStatus.textContent = snap.lastSyncedAt ? `읽기 전용 · ${kstTime(snap.lastSyncedAt)} 동기화` : '읽기 전용 · 아직 동기화 전';
     // 실패는 조용히 숨기지 않는다 — 지난 성공 결과는 그대로 보여주되 실패 사실을 붙인다
-    if (snapshot.lastError) gmailStatus.textContent += ` · 마지막 동기화 실패: ${snapshot.lastError}`;
-    loadWeek(currentWeekNo ?? snapshotCurrentWeek());
+    if (snap.lastError) gmailStatus.textContent += ` · 마지막 동기화 실패: ${snap.lastError}`;
+    gmailStatus.textContent += auth.session ? ' · 서버에 연결할 수 없어 저장본을 보여줘요' : ' · 로그인하면 상세·새로고침을 쓸 수 있어요';
+    loadWeek(currentWeekNo ?? snapshotCurrentWeek(snap));
+    return true;
   }
+  function showUnreachable() { backendHint.hidden = false; table.hidden = true; }
 
+  // ---- live mode: the API, signed in ----
+  // → Response, or null when the request never got an answer (offline / API down) or the session is gone
   async function api(path, opts) {
+    if (!auth.session) return null;
+    let res;
     try {
-      const res = await fetch(API_BASE + path, opts);
-      backendHint.hidden = true;
-      table.hidden = false;
-      return res;
+      res = await auth.fetch(`/api/assignment${path}`, opts);
     } catch {
       // a slow, late failure must not blank a table the status file is already showing
-      if (!snapshot) { backendHint.hidden = false; table.hidden = true; }
+      if (!snapshot) showUnreachable();
       return null;
     }
+    if (res.status === 401) return null; // auth.js signs out → onChange below switches to read-only
+    backendHint.hidden = true;
+    table.hidden = false;
+    return res;
   }
   async function apiJson(path, opts) {
     const res = await api(path, opts);
-    if (!res) return null;
+    if (!res || !res.ok) return null;
     try { return await res.json(); } catch { return null; }
   }
 
@@ -145,22 +173,23 @@
 
   async function loadWeek(weekNo) {
     if (snapshot) { currentWeekNo = weekNo; render(snapshotMatrix(weekNo)); return; }
-    const matrix = await apiJson(`/api/weeks/${weekNo}/matrix`);
-    if (!matrix) return;
+    const matrix = await apiJson(`/weeks/${weekNo}/matrix`);
+    if (!matrix || snapshot) return; // switched to read-only while waiting
     currentWeekNo = weekNo;
     render(matrix);
   }
 
   async function loadWeeksList() {
-    const data = await apiJson('/api/weeks');
+    const data = await apiJson('/weeks');
     if (!data) return null;
     weeks = data.weeks;
     return data.currentWeekNo;
   }
 
   async function loadConnection() {
-    const c = await apiJson('/api/connection');
-    if (!c) return;
+    const c = await apiJson('/connection');
+    if (!c || snapshot) return c;
+    refreshBtn.hidden = false;
     if (c.connected) {
       gmailStatus.textContent = c.email ? `Gmail 연결됨 · ${c.email}` : 'Gmail 연결됨';
       connectBtn.hidden = true;
@@ -168,31 +197,58 @@
       gmailStatus.textContent = 'Gmail 연결 안 됨';
       connectBtn.hidden = false;
     }
-    // 마지막 동기화 시각 표시는 없앴지만, 오류만큼은 조용히 숨기지 않는다(정직하게
-    // 보여준다는 원칙 유지) — 상태 텍스트 뒤에 그대로 이어붙인다.
-    if (c.last_sync_error) gmailStatus.textContent += ` · 오류: ${c.last_sync_error}`;
+    // 마지막 동기화 시각 표시는 없앴지만, 오류만큼은 조용히 숨기지 않는다 — 상태 텍스트 뒤에 이어붙인다
+    if (c.last_sync_error && c.last_sync_error !== 'not_connected') gmailStatus.textContent += ` · 오류: ${syncErrorText(c.last_sync_error)}`;
+    return c;
   }
 
   weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) loadWeek(currentWeekNo - 1); });
   weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) loadWeek(currentWeekNo + 1); });
 
-  connectBtn.addEventListener('click', () => { location.href = `${API_BASE}/auth/google/start`; });
-  refreshBtn.addEventListener('click', async () => {
+  // Google's consent page is a full-page visit, which can't carry our session —
+  // the API hands back a URL with a signed state that brings the browser back here
+  connectBtn.addEventListener('click', async () => {
+    connectBtn.disabled = true;
+    const returnTo = `${location.origin}${location.pathname}#assignment`;
+    const res = await api('/gmail/connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnTo }),
+    });
+    const body = res && await res.json().catch(() => null);
+    connectBtn.disabled = false;
+    if (!body?.url) { toast(body?.error === 'server_not_configured' ? SYNC_ERROR.server_not_configured : 'Gmail 연결을 시작하지 못했어요', null, 'error'); return; }
+    location.href = body.url;
+  });
+
+  // The server reads Gmail in small batches (worker/src/assignment/sync.js);
+  // keep asking until it says the run is done.
+  const MAX_SYNC_ROUNDS = 40;
+  let syncing = false;
+  async function refreshStatus() {
+    if (syncing) return;
+    syncing = true;
     refreshBtn.disabled = true;
     refreshBtn.textContent = '새로고침 중…';
-    const res = await api('/api/sync', { method: 'POST' });
-    const body = res && await res.json().catch(() => null);
+    const total = { matched: 0, review: 0, fetched: 0 };
+    let error = null, done = false;
+    for (let round = 0; round < MAX_SYNC_ROUNDS && !done; round++) {
+      const res = await api('/sync', { method: 'POST' });
+      const body = res && await res.json().catch(() => null);
+      if (!body?.ok) { error = body?.error || 'network'; break; }
+      for (const k of Object.keys(total)) total[k] += body.summary[k] || 0;
+      done = body.done;
+      if (!done) refreshBtn.textContent = `새로고침 중… 메일 ${total.fetched}통 확인`;
+      if (!done && currentWeekNo != null) loadWeek(currentWeekNo); // show progress as it lands
+    }
+    syncing = false;
     refreshBtn.disabled = false;
     refreshBtn.textContent = '제출 상태 새로고침';
-    if (!body || !body.ok) {
-      toast(body?.error === 'NOT_CONNECTED' ? 'Gmail을 먼저 연결해주세요' : '새로고침에 실패했어요', null, 'error');
-    } else {
-      const s = body.summary;
-      toast(`동기화 완료 · 새로 확인됨 ${s.matched || 0} · 검토 필요 ${s.review || 0}`);
-    }
-    loadConnection();
-    if (currentWeekNo) loadWeek(currentWeekNo);
-  });
+    if (error) toast(error === 'network' ? '서버에 연결하지 못했어요' : syncErrorText(error), null, 'error');
+    else if (!done) toast(`메일이 많아 일부만 확인했어요(${total.fetched}통) — 한 번 더 새로고침해 주세요`, null, 'error');
+    else toast(`동기화 완료 · 새로 확인됨 ${total.matched} · 검토 필요 ${total.review}`);
+    await loadConnection();
+    if (currentWeekNo != null) loadWeek(currentWeekNo);
+  }
+  refreshBtn.addEventListener('click', refreshStatus);
 
   // ---- detail panel ----
   // 누른 상태 칸 바로 아래에 뜨는 팝오버(사용자 확정 — 예전엔 화면 우하단 고정).
@@ -217,9 +273,9 @@
   }
   addEventListener('scroll', placeDetail, { passive: true, capture: true }); // 표 가로 스크롤 포함
   addEventListener('resize', placeDetail);
-  function closeDetail() { detailAnchorId = null; popOut(detail); }
+  function closeDetail() { detailAnchorId = null; if (!detail.hidden) popOut(detail); }
   async function openDetail(targetId) {
-    const d = await apiJson(`/api/targets/${targetId}`);
+    const d = await apiJson(`/targets/${targetId}`);
     if (!d) return;
     detailAnchorId = targetId;
     detail.innerHTML = renderDetail(d);
@@ -265,20 +321,21 @@
   }
 
   async function setManual(targetId, action, force = false) {
-    const res = await api(`/api/targets/${targetId}/manual`, {
+    const res = await api(`/targets/${targetId}/manual`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, force }),
     });
-    if (!res) return;
+    if (!res) { toast('저장하지 못했어요', null, 'error'); return; }
     if (res.status === 409) {
       const body = await res.json();
       toast(`이미 확인메일 ${body.evidenceCount}건이 있어요 — 그래도 '해당 없음'으로 표시할까요?`,
         { label: '표시하기', run: () => setManual(targetId, action, true) }, 'error');
       return;
     }
+    if (!res.ok) { toast('저장하지 못했어요', null, 'error'); return; }
     toast('저장했어요');
     openDetail(targetId);
-    if (currentWeekNo) loadWeek(currentWeekNo);
+    if (currentWeekNo != null) loadWeek(currentWeekNo);
   }
 
   tbody.addEventListener('click', e => {
@@ -286,17 +343,44 @@
     if (btn) openDetail(Number(btn.dataset.targetId));
   });
 
+  // "?gmail=connected" etc. — where the Gmail consent flow returns (worker/src/index.js gmailCallback)
+  (() => {
+    const params = new URLSearchParams(location.search);
+    const result = params.get('gmail');
+    if (!result) return;
+    params.delete('gmail');
+    const qs = params.toString();
+    history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`);
+    pendingConnectResult = CONNECT_RESULT[result] ? result : 'error';
+  })();
+
+  let initRun = 0;
   async function init() {
-    if (snapshot) { initSnapshot(); return; } // already in read-only mode — don't re-probe the backend and flash the hint
+    const run = ++initRun; // a sign-in/out during a slow load restarts it; the stale one stops
+    closeDetail();
+    if (!auth.session) { await initSnapshot(); return; }
+    snapshot = null;
     const cw = await loadWeeksList();
-    if (cw == null) { await initSnapshot(); return; } // backend unreachable → the weekly status file, if there is one
-    await loadConnection();
-    await loadWeek(currentWeekNo || cw);
-    loaded = true;
+    if (run !== initRun) return;
+    if (cw == null) {
+      if (auth.session) await initSnapshot({ unreachable: true }); // API down → the status file, if there is one
+      return;
+    }
+    const conn = await loadConnection();
+    if (run !== initRun) return;
+    await loadWeek(currentWeekNo ?? cw);
+    if (pendingConnectResult) {
+      const [msg, kind] = CONNECT_RESULT[pendingConnectResult];
+      pendingConnectResult = null;
+      toast(msg, null, kind);
+      if (!kind && conn?.connected) refreshStatus(); // just connected → read the receipts right away
+    }
   }
+  const isVisible = () => window.PhiBrain.getCurrentView() === 'assignment';
   // future.js owns view switching and clears the hash for every non-'future'
   // view (see show()), so a hash check here would always see it empty by the
   // time this script runs — it dispatches this event instead.
   document.addEventListener('phibrain:view', e => { if (e.detail.name === 'assignment') init(); });
-  if (window.PhiBrain.getCurrentView() === 'assignment') init();
+  auth.onChange(() => { snapshot = null; currentWeekNo = null; if (isVisible()) init(); });
+  if (isVisible()) init();
 })();

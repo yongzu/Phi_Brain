@@ -1,10 +1,13 @@
 // Phi Brain API — Cloudflare Worker (온라인 전환, docs/PRODUCT.md "온라인 전환").
-// Deploy: cd worker && npx wrangler@4.131.1 deploy
+// Deploy: cd worker && npx wrangler@4.131.1 d1 migrations apply phi-brain --remote && npx wrangler@4.131.1 deploy
 //
 // Secrets (never in this file — `npx wrangler secret put <NAME>`):
-//   GOOGLE_CLIENT_ID   the OAuth client the "Google로 로그인" button uses (ID token audience)
-//   ALLOWED_EMAIL      the only Google account allowed in (single-user app)
-//   SESSION_SECRET     HMAC key for session tokens — rotating it signs everyone out
+//   GOOGLE_CLIENT_ID      the OAuth client for both "Google로 로그인" (ID token audience) and "Gmail 연결"
+//   GOOGLE_CLIENT_SECRET  that client's secret — Gmail code exchange / token refresh (2단계)
+//   ALLOWED_EMAIL         the only Google account allowed in (single-user app)
+//   SESSION_SECRET        HMAC key for session tokens and the Gmail-connect state — rotating it signs everyone out
+//   TOKEN_KEY             base64 of 32 random bytes — AES-GCM key for the stored Gmail refresh token (2단계).
+//                         Rotating it makes the stored token unreadable → connect Gmail again.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "api",
@@ -14,14 +17,22 @@
   "preview_urls": false,
   "observability": { "enabled": true },
   "vars": {
-    // the only pages allowed to call this API from a browser
-    "ALLOWED_ORIGINS": "https://yongzu.github.io,http://localhost:5500"
+    // the only pages allowed to call this API from a browser (and to be returned to after "Gmail 연결")
+    "ALLOWED_ORIGINS": "https://yongzu.github.io,http://localhost:5500",
+    // Gmail messages fetched per sync call — keeps one invocation inside the free plan's limits (src/assignment/sync.js)
+    "SYNC_BATCH": "15"
+  },
+  "triggers": {
+    // Sunday 23:59 KST starts the weekly Gmail sync; Monday 00:00–01:50 KST every 10 min
+    // continues it only if a run still has messages left
+    "crons": ["59 14 * * 0", "*/10 15-16 * * 0"]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "phi-brain",
-      "database_id": "f8695609-be07-41b6-8949-d0da104501c0"
+      "database_id": "f8695609-be07-41b6-8949-d0da104501c0",
+      "migrations_dir": "migrations"
     }
   ]
 }

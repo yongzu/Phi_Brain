@@ -1,11 +1,68 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (**온라인 전환 1단계 완료** — Cloudflare Worker·D1·Google 로그인 잠금) / Claude Code
+최종 갱신: 2026-09-14 (**온라인 전환 2단계 구현·로컬 검증 완료, 배포 대기** — Assignment Manage를 Worker+D1로) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 온라인 전환 2단계: Assignment Manage 서버 이전 (2026-09-14, 사용자 지시 · Claude Code) — **구현·로컬 검증 완료, 배포는 사용자 조치 대기**
+
+**작업 환경 메모:** 이번 세션 PC에는 기존 클론·`server/.env`·로컬 DB가 없어 저장소를 새로 받아 작업했고, **wrangler가 로그인돼 있지 않아
+배포·원격 D1 적용을 못 했다.** Windows에서 `wrangler dev`/`d1 --local`은 경로가 길면(scratch 경로 등) 전부 `internal error`로 실패 —
+짧은 경로(`%TEMP%\pbw`)에 복사해서 돌렸다.
+
+**추가·변경:**
+- `worker/migrations/0001_assignment_manage.sql`: `server/db.js`와 같은 테이블 + 시드(12과목·0~16주차·과녁 408개, 주차 날짜 동일).
+  추가 테이블 `gmail_seen`(판정 끝난 메시지 ID만 — 배치 사이 중복 조회 방지). `gmail_connection`은 `refresh_token_enc`(AES-GCM 암호문,
+  평문·access token은 저장 안 함), `last_run_at`, `sync_since`, `sync_pending`. **D1은 compound SELECT 항 개수 제한이 있어**
+  12개 `UNION ALL` 시드가 실패 → 다중 행 `VALUES`로(node:sqlite 테스트로는 안 잡히고 로컬 D1에서 발견).
+- `worker/src/assignment/`: `constants.js`(학기·수신 허용 범위), `matching.js`(`server/matching.js` ESM 이식, 규칙 동일),
+  `google.js`(OAuth·Gmail을 `fetch`로, 본문 base64는 UTF-8 디코드, 오류는 Google 오류 코드만 전달), `service.js`(D1 비동기 —
+  주차 표는 칸마다 쿼리 2번 대신 쿼리 1번), `sync.js`(배치 동기화, 아래).
+- `worker/src/secrets.js`: 토큰 암호화/복호화(`TOKEN_KEY`), Gmail 연결 `state` 서명·검증(SESSION_SECRET에서 별도 라벨로 파생한 키라
+  state를 세션으로 못 쓰고 그 반대도 불가, 10분 만료, 허용 이메일 재확인, 돌아갈 주소는 `ALLOWED_ORIGINS`만).
+- `worker/src/index.js`: 세션 필요 `/api/assignment/` — `GET weeks`, `GET weeks/:n/matrix`, `GET targets/:id`, `POST targets/:id/manual`,
+  `GET connection`, `POST connection/disconnect`(Google에 토큰 revoke 시도 후 삭제), `POST gmail/connect`(→ Google 동의 URL),
+  `POST sync`. 세션 불필요 `GET /auth/google/callback`(서명된 state로만 인정 → code 교환 → **gmail.readonly가 실제로 허용됐는지 확인** →
+  refresh token 암호화 저장 → 원래 페이지 `?gmail=connected|denied|scope_missing|no_refresh_token|error`로 복귀). `scheduled()` 크론.
+- **배치 동기화(무료 플랜 한도 대응):** Worker 1회 호출은 외부 요청 50개·CPU ~10ms. 첫 동기화는 수신 허용 범위 시작부터 전부 읽어야 해서
+  한 번에 `SYNC_BATCH`(15)통만 가져오고 `done`/`remaining`을 돌려준다. 검색 시작점은 한 회차 동안 `sync_since`로 고정(= 마지막 성공 − 1일,
+  첫 회는 `RECEIPTS_FROM`), 끝났을 때만 `last_sync_at` 전진. `invalid_grant`면 토큰 삭제 + `reconnect_required`(화면에 "연결하기" 다시 표시).
+- `wrangler.jsonc`: 크론 `59 14 * * 0`(일 23:59 KST 시작) + `*/10 15-16 * * 0`(월 00:00~01:50 KST, 남은 메일 있을 때만 이어서),
+  `SYNC_BATCH`, 새 Secrets 설명(`GOOGLE_CLIENT_SECRET`, `TOKEN_KEY`). Gmail도 로그인과 같은 OAuth 클라이언트(`GOOGLE_CLIENT_ID`)를 쓴다.
+- 프런트 `assignment.js`(`?v=9`): `localhost:5600` 대신 `PhiBrain.auth.fetch('/api/assignment/…')`. **로그아웃 상태 = 기존 공개 JSON 읽기 전용**
+  (상태 줄 끝에 "· 로그인하면 상세·새로고침을 쓸 수 있어요"), 로그인했는데 서버 응답이 없으면 같은 JSON에 "· 서버에 연결할 수 없어 저장본을
+  보여줘요", JSON도 없으면 안내 문구. 로그인/로그아웃 시 즉시 모드 전환. 새로고침은 `done`까지 반복(최대 40회, 진행 중 "메일 N통 확인").
+  "연결하기" → API가 준 URL로 이동 → 돌아오면 `?gmail=` 읽어 토스트 후 주소에서 제거, 방금 연결됐으면 바로 새로고침.
+  서버 오류 코드는 한국어 안내로(`not_connected`, `reconnect_required`, `server_not_configured`, `gmail_429`). `home.html` 안내 문구
+  "백엔드에 연결할 수 없어요 — node server/index.js…" → "서버에 연결할 수 없어요 — 잠시 뒤 다시 열어 주세요."
+- 테스트(`worker/test/`, **54/54**): `d1.js`(node:sqlite 위 D1 흉내 + 실제 마이그레이션 적용), `fixtures.js`(서버 픽스처 ESM 복사),
+  matching 16개 이식, service 11개(시드·주차 날짜·충돌·진행률·잘못된 입력 포함), google 6개(UTF-8 디코드·동의 URL 범위),
+  sync 5개(가짜 Google로 배치 분할·중복 조회 없음·워터마크·invalid_grant·설정 누락), routes 6개(모든 assignment 경로 401·다른 계정 토큰 거부,
+  로그인 후 전체 흐름, state 반환 주소 제한·state↔세션 교차 사용 불가, 콜백 위조/만료/다른 계정 거부, 콜백 암호화 저장·권한 체크 해제 시 미저장,
+  크론 조건). 서버 테스트 39/39 유지.
+
+**검증(로컬 `wrangler dev` + 로컬 D1 + `tools/dev-server.js`, 개발용 가짜 Secrets·가짜 세션):** 마이그레이션 적용 → 과녁 408·0주차 08-31~
+16주차 12-27·EWA 별칭. 로그아웃 → 읽기 전용 24칸(버튼 0)·기존 JSON 문구. 로그인 → 2주차 표 버튼 24·"Gmail 연결 안 됨"+연결하기.
+BI 과제 상세 → 직접 확인으로 표시 → "저장했어요"·"직접 확인"·완료 1/24, 3주차 이동, 새로고침 → "Gmail을 먼저 연결해 주세요".
+연결하기 URL = accounts.google.com·gmail.readonly·offline·login_hint. 그 state로 콜백 직접 호출(가짜 code) → Google `invalid_client`(가짜
+Secrets라 정상) → `home.html?gmail=error`로 복귀 → 토스트 "Gmail을 연결하지 못했어요"·주소에서 파라미터 제거. 로그아웃 → 즉시 읽기 전용.
+`/__scheduled?cron=59+14+*+*+0` 200. 실제 Gmail·실서버 검증은 아직 없음.
+
+**남은 일(순서대로):**
+1. **사용자:** 이 PC에서 `cd worker` → `npx wrangler@4.131.1 login`(브라우저 허용). 그리고 `npx wrangler@4.131.1 secret put GOOGLE_CLIENT_SECRET`에
+   Google Cloud 콘솔의 클라이언트 보안 비밀번호를 직접 붙여넣기(에이전트는 비밀값을 입력하지 않는다).
+2. 에이전트: `TOKEN_KEY` 무작위 생성·등록(값 출력 없이), `d1 migrations apply phi-brain --remote`, `deploy`, 실서버 401/CORS/health 재확인.
+3. 이 커밋 push(프런트가 Pages에 반영됨 — Worker 배포 **뒤에** push. 먼저 push돼도 로그인 상태에서 서버 404 → 저장본 읽기 전용으로 떨어질 뿐).
+4. **사용자:** 배포 사이트에서 로그인 → 연결하기 → 새로고침. 확인 칸이 기존 JSON(0주차 17/24 등)과 같거나 그 이후 제출만큼 늘었는지 대조.
+   github.io에서의 로그인(1단계 미확인 항목)도 여기서 같이 확인된다.
+5. 검증 후(사용자 확인): `.github/workflows/assignment-sync.yml`·`server/export-snapshot.js`·`server/snapshot.js`·공개 JSON 제거, GitHub Secrets
+   `GMAIL_REFRESH_TOKEN` 등 삭제, `assignment.js`의 읽기 전용 폴백을 "로그인해 주세요" 안내로 교체, `server/` 전체 정리 여부 결정
+   (지금은 matching 규칙이 `server/`와 `worker/`에 두 벌 — 규칙을 고치면 둘 다 고칠 것).
+6. 참고: 이전 로컬 DB의 수동 표시(직접 확인/해당 없음)는 이 PC에 없어 옮기지 않았다. 공개 JSON에는 `"manual"`이 0칸이라 메일 근거는 첫 동기화로 전부 다시 채워진다.
+   개인정보처리방침에 새 저장 항목(메시지 ID 판정 기록, 서버 저장 위치 Cloudflare) 반영은 5단계에서.
 
 ### 온라인 전환 0~1단계: Cloudflare 준비 + 서버 뼈대·로그인 잠금 (2026-09-14, 사용자 지시 · Claude Code) — **완료, 다음은 2단계**
 
