@@ -833,34 +833,19 @@
   document.addEventListener('pointerdown', e => {
     if (archiveMenuAnchor && !archiveMenu.contains(e.target) && !archiveMenuAnchor.contains(e.target)) closeArchiveMenu(false);
   });
-  // where the list comes from, and the one-time "이 브라우저 저널 올리기" (사용자 확정: 3단계에 포함)
+  // where the list comes from (uploading this browser's journals is the import-dialog.js popup)
   const archiveHint = $('#archive-hint');
-  let importing = false;
   function renderArchiveHint() {
     if (store.mode === 'local') {
       archiveHint.textContent = '이 브라우저에 저장된 저널만 보여요 — 로그인하면 어느 기기에서든 같은 저널을 볼 수 있어요.';
       return;
     }
     if (!store.loaded) { archiveHint.textContent = store.offline ? '서버에 연결하지 못해 이 기기에 보관된 저널을 보여줘요.' : '서버에서 저널을 불러오는 중…'; return; }
-    const { upload, conflicts } = store.importCandidates();
+    const { conflicts } = store.importCandidates();
     let html = '로그인한 모든 기기에서 같은 저널이 보여요.';
-    if (upload.length) html += ` 이 브라우저에만 있는 저널 ${upload.length}개가 있어요. <button type="button" class="pill" data-import${importing ? ' disabled' : ''}>${importing ? '올리는 중…' : '서버로 올리기'}</button>`;
     if (conflicts.length) html += ` 같은 날짜에 서버와 다른 내용이 있어 올리지 않은 저널: ${conflicts.map(d => esc(monthDay(d))).join(', ')}`;
     archiveHint.innerHTML = html;
   }
-  async function importLocalJournals() {
-    if (importing) return;
-    importing = true;
-    renderArchiveHint();
-    const r = await store.importLocal();
-    importing = false;
-    if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
-    const parts = [`저널 ${r.imported.length}개를 서버로 올렸어요`];
-    if (r.conflicts.length) parts.push(`${r.conflicts.length}개는 같은 날짜에 다른 내용이 있어 건너뛰었어요`);
-    if (r.failed.length) parts.push(`${r.failed.length}개는 올리지 못했어요 — 다시 눌러 주세요`);
-    window.PhiBrain.ui.toast(parts.join(' · '), null, r.failed.length ? 'error' : '');
-  }
-  archiveHint.addEventListener('click', e => { if (e.target.closest('[data-import]')) importLocalJournals(); });
 
   function renderArchive() {
     renderArchiveHint();
@@ -1008,7 +993,6 @@
 
   // ---- server data arriving / sign-in / sign-out (journal-store.js) ----
   store.onBeforeModeChange(() => save()); // the last keystrokes go to the store they were typed for
-  let importOffered = false;
   store.onChange(({ reason, date } = {}) => {
     if (reason === 'mode' || (reason === 'resolved' && date === current)) { dirty = false; load(current); }
     else if (!dirty) {
@@ -1021,13 +1005,6 @@
     const view = window.PhiBrain.getCurrentView();
     if (view === 'journal-archive' && !editingInArchive) renderArchive();
     if (view === 'findings') renderFindings();
-    if (reason === 'loaded' && !importOffered) {
-      const n = store.importCandidates().upload.length;
-      if (n) {
-        importOffered = true;
-        window.PhiBrain.ui.toast(`이 브라우저에만 있는 저널 ${n}개가 있어요`, { label: '서버로 올리기', run: importLocalJournals });
-      }
-    }
   });
   store.onSync(date => {
     if (date === current && !dirty) showSaveState(store.get(date)?.savedAt);

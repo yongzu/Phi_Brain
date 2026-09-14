@@ -9,7 +9,7 @@
     asks which one to keep. Unsent changes and the last copy are kept per
     account (phi-brain:future-sync:v1:<email>) and sent on reconnect/next load.
   - This browser's own signed-out board is never touched; its items that the
-    server doesn't have (by id) can be added with "서버로 올리기".
+    server doesn't have (by id) can be added with "서버로 올리기" (import-dialog.js popup).
 */
 (() => {
   const { futureStore: board, auth, ui: { toast } } = window.PhiBrain;
@@ -25,7 +25,7 @@
   let mode = 'local', loaded = false, offline = false;
   let version = 0, pending = false, force = false;
   let conflict = null;          // { data, version } — the server's copy when another device saved first
-  let inflight = false, rev = 0, retryTimer = 0, importOffered = false;
+  let inflight = false, rev = 0, retryTimer = 0;
 
   const cacheKey = () => (auth.session ? `phi-brain:future-sync:v1:${auth.session.email.toLowerCase()}` : null);
   function persist() {
@@ -52,8 +52,8 @@
     };
     board.replace(merged);
     save();
-    toast(`Future Item ${added.length}개를 서버로 올렸어요`);
     renderHint();
+    return added.length;
   }
 
   // ---- hint under the heading: where things are saved, and anything that needs a decision ----
@@ -75,19 +75,12 @@
       hint.textContent = '서버에 연결되지 않아 이 기기에 보관 중이에요 — 연결되면 올려요.';
       return;
     }
-    const n = importCandidates().length;
-    if (n) {
-      hint.hidden = false;
-      hint.innerHTML = `이 브라우저에만 있는 Future Item ${n}개가 있어요.<button type="button" class="pill" data-fi-sync="import">서버로 올리기</button>`;
-      return;
-    }
     hint.hidden = true;
     hint.textContent = '';
   }
   hint.addEventListener('click', e => {
     const act = e.target.closest('[data-fi-sync]')?.dataset.fiSync;
-    if (act === 'import') importLocal();
-    else if (act === 'mine' && conflict) { version = conflict.version; conflict = null; force = true; pending = true; persist(); send(); renderHint(); }
+    if (act === 'mine' && conflict) { version = conflict.version; conflict = null; force = true; pending = true; persist(); send(); renderHint(); }
     else if (act === 'theirs' && conflict) {
       const c = conflict;
       conflict = null; pending = false; force = false; version = c.version;
@@ -155,11 +148,7 @@
       persist();
     }
     renderHint();
-    const n = importCandidates().length;
-    if (n && !importOffered) {
-      importOffered = true;
-      toast(`이 브라우저에만 있는 Future Item ${n}개가 있어요`, { label: '서버로 올리기', run: importLocal });
-    }
+    document.dispatchEvent(new CustomEvent('phibrain:future-changed')); // the upload popup waits for this
   }
 
   function enterMode() {
@@ -186,5 +175,8 @@
   addEventListener('pagehide', persist);
   if (auth.session) enterMode(); else renderHint();
 
-  window.PhiBrain.futureSync = { get mode() { return mode; }, get pending() { return pending; }, get version() { return version; } };
+  window.PhiBrain.futureSync = {
+    get mode() { return mode; }, get pending() { return pending; }, get version() { return version; }, get loaded() { return loaded; },
+    importCandidates, importLocal,
+  };
 })();

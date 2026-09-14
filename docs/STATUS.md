@@ -7,6 +7,19 @@
 
 ## 현재 단계
 
+### 서버로 올리기: 안내 문구 버튼 → 팝업 (2026-09-14, 사용자 지시 · Claude Code)
+
+- 이유(사용자): 화면 위쪽 안내 문구에 있어 잘 안 보임.
+- `import-dialog.js`(신규, 마지막에 로드) + `home.html` `#import-dialog` + `phi-brain.css` `.import-dialog`(`?v=20260914-18`): 로그인 상태에서 저널 저장소와
+  Future Item 동기화가 모두 `loaded`가 되면 후보 개수를 세어 있으면 `showModal()`. [서버로 올리기] = Future Item `importLocal()`(동기) → 저널 `importLocal()`(서버) →
+  닫고 토스트 "서버로 올렸어요 · Future Item N개 · 저널 N개 · (건너뛴/실패 수)". [나중에]/Esc/배경 = `sessionStorage` `phi-brain:import-dismissed`(이 탭 동안만).
+- `journal.js`(`?v=20260914-12`): Archive 안내의 올리기 버튼·로그인 직후 토스트·`importLocalJournals` 제거(건너뛴 날짜 문구는 유지).
+  `future-sync.js`(`?v=2`): 안내 문구의 올리기 버튼·토스트 제거, `importLocal()`이 올린 개수 반환, `futureSync.loaded/importCandidates/importLocal` 공개,
+  서버 도착 시 `phibrain:future-changed` 발송(팝업이 기다림).
+- 검증(로컬 wrangler dev + 새 로컬 D1, 가짜 세션·가짜 테스트 데이터): 브라우저 저널 2·Future Item 3 + 로그인 → 새로고침 후 팝업 열림(가운데, 1280×800·375px 모두 확인,
+  기본 포커스 올리기, 개수 "저널 2개 Future Item 3개", 토스트 없음) → 올리기 → 서버 저널 2·Future Item 3(v1), 브라우저 원본 유지 → 브라우저에만 항목 1개 추가 후
+  새로고침 → 팝업 "Future Item 1개" → 나중에 → 새로고침해도 안 뜸. 테스트 데이터 삭제. 프런트만 바뀌어 Worker 배포 없음.
+
 ### 온라인 전환 4단계: Future Item 서버 저장(단순한 방식) + 자동 로그인 (2026-09-14, 사용자 지시 · Claude Code) — **배포 완료, 사용자 확인 대기**
 
 **사용자 결정:** Future Item은 항목 단위 병합 대신 **보드 전체를 한 문서로 저장하는 단순한 방식**(동시 수정 시 물어봄). 자동 로그인도 함께.
