@@ -690,7 +690,7 @@
     if (refocus) dueDateBtn.focus();
     popOut(dueDatepicker);
   }
-  function pickDueDate(date) { closeDuePicker(); dueDate = date; renderDueDateLabel(); }
+  function pickDueDate(date) { closeDuePicker(); dueDate = date; renderDueDateLabel(); if (!dueTimeValue) { dueTimeValue = DEFAULT_DUE_TIME; renderTimeLabel(); } }
   const stepDueMonth = n => { const d = new Date(dueViewY, dueViewM + n, 1); dueViewY = d.getFullYear(); dueViewM = d.getMonth(); renderDuePicker(); };
   dueDateBtn.addEventListener('click', () => (dueDatepicker.hidden ? openDuePicker() : closeDuePicker()));
   $('#fi-due-dp-prev').addEventListener('click', () => stepDueMonth(-1));
@@ -719,7 +719,8 @@
   const dueTimeField = $('#fi-due-time-field'), dueTimeBtn = $('#fi-due-time-btn'), dueTimeLabelEl = $('#fi-due-time-label');
   const dueTimepicker = $('#fi-due-timepicker');
   const tpMeridiemEl = $('#fi-due-tp-meridiem'), tpHourEl = $('#fi-due-tp-hour'), tpMinuteEl = $('#fi-due-tp-minute');
-  const MINUTE_STEP = 5;
+  const MINUTE_STEP = 1; // 분은 00~59 1분 단위(사용자 지시 2026-09-14, 예전 5분 단위)
+  const DEFAULT_DUE_TIME = '23:59'; // 날짜만 고르면 시간은 일단 오후 11:59(사용자 지시 2026-09-14) — 시간 선택으로 바꾸거나 지우기로 뺄 수 있음
   let dueTimeValue = ''; // '' (no time picked) | 'HH:mm' 24h, matches dueAt's own time format
   const timeParts = v => { if (!v) return null; const [h, m] = v.split(':').map(Number); return { meridiem: h < 12 ? 'am' : 'pm', hour12: h % 12 || 12, minute: m }; };
   const to24h = (meridiem, hour12, minute) => `${pad2((hour12 % 12) + (meridiem === 'pm' ? 12 : 0))}:${pad2(minute)}`;
@@ -824,7 +825,11 @@
     if (refocus) rowDueDateBtn.focus();
     popOut(rowDueDatepicker);
   }
-  function pickRowDueDate(date) { closeRowDueDatePicker(); rowDueDate = date; renderRowDueDateLabel(); rowDueCommitNow(); }
+  function pickRowDueDate(date) {
+    closeRowDueDatePicker(); rowDueDate = date; renderRowDueDateLabel();
+    if (!rowDueTime) { rowDueTime = DEFAULT_DUE_TIME; renderRowDueTimeLabel(); } // 날짜만 고르면 오후 11:59
+    rowDueCommitNow();
+  }
   function rowDueClear() { closeRowDueDatePicker(); rowDueDate = ''; rowDueTime = ''; renderRowDueDateLabel(); renderRowDueTimeLabel(); rowDueCommitNow(); }
   const stepRowDueMonth = n => { const d = new Date(rowDueViewY, rowDueViewM + n, 1); rowDueViewY = d.getFullYear(); rowDueViewM = d.getMonth(); renderRowDuePicker(); };
   rowDueDateBtn.addEventListener('click', () => (rowDueDatepicker.hidden ? openRowDueDatePicker() : closeRowDueDatePicker()));
@@ -934,6 +939,7 @@
   dueEnable.addEventListener('change', () => {
     dueDateField.hidden = !dueEnable.checked;
     dueTimeField.hidden = !dueEnable.checked;
+    if (dueEnable.checked && !dueTimeValue) { dueTimeValue = DEFAULT_DUE_TIME; renderTimeLabel(); } // 마감 켜면 오늘 · 오후 11:59로 시작
     if (!dueEnable.checked) { closeDuePicker(false); closeTimePicker(false); }
   });
 
