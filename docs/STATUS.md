@@ -1,11 +1,53 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-14 (**온라인 전환 2단계 완료** — 배포 사이트에서 Gmail 연결·동기화 확인, 정리 작업만 남음 — Assignment Manage를 Worker+D1로) / Claude Code
+최종 갱신: 2026-09-14 (**온라인 전환 3단계 구현** — 저널을 서버로, 기존 브라우저 저널 가져오기 포함) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 온라인 전환 3단계: 저널을 서버로 (2026-09-14, 사용자 지시 · Claude Code) — **구현·로컬 검증 완료, 배포 대기**
+
+**사용자 결정(착수 시 질문):** ① 기존 브라우저 저널 가져오기를 5단계로 미루지 않고 **3단계에 포함**(로그인하면 기존 저널이 안 보이게 되므로).
+② 로그아웃 상태에서도 **지금처럼 브라우저에 저장**해 쓸 수 있게(로그인 강제 안 함).
+
+**서버(`worker/`):**
+- `migrations/0002_journals.sql`: `journals`(date PK·title·courses JSON·html·saved_at·**version**·updated_at), `journal_favorites`(date, course).
+  Findings·Archive는 저널에서 파생이라 테이블 없음.
+- `src/journals.js` + `index.js` 연결(전부 세션 필요): `GET /api/journals`(전체+즐겨찾기), `PUT /api/journals/:date`(baseVersion 필수 —
+  서버 버전과 다르면 409 + 서버 사본, `force`로만 덮어씀, UPDATE는 `WHERE version = ?`로 경쟁 방지), `DELETE …?baseVersion=`(오래된 버전이면 409,
+  즐겨찾기도 삭제), `PUT/DELETE /api/journals/:date/favorites/:course`, `POST /api/journals/import`(없는 날짜만 추가·같은 내용은 same·
+  다른 내용은 conflicts로 보고, **덮어쓰지 않음**, 요청당 최대 20개·SELECT 1번+batch 1번 — 무료 플랜 D1 쿼리 수 한도 고려).
+  검증: 실제 달력 날짜만, 과목 코드 형식(`general`/대문자 2~4자) 외 제거, 제목 500자·본문 500KB 초과 413.
+- 테스트 `test/journals.test.js` 6개 → **Worker 60/60**.
+
+**프런트:**
+- `design/prototypes/journal-store.js`(신규, `journal.js` 앞에 로드): journal.js의 동기식 `store.get/set/remove/dates`·`favorites` 모양 그대로.
+  로그아웃 = 기존 localStorage 키(`phi-brain:journal:*`, 즐겨찾기) 그대로. 로그인 = 서버 목록의 메모리 사본, 쓰기는 즉시 반영 후 날짜별로 한 번에
+  하나씩 전송(보낸 동안 또 쓰면 끝난 뒤 재전송), 끊기면 20초 뒤·`online` 때 재시도. 계정별 캐시 `phi-brain:sync:v1:<email>`에 사본·안 보낸 변경을
+  보관(탭 닫힘 대비, `pagehide`에 즉시 기록). 409면 충돌로 멈추고 화면에 선택지. **409인데 서버 사본이 이 기기 내용과 똑같으면 충돌이 아니라
+  "응답만 못 받은 저장"으로 보고 버전만 맞춤**(로컬 검증 중 실제로 재현된 경우). 로그인 전환 직전 journal.js가 남은 입력을 먼저 저장(`onBeforeModeChange`).
+- `journal.js`(`?v=20260914-8`): 저장 상태 줄(아래 DESIGN), 충돌 선택 pill, 서버 데이터 도착 시 편집 중이 아니고 내용이 다를 때만 다시 불러오기,
+  Archive·Findings 열려 있으면 다시 그림, 로그인 직후 가져오기 토스트 1회, Archive 안내 문구·"서버로 올리기". `home.html` `#archive-hint`,
+  `phi-brain.css?v=20260914-15`(`.archive-hint .pill` 간격 한 줄).
+- `design/privacy.html`: 배포되면 "저널은 브라우저에만 저장" 문장이 거짓이 되므로 **사실 부분만 수정** — 로그인 시 저널·즐겨찾기 서버 저장,
+  Future Item은 여전히 브라우저, Gmail 갱신 토큰 암호화 저장·접근 토큰 미저장·확인한 메시지 ID 기록(2단계분), 저장 위치 Cloudflare, 제3자에 Cloudflare 추가.
+  시행일·전체 재검토는 5단계.
+
+**검증(로컬 wrangler dev + 로컬 D1, 가짜 세션·가짜 테스트 저널):** 로그아웃 입력 → "이 브라우저에만 저장됨"·Archive 3행. 로그인 → 서버 0개 + 토스트
+"이 브라우저에만 있는 저널 3개" + 안내 문구 버튼 → 올리기 → 서버 3개·즐겨찾기 1개 이전·Findings에 BI 발견 표시·브라우저 원본 3개 유지, 오늘 편집기에
+가져온 내용 표시. 입력 → "저장 중…" → "초안 저장됨"(서버 v2). 다른 기기 흉내(API로 먼저 저장) 후 입력 → 충돌 문구+pill 2개 → "다른 기기 내용 불러오기"
+→ 그 내용으로 교체·saved. 다시 충돌 → "이 내용으로 저장" → 서버 v5에 이 기기 내용. 과목 필터 카드 즐겨찾기 → 서버 반영. 삭제 확인 → 서버에서 삭제·
+즐겨찾기 삭제 → 되돌리기 → 서버 복구. Worker 중지 후 입력 → "서버에 연결되지 않아 이 기기에 보관 중" + 캐시에 pending → 재시작·새로고침 →
+서버 반영·saved(여기서 위 409 동일 내용 버그 발견·수정 후 재확인). 로그아웃 → 즉시 브라우저 저널(로그아웃 때 쓴 원래 내용)로 전환.
+
+**남은 일:**
+1. 원격 D1에 `0002` 적용 + Worker 배포 + push(프런트 반영). **순서: 마이그레이션 → 배포 → push.**
+2. 사용자: 기기마다(데스크톱 localhost·github.io, 노트북) 로그인 → "서버로 올리기". **주의:** localhost:5500과 github.io는 브라우저 저장소가
+   따로라 각각 한 번씩. 같은 날짜가 기기마다 다르면 건너뛴 날짜로 표시됨 — 어느 쪽을 남길지는 그 저널을 열어 직접 정리(자동 병합 없음).
+3. 남은 계획: 4단계 Future Item(`future.js`는 아직 브라우저 저장 — Journaling의 "Future Item에 등록하기"도 아직 브라우저), 5단계 나머지 가져오기·
+   개인정보처리방침 전체 재검토, 6단계 백업. 2단계 정리(옛 GitHub Actions 동기화 제거)도 대기 중.
 
 ### 온라인 전환 2단계: Assignment Manage 서버 이전 (2026-09-14, 사용자 지시 · Claude Code) — **완료(실사용 확인), 옛 주간 동기화 정리 대기**
 

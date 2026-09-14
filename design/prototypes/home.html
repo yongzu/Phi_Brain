@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-14">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-15">
 </head>
 <body>
 
@@ -305,7 +305,7 @@
         <header class="journal-head">
           <h1 class="journal-heading" id="archive-heading">Journal Archive</h1>
         </header>
-        <p class="field-hint archive-hint">이 브라우저에 저장된 저널만 보여요 — 다른 기기에는 나타나지 않아요.</p>
+        <p class="field-hint archive-hint" id="archive-hint" aria-live="polite">이 브라우저에 저장된 저널만 보여요 — 로그인하면 어느 기기에서든 같은 저널을 볼 수 있어요.</p>
 
         <nav class="fi-filters" id="archive-filters" aria-label="과목 필터"></nav>
 
@@ -416,7 +416,8 @@
 <script src="config.js?v=1"></script>
 <script src="future.js?v=20260914-4"></script>
 <script src="auth.js?v=1"></script>
-<script src="journal.js?v=20260914-7"></script>
+<script src="journal-store.js?v=2"></script>
+<script src="journal.js?v=20260914-8"></script>
 <script src="assignment.js?v=9"></script>
 </body>
 </html>

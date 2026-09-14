@@ -1,7 +1,8 @@
 /*
-  Journaling — prototype behavior (no backend).
+  Journaling — prototype behavior.
 
-  - Drafts autosave per date to localStorage. A saved draft is only a
+  - Drafts autosave per date — to the server when signed in, to this browser's
+    localStorage when not (journal-store.js, 온라인 전환 3단계). A saved draft is only a
     draft: nothing is filed into a course until 정리하기 → review →
     confirm, which needs the AI step that isn't connected yet. So
     정리하기 shows its real states (정리 중 → 실패 → 다시 시도) honestly.
@@ -45,17 +46,8 @@
   const weekOf = s => Math.max(1, Math.floor((fromIso(s) - fromIso(SEMESTER_START)) / 86400000 / 7) + 1);
   const monthDayDow = s => `${monthDay(s)}(${DOW[fromIso(s).getDay()]})`;
 
-  // ---- storage (may be unavailable: private mode, blocked site data) ----
-  const KEY = 'phi-brain:journal:';
-  const store = {
-    get(date) { try { return JSON.parse(localStorage.getItem(KEY + date)); } catch { return null; } },
-    set(date, v) { try { localStorage.setItem(KEY + date, JSON.stringify(v)); return true; } catch { return false; } },
-    remove(date) { try { localStorage.removeItem(KEY + date); return true; } catch { return false; } },
-    dates() {
-      try { return Object.keys(localStorage).filter(k => k.startsWith(KEY)).map(k => k.slice(KEY.length)); }
-      catch { return []; }
-    },
-  };
+  // ---- storage: server when signed in, this browser when not (journal-store.js) ----
+  const store = window.PhiBrain.journalStore;
 
   // ---- example data (shown until the user edits; never auto-saved) ----
   // Today always opens as a blank document — 4F boxes appear only via the
@@ -90,6 +82,31 @@
     status.textContent = text;
     status.className = 'save-status' + (kind ? ' is-' + kind : '');
   }
+  // what the status line says about the open date's saved copy
+  function showSaveState(savedAt) {
+    const st = store.syncState(current);
+    if (st === 'conflict') { showConflict(); return; }
+    if (!savedAt) { setStatus(''); return; }
+    if (st === 'local') setStatus(`이 브라우저에만 저장됨 · ${clock(savedAt)}`);
+    else if (st === 'pending') setStatus('저장 중…', 'busy');
+    else if (st === 'offline') setStatus('서버에 연결되지 않아 이 기기에 보관 중 · 연결되면 올려요', 'error');
+    else setStatus(`초안 저장됨 · ${clock(savedAt)}`);
+  }
+  // an edit made on another device got to the server first — ask, never pick silently
+  function showConflict() {
+    const deletedElsewhere = store.conflictCopy(current) === null;
+    status.className = 'save-status is-error';
+    status.innerHTML = (deletedElsewhere ? '다른 기기에서 삭제된 저널이에요' : '다른 기기에서 먼저 수정된 저널이에요')
+      + `<button type="button" class="pill" data-resolve="mine">${deletedElsewhere ? '다시 저장' : '이 내용으로 저장'}</button>`
+      + `<button type="button" class="pill" data-resolve="theirs">${deletedElsewhere ? '삭제 따르기' : '다른 기기 내용 불러오기'}</button>`;
+  }
+  status.addEventListener('click', e => {
+    const b = e.target.closest('[data-resolve]');
+    if (!b) return;
+    const choice = b.dataset.resolve;
+    if (choice === 'mine') { dirty = true; save(); } // what's on screen right now is what gets kept
+    store.resolve(current, choice);
+  });
 
   function load(date) {
     closeCourseMenu();
@@ -104,7 +121,8 @@
     $('#fi-register').checked = false;
     dirty = false;
     renderDate(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
-    setStatus(saved ? `초안 저장됨 · ${clock(saved.savedAt)}` : example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
+    if (saved || store.syncState(date) === 'conflict') showSaveState(saved?.savedAt);
+    else setStatus(example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
   }
 
@@ -121,7 +139,7 @@
     if (!dirty) return;
     dirty = false;
     const data = { title: titleInput.value.trim(), courses: [...chosen], html: editor.innerHTML, savedAt: Date.now() };
-    if (store.set(current, data)) setStatus(`초안 저장됨 · ${clock(data.savedAt)}`);
+    if (store.set(current, data)) showSaveState(data.savedAt);
     else setStatus('이 브라우저에서는 저장할 수 없어요', 'error');
     renderResume();
   }
@@ -626,22 +644,9 @@
 
   // ---- 즐겨찾기: per (date, course) card, not per journal — a card is one
   // course's slice of one day, so that's the thing worth bookmarking ----
-  const FAV_KEY = 'phi-brain:journal-archive:favorites';
+  // stored with the journals (journal-store.js): server when signed in, this browser when not
   const favKey = (date, course) => `${date}::${course}`;
-  const favorites = {
-    all() { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY)) || []); } catch { return new Set(); } },
-    toggle(date, course) {
-      const s = favorites.all(), k = favKey(date, course);
-      s.has(k) ? s.delete(k) : s.add(k);
-      try { localStorage.setItem(FAV_KEY, JSON.stringify([...s])); } catch {}
-    },
-    // called when a whole journal is deleted, so no orphaned date::course keys linger
-    removeForDate(date) {
-      const s = favorites.all();
-      const kept = [...s].filter(k => !k.startsWith(date + '::'));
-      try { localStorage.setItem(FAV_KEY, JSON.stringify(kept)); } catch {}
-    },
-  };
+  const favorites = store.favorites;
   // 즐겨찾기는 Future Item 과목 박스와 같은 별표(.fi-box-fav, CSS background로
   // 옅은 회색/검정 SVG를 바꿔 끼우는 방식)를 그대로 재사용 — 카드 헤더에 두면 CSS도 공짜
   // showCourse: 과목을 여럿 골랐을 때만 카드 메타에 과목을 붙인다 — 같은 날짜 카드가
@@ -808,7 +813,37 @@
   document.addEventListener('pointerdown', e => {
     if (archiveMenuAnchor && !archiveMenu.contains(e.target) && !archiveMenuAnchor.contains(e.target)) closeArchiveMenu(false);
   });
+  // where the list comes from, and the one-time "이 브라우저 저널 올리기" (사용자 확정: 3단계에 포함)
+  const archiveHint = $('#archive-hint');
+  let importing = false;
+  function renderArchiveHint() {
+    if (store.mode === 'local') {
+      archiveHint.textContent = '이 브라우저에 저장된 저널만 보여요 — 로그인하면 어느 기기에서든 같은 저널을 볼 수 있어요.';
+      return;
+    }
+    if (!store.loaded) { archiveHint.textContent = store.offline ? '서버에 연결하지 못해 이 기기에 보관된 저널을 보여줘요.' : '서버에서 저널을 불러오는 중…'; return; }
+    const { upload, conflicts } = store.importCandidates();
+    let html = '로그인한 모든 기기에서 같은 저널이 보여요.';
+    if (upload.length) html += ` 이 브라우저에만 있는 저널 ${upload.length}개가 있어요. <button type="button" class="pill" data-import${importing ? ' disabled' : ''}>${importing ? '올리는 중…' : '서버로 올리기'}</button>`;
+    if (conflicts.length) html += ` 같은 날짜에 서버와 다른 내용이 있어 올리지 않은 저널: ${conflicts.map(d => esc(monthDay(d))).join(', ')}`;
+    archiveHint.innerHTML = html;
+  }
+  async function importLocalJournals() {
+    if (importing) return;
+    importing = true;
+    renderArchiveHint();
+    const r = await store.importLocal();
+    importing = false;
+    if (window.PhiBrain.getCurrentView() === 'journal-archive') renderArchive();
+    const parts = [`저널 ${r.imported.length}개를 서버로 올렸어요`];
+    if (r.conflicts.length) parts.push(`${r.conflicts.length}개는 같은 날짜에 다른 내용이 있어 건너뛰었어요`);
+    if (r.failed.length) parts.push(`${r.failed.length}개는 올리지 못했어요 — 다시 눌러 주세요`);
+    window.PhiBrain.ui.toast(parts.join(' · '), null, r.failed.length ? 'error' : '');
+  }
+  archiveHint.addEventListener('click', e => { if (e.target.closest('[data-import]')) importLocalJournals(); });
+
   function renderArchive() {
+    renderArchiveHint();
     archiveFilters = archiveFilterFromHash(location.hash);
     const entries = archiveEntries();
     renderArchiveFilters(entries);
@@ -951,6 +986,43 @@
   document.addEventListener('phibrain:view', e => { if (e.detail.name === 'findings') renderFindings(); });
   if (window.PhiBrain.getCurrentView() === 'findings') renderFindings();
 
-  addEventListener('pagehide', save);
+  // ---- server data arriving / sign-in / sign-out (journal-store.js) ----
+  store.onBeforeModeChange(() => save()); // the last keystrokes go to the store they were typed for
+  let importOffered = false;
+  store.onChange(({ reason, date } = {}) => {
+    if (reason === 'mode' || (reason === 'resolved' && date === current)) { dirty = false; load(current); }
+    else if (!dirty) {
+      // a fresher copy from the server — reload only if it differs, so the caret isn't thrown away for nothing
+      const d = store.get(current);
+      if (d && (d.html !== editor.innerHTML || (d.title || '') !== titleInput.value.trim())) load(current);
+      else if (d) showSaveState(d.savedAt);
+    }
+    renderResume();
+    const view = window.PhiBrain.getCurrentView();
+    if (view === 'journal-archive' && !editingInArchive) renderArchive();
+    if (view === 'findings') renderFindings();
+    if (reason === 'loaded' && !importOffered) {
+      const n = store.importCandidates().upload.length;
+      if (n) {
+        importOffered = true;
+        window.PhiBrain.ui.toast(`이 브라우저에만 있는 저널 ${n}개가 있어요`, { label: '서버로 올리기', run: importLocalJournals });
+      }
+    }
+  });
+  store.onSync(date => {
+    if (date === current && !dirty) showSaveState(store.get(date)?.savedAt);
+  });
+  store.onNotice(n => {
+    const { toast } = window.PhiBrain.ui;
+    if (n.type === 'conflict' && n.date !== current) {
+      toast(`${monthDay(n.date)} 저널이 다른 기기에서 먼저 수정돼 저장을 멈췄어요`, { label: '열기', run: () => window.PhiBrain.openJournal(n.date) }, 'error');
+    } else if (n.type === 'error') {
+      toast(n.error === 'journal_too_large' ? '저널이 너무 커서 서버에 저장하지 못했어요' : `${monthDay(n.date)} 저널을 서버에 저장하지 못했어요`, null, 'error');
+    } else if (n.type === 'favorite-failed') {
+      toast('즐겨찾기를 저장하지 못했어요', null, 'error');
+    }
+  });
+
+  addEventListener('pagehide', () => save());
   load(today);
 })();

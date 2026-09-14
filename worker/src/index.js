@@ -1,12 +1,14 @@
 // Phi Brain API (Cloudflare Worker).
 // Step 1 of the online move: health check, sign-in and the login lock.
 // Step 2: Assignment Manage (/api/assignment/*, Gmail connect callback, weekly cron).
+// Step 3: Journaling (/api/journals*, src/journals.js).
 // Every data endpoint sits behind requireSession().
 import { verifyGoogleIdToken, googleKeys, signSession, verifySession, AuthError } from './auth.js';
 import { encryptToken, decryptToken, signState, verifyState, safeReturnTo } from './secrets.js';
 import * as svc from './assignment/service.js';
 import { runSyncBatch, SyncError, DEFAULT_BATCH } from './assignment/sync.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
+import { journalsApi, BadRequest } from './journals.js';
 
 const allowedOrigins = env => (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -156,10 +158,15 @@ export default {
 
       if (url.pathname === '/api/me' && request.method === 'GET') return json(200, { email: session.email });
       if (url.pathname.startsWith('/api/assignment/')) return await assignmentApi(request, env, url, json, session);
+      if (url.pathname === '/api/journals' || url.pathname.startsWith('/api/journals/')) {
+        const res = await journalsApi(request, env, url, json);
+        if (res) return res;
+      }
 
       return json(404, { error: 'not_found' });
     } catch (err) {
       if (err instanceof AuthError) return json(403, { error: err.reason });
+      if (err instanceof BadRequest) return json(err.status, { error: err.code });
       console.error(err);
       return json(500, { error: 'internal_error' });
     }
