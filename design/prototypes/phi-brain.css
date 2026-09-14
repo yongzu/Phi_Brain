@@ -511,7 +511,7 @@
    attribute's UA-stylesheet display:none at equal specificity */
 #archive-list[hidden]{display:none}
 .archive-empty{color:var(--gray);padding:6px 0}
-.archive-entry .accordion-content{padding:0 0 12px}
+.archive-entry .accordion-content{padding:10px 0 12px} /* 펼친 본문과 제목 줄 사이 10px(사용자 지시 2026-09-14) */
 /* reuses .editor's heading/list/quote/code styling for the saved body, minus
    the live editor's own height reservation and inner padding */
 .archive-preview{min-height:0;padding:0 0 10px}

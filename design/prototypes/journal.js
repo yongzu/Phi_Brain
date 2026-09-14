@@ -135,11 +135,28 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(save, 700);
   }
+  // 제목도 쓴 글자도 없으면 빈 저널이다(사용자 지시 2026-09-14) — 4F 템플릿 소제목이나 과목 박스만
+  // 남은 것도 빈 것으로 본다. 직접 쓴 소제목·이미지·구분선은 내용으로 친다.
+  function hasContent(d) {
+    if ((d?.title || '').trim()) return true;
+    const frag = document.createElement('div');
+    frag.innerHTML = d?.html || '';
+    frag.querySelectorAll('.course-box').forEach(el => el.remove());
+    frag.querySelectorAll('h3').forEach(h => { if (guideFor(h.textContent)) h.remove(); });
+    return frag.textContent.trim() !== '' || !!frag.querySelector('img, hr');
+  }
   function save() {
     clearTimeout(saveTimer);
     if (!dirty) return;
     dirty = false;
     const data = { title: titleInput.value.trim(), courses: [...chosen], html: editor.innerHTML, savedAt: Date.now() };
+    // 썼다가 다 지웠으면 저장하지 않고, 이미 저장돼 있던 그 날짜 저널도 지운다 — Archive에 빈 저널이 남지 않게
+    if (!hasContent(data)) {
+      if (store.get(current)) store.remove(current);
+      setStatus('');
+      renderResume();
+      return;
+    }
     if (store.set(current, data)) showSaveState(data.savedAt);
     else setStatus('이 브라우저에서는 저장할 수 없어요', 'error');
     renderResume();
@@ -535,7 +552,7 @@
   const item = (title, meta, attrs = '') =>
     `<li><button type="button" class="nav-tab" ${attrs}><span class="ri-title">${title}</span><span class="ri-meta">${meta}</span></button></li>`;
   function renderResume() {
-    const draftDates = new Set([...Object.keys(EXAMPLES), ...store.dates()]);
+    const draftDates = new Set([...Object.keys(EXAMPLES), ...store.dates().filter(date => hasContent(store.get(date)))]);
     draftDates.delete(current);
     const drafts = [...draftDates].sort().reverse().map(date => {
       const d = store.get(date) || EXAMPLES[date];
@@ -589,7 +606,7 @@
   function archiveEntries() {
     return store.dates().map(date => {
       const d = store.get(date);
-      if (!d) return null;
+      if (!d || !hasContent(d)) return null; // 예전에 저장된 빈 저널은 보여주지 않는다
       return { date, title: (d.title || '').trim() || `${monthDay(date)} 저널`, courses: d.courses || [], savedAt: d.savedAt || 0, html: d.html || '' };
     }).filter(Boolean).sort((a, b) => b.date.localeCompare(a.date));
   }
