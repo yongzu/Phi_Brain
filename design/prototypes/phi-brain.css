@@ -599,14 +599,24 @@
 /* hairline-divided block at the top of the drawer; the Google button is Google's
    own rendered iframe, so only its spacing is ours */
 .drawer-account{margin:0 0 32px;padding-bottom:28px;border-bottom:1px solid var(--line)}
-.drawer .drawer-account-title{margin:0 0 4px;font:inherit;font-weight:700;color:var(--ink)}
-.drawer .drawer-account .field-hint{margin:0 0 14px}
-.drawer .drawer-account-email{margin:0 0 10px;color:var(--ink)}
-/* 닉네임: 계정 제목 위, 볼드. 비어 있으면 회색 안내. 더블클릭·Enter로 같은 자리에서 입력 */
-.drawer .drawer-nickname{margin:0 0 16px;font-weight:700;color:var(--ink);cursor:text;word-break:break-all}
+/* 계정 제목 · 이메일 · 로그인됨 · 로그아웃을 한 줄로(사용자 지시 2026-09-14). 로그아웃은 오른쪽 끝, 좁으면 줄바꿈 */
+.drawer-account-row{display:flex;align-items:center;gap:4px 12px;flex-wrap:wrap}
+.drawer-account-signed-in{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.drawer-account-signed-in[hidden]{display:none}
+.drawer .drawer-account-title{margin:0;font:inherit;font-weight:700;color:var(--ink)}
+.drawer .drawer-account .field-hint{margin:4px 0 14px}
+.drawer .drawer-account-email{margin:0;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawer .drawer-account-signed-in .pill{margin-left:auto}
+/* 닉네임: 서랍 제목 "Phi Brain" 아래(학습 아카이브 · Phase 1 자리), 볼드, 아래 여백 10px. 비어 있으면 회색 안내. 더블클릭·Enter로 같은 자리에서 입력 */
+.drawer .drawer-nickname{margin:4px 0 10px;font-weight:700;color:var(--ink);cursor:text;word-break:break-all}
 .drawer .drawer-nickname.is-empty{font-weight:400;color:var(--gray)}
 .drawer .drawer-nickname-input{width:100%;font:inherit;font-weight:700;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:2px 6px;margin:-2px -6px}
 .auth-google-btn{min-height:32px}
+/* 서랍 링크(Phi LMS · 공간예약하기): pill과 같은 박스 — 호버·포커스 때 채움, 누르는 동안 한 톤 진하게·살짝 줄어듦. 글자는 왼쪽 선에 맞추고 박스만 밖으로 */
+.drawer .drawer-link-row{margin:0 0 8px}
+.drawer-link{display:inline-flex;align-items:center;padding:6px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;color:var(--ink);text-decoration:none;transition:background 140ms,transform 140ms var(--ease-out)}
+.drawer-link:hover,.drawer-link:focus-visible{background:var(--fill)}
+.drawer-link:active{background:var(--line);transform:scale(.98)}
 
 /* ---------- 5. Footer: flush left with the logo and nav labels ---------- */
 /* theme.css pads it max(32px,6vw) on a gray fill; pin it to --text-start

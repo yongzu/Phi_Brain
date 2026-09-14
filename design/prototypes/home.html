@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260914-28">
+<link rel="stylesheet" href="phi-brain.css?v=20260914-29">
 </head>
 <body>
 
@@ -352,26 +352,28 @@
   <div class="drawer-header">
     <div>
       <h2 style="font:inherit;margin:0;color:var(--ink)">Phi Brain</h2>
-      <p style="margin:4px 0 0;color:var(--gray)">학습 아카이브 · Phase 1</p>
+      <!-- 닉네임(로그인 상태만, auth.js): 더블클릭 또는 Enter로 수정 — 우상단 버튼 이름도 이 닉네임 -->
+      <p class="drawer-nickname" id="auth-nickname" tabindex="0" role="button" title="더블클릭해서 닉네임 수정" hidden></p>
     </div>
     <button id="drawer-close" aria-label="닫기">✕</button>
   </div>
   <!-- 온라인 전환 1단계: 로그인. 데이터는 아직 이 브라우저에 저장된다(이후 단계에서 서버로 이전) -->
   <section class="drawer-account" aria-labelledby="account-heading">
-    <!-- 닉네임(로그인 상태만, auth.js): 더블클릭 또는 Enter로 수정 — 우상단 버튼 이름도 이 닉네임 -->
-    <p class="drawer-nickname" id="auth-nickname" tabindex="0" role="button" title="더블클릭해서 닉네임 수정" hidden></p>
-    <h3 class="drawer-account-title" id="account-heading">계정</h3>
+    <!-- 로그인 상태: 계정 · 이메일 · 로그인됨 · 로그아웃 한 줄 -->
+    <div class="drawer-account-row">
+      <h3 class="drawer-account-title" id="account-heading">계정</h3>
+      <div class="drawer-account-signed-in" id="auth-signed-in" hidden>
+        <p class="drawer-account-email"><span id="auth-email"></span> · 로그인됨</p>
+        <button type="button" class="pill pill-end" id="auth-signout">로그아웃</button>
+      </div>
+    </div>
     <div id="auth-signed-out">
       <p class="field-hint">로그인하면 데스크톱·노트북 어디서 열어도 같은 저널·Future Item·과제 현황을 쓸 수 있어요.</p>
       <div class="auth-google-btn" id="auth-google-btn"></div>
     </div>
-    <div id="auth-signed-in" hidden>
-      <p class="drawer-account-email"><span id="auth-email"></span> · 로그인됨</p>
-      <button type="button" class="pill pill-start" id="auth-signout">로그아웃</button>
-    </div>
   </section>
-  <p><a href="https://lms.phi.design/" target="_blank" rel="noopener noreferrer">Phi LMS</a></p>
-  <p><a href="https://booking.phi.design/" target="_blank" rel="noopener noreferrer">공간예약하기</a></p>
+  <p class="drawer-link-row"><a class="drawer-link" href="https://lms.phi.design/" target="_blank" rel="noopener noreferrer">Phi LMS</a></p>
+  <p class="drawer-link-row"><a class="drawer-link" href="https://booking.phi.design/" target="_blank" rel="noopener noreferrer">공간예약하기</a></p>
 </dialog>
 
 <footer class="site-footer">
