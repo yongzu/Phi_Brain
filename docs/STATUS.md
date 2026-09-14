@@ -7,6 +7,16 @@
 
 ## 현재 단계
 
+### Assignment Manage: 제출 확인 칸 검정 · 마감 배지 간격 좁힘 (2026-09-14, 사용자 지시 · Claude Code)
+
+- `assignment.js?v=14` `confirmedClass()`: 상태가 `confirmed_mail`("제출 확인")·`confirmed_manual`("직접 확인")이면 `.is-confirmed`(버튼·읽기 전용 라벨 모두).
+  "직접 확인"도 제출이 확인된 상태라 같이 검정으로 함(내 판단).
+- `phi-brain.css?v=20260914-23`: `.am-status.is-confirmed{color:ink}`, `.am-note-due` margin-left auto → 0(칸 gap 6px), `.am-note-cell` flex-wrap,
+  `.am-note-btn{flex:0 0 auto}`, `.am-status{white-space:nowrap}`.
+- 검증 중 발견·수정: 좁은 창(표 폭이 좁을 때)에서 "미확인"이 세로로 꺾이고 배지를 붙이자 "자세..."로 잘림 → nowrap·버튼 줄어들지 않게·배지 줄바꿈.
+- 검증(로컬, 가짜 세션): AL 과제 직접 확인 → "직접 확인" rgb(51,51,51), 셀프피드백 "미확인" rgb(153,153,153)(테스트 뒤 직접 확인 해제).
+  1440px: PC "자세히보기"와 "마감 9월 19일 23:59" 같은 줄·간격 6px. 좁은 창: 상태 한 줄·"자세히보기" 온전·배지 다음 줄. 프런트만 바뀌어 Worker 배포 없음.
+
 ### Assignment Manage 과제 내용 칸 글자 "자세히보기"로 고정 (2026-09-14, 사용자 지시 · Claude Code)
 
 - `assignment.js?v=13` `renderNoteCell`: 저장 전·후·읽기 전용 모두 칸 글자 "자세히보기"(저장 후 제목 한 줄 표시 제거). 저장 전 회색·저장 후 검정(`.is-set`)과 마감 배지는 그대로,

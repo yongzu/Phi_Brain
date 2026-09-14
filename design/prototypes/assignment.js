@@ -149,6 +149,8 @@
     return `<span class="am-dot am-dot-${status}" aria-hidden="true"></span>`;
   }
 
+  // 제출이 확인된 칸(메일 확인·직접 확인)은 검정 글씨(사용자 지시 2026-09-14) — 미확인·해당 없음은 회색 그대로
+  const confirmedClass = status => (status === 'confirmed_mail' || status === 'confirmed_manual' ? ' is-confirmed' : '');
   function renderCell(courseCode, kindLabel, cell) {
     const shortcut = safeHref(cell.url)
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
@@ -157,8 +159,8 @@
     const status = `${statusDot(cell.status)}<span>${STATUS_LABEL[cell.status] || cell.status}</span>`;
     return `<td><span class="am-cell">
       ${cell.targetId == null
-        ? `<span class="am-status is-static">${status}</span>`
-        : `<button type="button" class="am-status" data-target-id="${cell.targetId}">${status}</button>`}
+        ? `<span class="am-status is-static${confirmedClass(cell.status)}">${status}</span>`
+        : `<button type="button" class="am-status${confirmedClass(cell.status)}" data-target-id="${cell.targetId}">${status}</button>`}
       ${shortcut}
     </span></td>`;
   }
