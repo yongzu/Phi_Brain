@@ -457,7 +457,9 @@
 .am-backend-hint code{background:var(--fill);border-radius:var(--radius-sm);padding:1px 5px}
 
 .am-table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:14px}
-.am-table th:first-child,.am-table td:first-child{width:38%}
+.am-table th:first-child,.am-table td:first-child{width:28%}
+/* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
+.am-table th:nth-child(2),.am-table td:nth-child(2),.am-table th:nth-child(4),.am-table td:nth-child(4){width:19%}
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
 /* the status button carries its own left padding (an extra --tab-pad-x) so its
    dot sits one --tab-pad-x further right than a plain header — match it here */
@@ -480,6 +482,33 @@
 .am-shortcut:hover{color:var(--ink);background:var(--fill)}
 
 /* top/left는 assignment.js placeDetail()이 누른 상태 칸 기준으로 계산해 넣는다 */
+/* 과제 내용 칸: 회색 "과제 내용"(저장 전) 또는 제목 한 줄(저장 후) — 호버 박스·클릭, 오른쪽 끝에 마감 배지 */
+.am-note-cell{display:flex;align-items:center;gap:6px;min-width:0}
+.am-note-btn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;color:var(--gray);padding:4px var(--tab-pad-x);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,color 140ms}
+.am-note-btn:hover{background:var(--fill);color:var(--ink)}
+.am-note-btn.is-set{color:var(--ink)}
+/* Future Item 마감 배지(.fi-due)와 같은 상자 — 표 칸에서는 오른쪽 끝, 누를 수 없음 */
+.am-note-due{margin-left:auto;flex:0 0 auto;cursor:default}
+.am-note-due.is-overdue{color:var(--ink)}
+.am-detail.is-note{width:440px}
+.am-note-head{display:flex;align-items:flex-start;gap:6px;margin:0 22px 8px 0}
+.am-note-head .am-detail-title{margin:0;flex:1}
+.am-note-more{position:relative}
+.am-note-menu{position:absolute;top:calc(100% + 4px);right:0;min-width:140px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float);padding:4px;z-index:1}
+.am-note-dues{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.am-note-dues .fi-due{margin-left:0;cursor:default}
+.am-note-body{color:var(--ink);word-break:break-word}
+.am-note-body p{margin:0 0 6px}
+.am-note-body a{color:var(--ink);text-decoration:underline}
+.am-note-section{margin:12px 0 4px;font-size:1em;font-weight:700}
+.am-note-list{margin:0 0 6px;padding-left:1.1em}
+.am-note-input{display:block;width:100%;min-height:180px;resize:vertical;font:inherit;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:8px 10px;margin:0 0 8px}
+.am-note-preview{margin:0 0 8px;color:var(--gray)}
+.am-note-preview b{color:var(--ink);font-weight:400}
+.am-note-warn{margin:0 0 8px;color:var(--ink)}
+.am-note-fields{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin:0 0 12px;color:var(--gray)}
+.am-note-fields input{font:inherit;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:3px 6px;min-width:0}
+.am-note-weeks{display:flex;flex-wrap:wrap;gap:6px}
 .am-detail{position:fixed;top:0;left:0;width:320px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;padding:18px;box-shadow:var(--shadow-float);z-index:20}
 .am-detail-close{position:absolute;top:10px;right:10px;color:var(--gray)}
 .am-detail-title{margin:0 18px 8px 0;font-size:1em;color:var(--ink)}
@@ -496,7 +525,8 @@
   .am-table thead{display:none}
   .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
   .am-table td{border-bottom:none;padding:2px 0}
-  .am-detail{top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none}
+  .am-detail,.am-detail.is-note{top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none}
+  .am-note-cell{flex-wrap:wrap}
 }
 
 /* ---------- Journal Archive ---------- */

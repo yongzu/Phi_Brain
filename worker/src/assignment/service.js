@@ -2,6 +2,7 @@
 // call is a round trip, so the week matrix is one query instead of two per cell.
 import { matchEmail } from './matching.js';
 import { RECEIPTS_FROM, RECEIPTS_UNTIL } from './constants.js';
+import { toNote } from './notes.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -36,7 +37,7 @@ export function resolveStatus(manualStatus, evidenceCount) {
 export async function getWeekMatrix(db, weekNo) {
   const week = await db.prepare('SELECT * FROM weeks WHERE week_no = ?').bind(weekNo).first();
   if (!week) return null;
-  const { results } = await db.prepare(`
+  const [{ results }, notes] = await db.batch([db.prepare(`
     SELECT c.id course_id, c.name, c.code, c.board_url, c.assignment_url, c.self_feedback_url,
       t.id target_id, t.kind, m.status manual_status,
       (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id) evidence_count
@@ -45,13 +46,14 @@ export async function getWeekMatrix(db, weekNo) {
     LEFT JOIN manual_status m ON m.target_id = t.id
     WHERE t.week_id = ?
     ORDER BY c.code
-  `).bind(week.id).all();
+  `).bind(week.id), db.prepare('SELECT * FROM assignment_notes WHERE week_no = ?').bind(weekNo)]);
+  const noteOf = new Map(notes.results.map(n => [n.course_id, toNote(n)]));
 
   const byCourse = new Map();
   for (const r of results) {
     if (!byCourse.has(r.course_id)) {
       byCourse.set(r.course_id, {
-        courseId: r.course_id, name: r.name, code: r.code, boardUrl: r.board_url,
+        courseId: r.course_id, name: r.name, code: r.code, boardUrl: r.board_url, note: noteOf.get(r.course_id) || null,
         assignment: { targetId: null, status: 'unconfirmed', url: r.assignment_url },
         selfFeedback: { targetId: null, status: 'unconfirmed', url: r.self_feedback_url },
       });

@@ -8,6 +8,7 @@ import { verifyGoogleIdToken, googleKeys, signSession, verifySession, AuthError 
 import { encryptToken, decryptToken, signState, verifyState, safeReturnTo } from './secrets.js';
 import * as svc from './assignment/service.js';
 import { runSyncBatch, SyncError, DEFAULT_BATCH } from './assignment/sync.js';
+import { notesApi } from './assignment/notes.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
@@ -93,6 +94,8 @@ async function assignmentApi(request, env, url, json, session) {
     if (result.error) return json(400, result);
     return json(result.ok ? 200 : 409, result);
   }
+  const noteRes = await notesApi(request, env, path, url, json); // 과제 공지 붙여넣기
+  if (noteRes) return noteRes;
   if (path === '/connection' && method === 'GET') {
     const c = await db.prepare('SELECT connected, email, last_sync_at, last_run_at, last_sync_error, sync_pending FROM gmail_connection WHERE id = 1').first();
     return json(200, { ...c, connected: !!c.connected, sync_pending: !!c.sync_pending });

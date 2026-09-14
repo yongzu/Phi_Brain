@@ -9,11 +9,17 @@
   and shows it read-only; only if that file is missing too does it show the
   "server unreachable" hint. Never fake/virtual data.
 
+  과제 내용(사용자 요구사항 2026-09-14): paste the Discord 과제 공지 per course × week;
+  assignment-notice.js pulls out the deadline(s), week, course and a title. The
+  column shows the title and a Future Item–style due badge. Not connected to the
+  submission status at all.
+
   Separate from Future Item: completing either one never touches the other.
 */
 (() => {
   const $ = (s, root = document) => root.querySelector(s);
   const { ui: { popIn, popOut, toast } } = window.PhiBrain;
+  const notice = window.PhiAssignmentNotice;
   const auth = window.PhiBrain.auth;
 
   const STATUS_LABEL = {
@@ -52,6 +58,7 @@
   let weeks = [];
   let currentWeekNo = null;
   let snapshot = null; // the loaded status file — set only while in read-only mode
+  let lastMatrix = null; // what the table is showing (notes are read from here)
   let pendingConnectResult = null;
 
   // ---- read-only mode: the weekly sync's status file (server/snapshot.js) ----
@@ -156,7 +163,31 @@
     </span></td>`;
   }
 
+  // ---- 과제 내용 칸 ----
+  // "2026-09-15T23:59" is Korean wall-clock time (what the notice says) → an instant
+  const kstMs = at => { const [d, t = '23:59'] = at.split('T'); const [y, m, dd] = d.split('-').map(Number); const [hh, mm] = t.split(':').map(Number); return Date.UTC(y, m - 1, dd, hh - 9, mm); };
+  // after the deadline, a late deadline (if any) takes over the badge; past the deadline and still unconfirmed → dark text
+  function dueBadge(note, status) {
+    if (!note?.dueAt) return '';
+    const now = Date.now();
+    const pastDue = now > kstMs(note.dueAt);
+    const late = pastDue && note.lateDueAt;
+    const overdue = pastDue && (status === 'unconfirmed' || status === 'conflict');
+    return `<span class="fi-due am-note-due${overdue ? ' is-overdue' : ''}">${late ? '지각 마감' : '마감'} ${notice.dueLabel(late ? note.lateDueAt : note.dueAt)}</span>`;
+  }
+  function renderNoteCell(row) {
+    if (row.note === undefined) { // read-only file mode: nothing stored, nothing to open
+      return `<td><span class="am-note-cell"><button type="button" class="am-note-btn" data-note-login>과제 내용</button></span></td>`;
+    }
+    const title = row.note ? (notice.parseNotice(row.note.raw).title || '과제 내용') : '과제 내용';
+    return `<td><span class="am-note-cell">
+      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" title="${esc(row.note ? title : '과제 공지 붙여넣기')}">${esc(title)}</button>
+      ${dueBadge(row.note, row.assignment.status)}
+    </span></td>`;
+  }
+
   function render(matrix) {
+    lastMatrix = matrix;
     renderWeekLabel(matrix.week);
     progressEl.textContent = `완료 ${matrix.progress.done} / ${matrix.progress.total}`;
     tbody.innerHTML = matrix.rows.map(row => `<tr>
@@ -167,6 +198,7 @@
             : ''}
         </span></td>
         ${renderCell(row.code, `${row.code} 과제`, row.assignment)}
+        ${renderNoteCell(row)}
         ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback)}
       </tr>`).join('');
   }
@@ -256,12 +288,12 @@
   // 버튼 요소가 아니라 targetId로 기억한다 — 수동 확인 저장 뒤 loadWeek()가 표를 다시
   // 그려 버튼이 새로 생겨도 같은 칸을 다시 찾아 붙기 위해서. 640px 이하 모바일은
   // 기존대로 화면 아래 시트(CSS)라 위치를 계산하지 않는다.
-  let detailAnchorId = null;
+  let detailAnchor = null; // selector of the cell the popover belongs to
   const detailSheet = matchMedia('(max-width:640px)');
   function placeDetail() {
-    if (detailAnchorId == null || detail.hidden) return;
+    if (detailAnchor == null || detail.hidden) return;
     if (detailSheet.matches) { detail.style.top = detail.style.left = ''; return; }
-    const anchor = tbody.querySelector(`.am-status[data-target-id="${detailAnchorId}"]`);
+    const anchor = tbody.querySelector(detailAnchor);
     if (!anchor) return;
     const r = anchor.getBoundingClientRect(), gap = 6, edge = 16;
     const w = detail.offsetWidth, h = detail.offsetHeight;
@@ -273,11 +305,13 @@
   }
   addEventListener('scroll', placeDetail, { passive: true, capture: true }); // 표 가로 스크롤 포함
   addEventListener('resize', placeDetail);
-  function closeDetail() { detailAnchorId = null; if (!detail.hidden) popOut(detail); }
+  function closeDetail() { detailAnchor = null; noteState = null; if (!detail.hidden) popOut(detail); }
   async function openDetail(targetId) {
     const d = await apiJson(`/targets/${targetId}`);
     if (!d) return;
-    detailAnchorId = targetId;
+    detailAnchor = `.am-status[data-target-id="${targetId}"]`;
+    noteState = null;
+    detail.classList.remove('is-note');
     detail.innerHTML = renderDetail(d);
     popIn(detail);
     placeDetail(); // 같은 프레임 안이라 우하단에 먼저 그려졌다 튀는 일은 없다
@@ -340,8 +374,194 @@
 
   tbody.addEventListener('click', e => {
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
-    if (btn) openDetail(Number(btn.dataset.targetId));
+    if (btn) { openDetail(Number(btn.dataset.targetId)); return; }
+    if (e.target.closest('[data-note-login]')) { toast('로그인하면 과제 공지를 붙여넣고 마감을 볼 수 있어요'); return; }
+    const noteBtn = e.target.closest('[data-note-course]');
+    if (noteBtn) openNote(noteBtn.dataset.noteCourse);
   });
+
+  // ---- 과제 내용 팝오버: 보기 / 붙여넣기·수정 ----
+  // noteState = { courseId, mode: 'view'|'edit', note (saved one for this week or null), menu: false|'menu'|'confirm',
+  //               draft: { raw, dueAt, lateDueAt, dueTouched, week }, conflict: null|{ note } }
+  let noteState = null;
+  const rowOf = courseId => lastMatrix?.rows.find(r => r.courseId === courseId);
+  const WEEK_NOW = () => currentWeekNo;
+
+  function openNote(courseId, { mode } = {}) {
+    const row = rowOf(courseId);
+    if (!row) return;
+    noteState = { courseId, note: row.note, mode: mode || (row.note ? 'view' : 'edit'), menu: false, conflict: null, draft: null };
+    if (noteState.mode === 'edit') startDraft();
+    detailAnchor = `[data-note-course="${courseId}"]`;
+    detail.classList.add('is-note');
+    renderNote();
+    popIn(detail);
+    placeDetail();
+    detail.querySelector('.am-note-input')?.focus();
+  }
+  function startDraft() {
+    const n = noteState.note;
+    noteState.mode = 'edit';
+    noteState.menu = false;
+    // editing a saved notice stays in its week unless the user picks another; a new paste defaults to the week it names
+    noteState.draft = { raw: n?.raw || '', dueAt: n?.dueAt || null, lateDueAt: n?.lateDueAt || null, dueTouched: !!n?.dueManual, week: WEEK_NOW(), weekChosen: !!n };
+  }
+
+  function noteHeader(row, withMenu) {
+    return `<div class="am-note-head">
+        <h2 class="am-detail-title">${esc(row.code)}_${esc(row.name)} · ${WEEK_NOW()}주차 · 과제 내용</h2>
+        ${withMenu ? `<span class="am-note-more">
+          <button type="button" class="pill pill-icon" data-note-act="menu" aria-haspopup="menu" aria-expanded="${!!noteState.menu}" aria-label="과제 내용 메뉴">⋯</button>
+          ${noteState.menu === 'menu' ? `<div class="am-note-menu" role="menu">
+              <button type="button" class="cm-item" role="menuitem" data-note-act="edit">수정하기</button>
+              <button type="button" class="cm-item" role="menuitem" data-note-act="delete">삭제하기</button></div>`
+            : noteState.menu === 'confirm' ? `<div class="am-note-menu" role="menu">
+              <p class="cm-confirm">과제 내용을 삭제할까요?</p>
+              <button type="button" class="cm-item cm-danger" role="menuitem" data-note-act="confirm-delete">삭제</button>
+              <button type="button" class="cm-item" role="menuitem" data-note-act="cancel-menu">취소</button></div>` : ''}
+        </span>` : ''}
+      </div>`;
+  }
+
+  function renderNote() {
+    const st = noteState, row = rowOf(st.courseId);
+    if (!row) { closeDetail(); return; }
+    const close = '<button type="button" class="am-detail-close" data-note-act="close" aria-label="닫기">✕</button>';
+    if (st.mode === 'view' && st.note) {
+      const n = st.note;
+      const dues = [
+        n.dueAt ? `<span class="fi-due">마감 ${notice.dueLabelWithDow(n.dueAt)}${n.dueManual ? ' · 직접 입력' : ''}</span>` : '',
+        n.lateDueAt ? `<span class="fi-due">지각 마감 ${notice.dueLabelWithDow(n.lateDueAt)}</span>` : '',
+      ].join('');
+      detail.innerHTML = `${close}${noteHeader(row, true)}
+        ${dues ? `<p class="am-note-dues">${dues}</p>` : ''}
+        <div class="am-note-body">${notice.renderNotice(n.raw)}</div>`;
+      return;
+    }
+    detail.innerHTML = `${close}${noteHeader(row, false)}
+      <textarea class="am-note-input" aria-label="과제 공지 붙여넣기" placeholder="디스코드 과제 공지를 그대로 붙여넣어 주세요">${esc(st.draft.raw)}</textarea>
+      <div class="am-note-live">${noteLiveHTML(row)}</div>`;
+  }
+  // everything under the textarea — redrawn on each keystroke without touching the textarea (한글 조합·커서 유지)
+  function noteLiveHTML(row) {
+    const st = noteState, d = st.draft;
+    const parsed = notice.parseNotice(d.raw);
+    if (!d.dueTouched) { d.dueAt = parsed.dueAt; d.lateDueAt = parsed.lateDueAt; }
+    if (!d.weekChosen) d.week = parsed.week ?? WEEK_NOW();
+    const found = [
+      d.dueAt ? `마감 <b>${notice.dueLabelWithDow(d.dueAt)}</b>` : '마감을 찾지 못했어요',
+      d.lateDueAt ? `지각 마감 <b>${notice.dueLabelWithDow(d.lateDueAt)}</b>` : '',
+      parsed.week != null ? `${parsed.week}주차` : '',
+      parsed.course || '',
+    ].filter(Boolean).join(' · ');
+    const weekChoice = d.raw.trim() && parsed.week != null && parsed.week !== WEEK_NOW()
+      ? `<p class="am-note-warn">공지는 ${parsed.week}주차예요 — 어느 주차에 저장할까요?</p>
+         <div class="am-note-weeks" role="group" aria-label="저장할 주차">
+           <button type="button" class="pill" data-note-week="${parsed.week}" aria-pressed="${d.week === parsed.week}">${parsed.week}주차 (공지)</button>
+           <button type="button" class="pill" data-note-week="${WEEK_NOW()}" aria-pressed="${d.week === WEEK_NOW()}">${WEEK_NOW()}주차 (보고 있는 주)</button>
+         </div>` : '';
+    const courseWarn = d.raw.trim() && parsed.course && parsed.course !== row.code
+      ? `<p class="am-note-warn">${esc(parsed.course)} 과목 공지 같아요 — 지금 칸은 ${esc(row.code)}예요.</p>` : '';
+    const conflict = st.conflict
+      ? `<p class="am-note-warn">${st.conflict.note ? (st.conflict.sameWeek ? '다른 기기에서 먼저 수정된 과제 내용이에요.' : `${d.week}주차에 이미 저장된 공지가 있어요.`) : '다른 기기에서 삭제된 과제 내용이에요.'}</p>
+         <div class="am-detail-actions" style="margin-bottom:10px">
+           <button type="button" class="pill" data-note-act="force">${st.conflict.note ? '이 내용으로 덮어쓰기' : '다시 저장'}</button>
+           ${st.conflict.note ? '<button type="button" class="pill" data-note-act="theirs">저장된 내용 보기</button>' : ''}
+         </div>` : '';
+    return `
+      <p class="am-note-preview" aria-live="polite">${d.raw.trim() ? found : '붙여넣으면 마감을 찾아 보여줘요'}</p>
+      ${weekChoice}${courseWarn}
+      <div class="am-note-fields">
+        <label for="am-note-due">마감</label><input type="datetime-local" id="am-note-due" value="${esc(d.dueAt || '')}">
+        <label for="am-note-late">지각 마감</label><input type="datetime-local" id="am-note-late" value="${esc(d.lateDueAt || '')}">
+      </div>
+      ${conflict}
+      <div class="am-detail-actions">
+        <button type="button" class="btn-primary" data-note-act="save"${d.raw.trim() ? '' : ' disabled'}>저장</button>
+        <button type="button" class="pill" data-note-act="${st.note ? 'cancel-edit' : 'close'}">취소</button>
+      </div>`;
+  }
+  const refreshNoteLive = () => {
+    const live = detail.querySelector('.am-note-live'), row = rowOf(noteState.courseId);
+    if (live && row) live.innerHTML = noteLiveHTML(row);
+    placeDetail();
+  };
+  // keep typing smooth: re-render only the preview parts, not the textarea
+  detail.addEventListener('input', e => {
+    if (!noteState || noteState.mode !== 'edit') return;
+    const d = noteState.draft;
+    if (e.target.classList.contains('am-note-input')) {
+      d.raw = e.target.value;
+      refreshNoteLive();
+    } else if (e.target.id === 'am-note-due' || e.target.id === 'am-note-late') {
+      d.dueTouched = true; // a deadline set by hand wins over what the text says
+      d[e.target.id === 'am-note-due' ? 'dueAt' : 'lateDueAt'] = e.target.value || null;
+    }
+  });
+  detail.addEventListener('click', e => {
+    if (!noteState) return;
+    const weekBtn = e.target.closest('[data-note-week]');
+    if (weekBtn) { noteState.draft.week = Number(weekBtn.dataset.noteWeek); noteState.draft.weekChosen = true; refreshNoteLive(); return; }
+    const act = e.target.closest('[data-note-act]')?.dataset.noteAct;
+    if (!act) return;
+    const st = noteState;
+    if (act === 'close') closeDetail();
+    else if (act === 'menu') { st.menu = st.menu ? false : 'menu'; renderNote(); detail.querySelector('.am-note-menu .cm-item')?.focus(); }
+    else if (act === 'cancel-menu') { st.menu = false; renderNote(); }
+    else if (act === 'edit') { startDraft(); renderNote(); placeDetail(); detail.querySelector('.am-note-input')?.focus(); }
+    else if (act === 'cancel-edit') { st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
+    else if (act === 'delete') { st.menu = 'confirm'; renderNote(); detail.querySelector('[data-note-act="cancel-menu"]')?.focus(); }
+    else if (act === 'confirm-delete') deleteNote();
+    else if (act === 'save') saveNote(false);
+    else if (act === 'force') saveNote(true);
+    else if (act === 'theirs') showSavedWeek(st.draft.week);
+  });
+
+  async function saveNote(force) {
+    const st = noteState, d = st.draft, row = rowOf(st.courseId);
+    if (!d.raw.trim()) return;
+    const sameWeek = d.week === WEEK_NOW();
+    const base = st.conflict?.note?.version ?? (sameWeek && st.note ? st.note.version : null);
+    const res = await api(`/notes/${st.courseId}/${d.week}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw: d.raw, dueAt: d.dueAt, lateDueAt: d.lateDueAt, dueManual: d.dueTouched, baseVersion: base, force: force || undefined }),
+    });
+    if (!res) { toast('저장하지 못했어요', null, 'error'); return; }
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 409) { st.conflict = { note: body.note, sameWeek }; refreshNoteLive(); return; }
+    if (!res.ok) { toast(body.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : '저장하지 못했어요', null, 'error'); return; }
+    toast(sameWeek ? '과제 내용을 저장했어요' : `${d.week}주차에 저장했어요`);
+    if (!sameWeek) { closeDetail(); await loadWeek(d.week); openNote(st.courseId); return; }
+    await loadWeek(WEEK_NOW());
+    if (noteState === st) { st.note = rowOf(st.courseId)?.note || body.note; st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
+  }
+  async function showSavedWeek(week) {
+    const courseId = noteState.courseId;
+    closeDetail();
+    if (week !== WEEK_NOW()) await loadWeek(week); else await loadWeek(WEEK_NOW());
+    openNote(courseId, { mode: 'view' });
+  }
+  async function deleteNote() {
+    const st = noteState, week = WEEK_NOW(), saved = st.note;
+    const res = await api(`/notes/${st.courseId}/${week}?baseVersion=${saved.version}`, { method: 'DELETE' });
+    const body = res && await res.json().catch(() => ({}));
+    if (!res || (!res.ok && res.status !== 409)) { toast('삭제하지 못했어요', null, 'error'); return; }
+    if (res.status === 409) { toast('다른 기기에서 먼저 수정돼서 삭제하지 않았어요', null, 'error'); closeDetail(); loadWeek(week); return; }
+    closeDetail();
+    await loadWeek(week);
+    toast('과제 내용을 삭제했어요', {
+      label: '되돌리기',
+      run: async () => {
+        const r = await api(`/notes/${st.courseId}/${week}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: saved.raw, dueAt: saved.dueAt, lateDueAt: saved.lateDueAt, dueManual: saved.dueManual, baseVersion: null }),
+        });
+        if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
+        if (currentWeekNo === week) loadWeek(week);
+      },
+    });
+  }
+  addEventListener('keydown', e => { if (e.key === 'Escape' && noteState && !detail.hidden) { if (noteState.menu) { noteState.menu = false; renderNote(); } else closeDetail(); } });
 
   // "?gmail=connected" etc. — where the Gmail consent flow returns (worker/src/index.js gmailCallback)
   (() => {
