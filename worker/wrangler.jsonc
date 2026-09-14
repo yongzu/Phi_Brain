@@ -25,7 +25,7 @@
   "triggers": {
     // Sunday 23:59 KST starts the weekly Gmail sync; Monday 00:00–01:50 KST every 10 min
     // continues it only if a run still has messages left
-    "crons": ["59 14 * * 0", "*/10 15-16 * * 0"]
+    "crons": ["59 14 * * SUN", "*/10 15-16 * * SUN"]
   },
   "d1_databases": [
     {

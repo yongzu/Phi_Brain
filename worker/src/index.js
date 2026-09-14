@@ -29,6 +29,9 @@ async function requireSession(request, env) {
 
 const redirectUri = (env, url) => env.GMAIL_REDIRECT_URI || `${url.origin}/auth/google/callback`;
 const batchSize = env => Number(env.SYNC_BATCH) || DEFAULT_BATCH;
+// must match wrangler.jsonc exactly (controller.cron is the configured string). Cloudflare
+// cron takes SUN or 1-7 for the weekday — not 0 like GitHub Actions' cron.
+const WEEKLY_CRON = '59 14 * * SUN';
 
 // Google sends the browser back here after "Gmail 연결". No Bearer session on a
 // top-level navigation — the signed state (secrets.js) is what authorizes it.
@@ -162,11 +165,11 @@ export default {
     }
   },
 
-  // "59 14 * * 0" = Sunday 23:59 KST starts the weekly sync; the follow-up
+  // WEEKLY_CRON = Sunday 23:59 KST starts the weekly sync; the follow-up
   // triggers only continue a run that still has messages left (batched, see sync.js)
   async scheduled(controller, env) {
     const c = await env.DB.prepare('SELECT connected, sync_pending FROM gmail_connection WHERE id = 1').first();
-    const isStart = controller.cron === '59 14 * * 0';
+    const isStart = controller.cron === WEEKLY_CRON;
     if (!c?.connected || (!isStart && !c.sync_pending)) return;
     try {
       const { done, summary } = await runSyncBatch(env, { batch: batchSize(env) });

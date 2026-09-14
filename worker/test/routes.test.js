@@ -122,11 +122,11 @@ test('the weekly cron starts a run; follow-up triggers only continue a pending o
   const realFetch = globalThis.fetch;
   globalThis.fetch = async () => { calls++; throw new Error('should not be called'); };
   try {
-    await worker.scheduled({ cron: '59 14 * * 0' }, env); // not connected → nothing
+    await worker.scheduled({ cron: '59 14 * * SUN' }, env); // not connected → nothing
     await env.DB.prepare('UPDATE gmail_connection SET connected = 1 WHERE id = 1').run();
-    await worker.scheduled({ cron: '*/10 15-16 * * 0' }, env); // connected but nothing pending → nothing
+    await worker.scheduled({ cron: '*/10 15-16 * * SUN' }, env); // connected but nothing pending → nothing
     assert.equal(calls, 0);
-    await worker.scheduled({ cron: '59 14 * * 0' }, env); // start → fails fast (no stored token), recorded, no throw
+    await worker.scheduled({ cron: '59 14 * * SUN' }, env); // start → fails fast (no stored token), recorded, no throw
     assert.equal((await env.DB.prepare('SELECT last_sync_error FROM gmail_connection').first()).last_sync_error, 'not_connected');
   } finally { globalThis.fetch = realFetch; }
 });
