@@ -7,6 +7,15 @@
 
 ## 현재 단계
 
+### Assignment Manage: 과목명이 미확인과 겹치던 문제 수정 (2026-09-14, 사용자 지시 · Claude Code)
+
+- 원인: 과목명을 한 줄로 고정한 뒤 과목명 열이 표 폭의 28%라, 창이 좁으면(1100px 창 기준 202px) 가장 긴 이름(224px 필요)이 다음 열로 넘침.
+- `phi-brain.css?v=20260914-27`: 과목명 열 고정 280px, Assignment 칸 `padding-left` 1.5배(18px), 641px 이상 `.am-table{min-width:780px}` + 섹션 `overflow-x:auto`.
+- 검증 중 발견: 처음 쓴 `width:max(28%, 264px)`는 Chrome 표 레이아웃에서 무시돼(열이 자동 폭으로 균등 분배) px 고정으로 바꿈. 또 900px 창에서 과제 내용 열이 43px로
+  줄어 "자세히보기"가 넘칠 수 있어 최소 폭·가로 스크롤 추가.
+- 검증(로컬, 로그아웃 읽기 전용 표): 1100px — 열 280/137/167/137, 겹침 0, 과목명과 상태 최소 간격 62px, 페이지 가로 스크롤 없음. 900px — 겹침 0, 자세히보기가 칸 안,
+  표만 가로 스크롤(페이지는 없음), 스크린샷 확인. 1440px — 280/202/378/202, 겹침 0. 프런트만 바뀌어 Worker 배포 없음.
+
 ### Assignment Manage: 본문 폭 1200px · 과목명 한 줄 · 마감 글자 크기·높이 맞춤 (2026-09-14, 사용자 지시 · Claude Code)
 
 - `phi-brain.css?v=20260914-24`: `.shell:has(.view-assignment…){max-width:920px → 1200px}`, `.am-course-name{white-space:nowrap}`,
