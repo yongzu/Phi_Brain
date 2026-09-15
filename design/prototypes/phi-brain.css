@@ -370,23 +370,26 @@
 /* flex-wrap so the 3 action icons drop to their own line under the text in
    narrow boxes instead of squeezing .fi-text down to character-by-character
    wrapping (same class of bug the deadline badge had before it got its own line) */
-.fi-row-main{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.fi-check{appearance:none;flex:0 0 10px;width:10px;height:10px;margin:0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
+/* 위 정렬: 문장이 여러 줄이 되어도 체크 원·번호·아이콘은 첫 줄에 맞춘다. 한 줄일 때는
+   .fi-text 위아래 4px로 28px 아이콘 높이와 같아져 기존 가운데 정렬과 같은 모습 */
+.fi-row-main{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.fi-check{appearance:none;flex:0 0 10px;width:10px;height:10px;margin:9px 0 0;border:1px solid var(--gray);border-radius:50%;cursor:pointer;transition:background 140ms,border-color 140ms}
 .fi-check:hover{background:var(--fill)}
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
-.fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* 8pt → 10pt (사용자 지시 2026-09-14) */
+/* 긴 문장은 말줄임(…) 대신 다음 줄로 넘김(사용자 지시 2026-09-15). 띄어쓰기 없는 긴 단어·URL도 박스 안에서 끊김 */
+.fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;padding-block:4px;white-space:normal;overflow-wrap:anywhere} /* 8pt → 10pt (사용자 지시 2026-09-14) */
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* 순서 번호(사용자 지시 2026-09-14): 체크 원과 문장 사이, 박스의 목록마다 1부터(완료한 항목 목록은 따로).
    CSS 카운터라 끌어서 순서를 바꾸면 번호도 따라간다. 1~2자리 번호가 같은 폭이라 문장 시작이 맞는다 */
-.fi-num{flex:0 0 18px;margin-right:-6px;text-align:right;font-size:10pt;color:var(--gray);font-variant-numeric:tabular-nums}
+.fi-num{flex:0 0 18px;margin:4px -6px 0 0;text-align:right;font-size:10pt;color:var(--gray);font-variant-numeric:tabular-nums}
 .fi-num::before{content:counter(fi-row) "."}
 /* deadline: a small boxed badge on its own line, indented to sit under the
    text (checkbox 10px + gap 10px + number 18px + gap 10px − 6px = 42px). No badge at all
    when there's no due date — the + button that shows while editing is how you add one. */
 .fi-due{align-self:flex-start;margin-left:42px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
 .fi-row.is-overdue .fi-due{color:var(--ink)}
-.fi-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:10pt} /* 보기(.fi-text)와 같은 10pt */
+.fi-edit{flex:1;min-width:0;align-self:center;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:10pt} /* 보기(.fi-text)와 같은 10pt */
 .fi-edit:focus-visible{outline:0}
 .fi-due-add{flex:0 0 auto}
 .fi-delete{flex:0 0 auto;margin-right:-6px}
@@ -627,7 +630,7 @@
 .drawer .drawer-nickname.is-empty{font-weight:400;color:var(--gray)}
 .drawer .drawer-nickname-input{width:100%;font:inherit;font-weight:700;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:2px 6px;margin:-2px -6px}
 .auth-google-btn{min-height:32px}
-/* 서랍 링크(Phi LMS · 공간예약하기): pill과 같은 박스 — 호버·포커스 때 채움, 누르는 동안 한 톤 진하게·살짝 줄어듦. 글자는 왼쪽 선에 맞추고 박스만 밖으로 */
+/* 서랍 링크(Phi LMS · 공간예약하기 · 출결 및 과제현황): pill과 같은 박스 — 호버·포커스 때 채움, 누르는 동안 한 톤 진하게·살짝 줄어듦. 글자는 왼쪽 선에 맞추고 박스만 밖으로 */
 .drawer .drawer-link-row{margin:0 0 8px}
 .drawer-link{display:inline-flex;align-items:center;padding:6px var(--tab-pad-x);margin-left:calc(-1 * var(--tab-pad-x));border-radius:var(--radius);corner-shape:squircle;color:var(--ink);text-decoration:none;transition:background 140ms,transform 140ms var(--ease-out)}
 .drawer-link:hover,.drawer-link:focus-visible{background:var(--fill)}
