@@ -16,8 +16,11 @@
 - `worker/src/settings.js`: `/api/findings/favorites/:key`가 새 박스 키를 받도록 `FINDING_KEY_RE` 추가. 예전 과목 키(`BI`·`general`)도 계속 받는다 —
   이미 별표해 둔 것을 지울 수 있어야 해서. 테이블·컬럼(`findings_favorites.course`)은 그대로고 담기는 값만 넓어져 마이그레이션은 없다.
   `worker/test/settings.test.js`에 새 키 저장·순서·삭제·잘못된 키 400 테스트 추가 → `node --test` 81개 통과.
-- 남은 일: 예전에 과목 단위로 별표해 둔 값은 이제 어떤 박스와도 맞지 않아 그냥 목록에 남는다(화면에는 영향 없음). 서버 배포(`cd worker && npm run deploy`) 전까지
-  로그인 상태에서는 별표 PUT이 400으로 거부된다 — 배포 필요.
+- **배포함(2026-09-16, 사용자 지시 · Claude Code):** `npx wrangler@4.131.1 deploy` → 버전 `026a2467-7691-489b-9930-a9176415dab2`,
+  `https://api.phibrain.workers.dev`, 크론 2개(`59 14 * * SUN`, `*/10 15-16 * * SUN`) 그대로. 마이그레이션은 이번에 없어 적용하지 않았다.
+  이 배포로 지각/미제출 판정에 쓰는 `confirmedAt`(첫 확인메일 수신 시각)과 Findings 박스 단위 별표 키가 서버에 올라갔다.
+  배포 후 확인: 인증 없는 `/api/assignment/weeks/1/matrix`·`/api/findings/favorites/...` 모두 401(정상 — 세션 필요). 로그인 상태 실제 동작은 사용자 확인 필요.
+- 남은 일: 예전에 과목 단위로 별표해 둔 값은 이제 어떤 박스와도 맞지 않아 그냥 목록에 남는다(화면에는 영향 없음).
 - 검증(로컬 정적 서버, 로그아웃, 가짜 저널 3개 · 같은 날 같은 과목 2건 포함): BI 9/14만 별표 → 그 박스만 맨 앞(나머지 BI는 제자리),
   9/16 BI 두 번째도 별표 → 별표 순서대로 둘이 앞, 새로고침 뒤에도 유지(`phi-brain:findings:favorites`에 키 2개). 테스트 데이터 삭제.
 
