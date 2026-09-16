@@ -1,11 +1,25 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Findings: 과목 박스 없애고 Finding 하나당 박스, 2열 고정) / Claude Code
+최종 갱신: 2026-09-16 (Findings 별표를 박스 하나 단위로) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Findings 별표: 과목 단위 → 박스(Finding) 하나 단위 (2026-09-16, 사용자 지시 · Claude Code)
+
+- 이유(사용자): 같은 과목 안에서도 중요한 Finding과 덜 중요한 Finding이 다르다.
+- 박스 키 `날짜::과목::그 날 그 과목의 몇 번째` (예: `2026-09-16::BI::1`). 저널을 고쳐 Finding 순서가 바뀌면 별표도 그 자리를 따라간다 — 파생 데이터라 안정된 id가 없다.
+- `journal.js?v=20260916-4`: `findingsEntries()`가 `key`를 달고, 카드의 별표·정렬이 그 키를 쓴다. 정렬은 별표한 순서대로 앞(안정 정렬이라 나머지는 원래 순서 유지),
+  과목 필터를 고른 상태에서도 그 안에서 별표가 앞. 안내문 "별표한 박스는 앞으로 와요."
+- `worker/src/settings.js`: `/api/findings/favorites/:key`가 새 박스 키를 받도록 `FINDING_KEY_RE` 추가. 예전 과목 키(`BI`·`general`)도 계속 받는다 —
+  이미 별표해 둔 것을 지울 수 있어야 해서. 테이블·컬럼(`findings_favorites.course`)은 그대로고 담기는 값만 넓어져 마이그레이션은 없다.
+  `worker/test/settings.test.js`에 새 키 저장·순서·삭제·잘못된 키 400 테스트 추가 → `node --test` 81개 통과.
+- 남은 일: 예전에 과목 단위로 별표해 둔 값은 이제 어떤 박스와도 맞지 않아 그냥 목록에 남는다(화면에는 영향 없음). 서버 배포(`cd worker && npm run deploy`) 전까지
+  로그인 상태에서는 별표 PUT이 400으로 거부된다 — 배포 필요.
+- 검증(로컬 정적 서버, 로그아웃, 가짜 저널 3개 · 같은 날 같은 과목 2건 포함): BI 9/14만 별표 → 그 박스만 맨 앞(나머지 BI는 제자리),
+  9/16 BI 두 번째도 별표 → 별표 순서대로 둘이 앞, 새로고침 뒤에도 유지(`phi-brain:findings:favorites`에 키 2개). 테스트 데이터 삭제.
 
 ### Findings: 과목별 큰 박스 제거 · 즐겨찾기 먼저 · 2열 고정 (2026-09-16, 사용자 지시 · Claude Code)
 

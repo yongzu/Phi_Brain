@@ -47,3 +47,16 @@ test('Findings stars: star in order, idempotent, unstar, bad keys refused, liste
   assert.deepEqual((await call('GET', '/api/journals')).body.findingsFavorites, ['general']);
   assert.equal((await call('PUT', '/api/findings/favorites/not%20a%20course')).status, 400);
 });
+
+// 2026-09-16 사용자 지시: 별표가 과목이 아니라 Finding 박스 하나 단위 — 키가 '날짜::과목::번째'로 넓어졌다
+test('Findings stars: per-box keys are stored in starred order; malformed ones are refused', async () => {
+  const call = await client();
+  await call('PUT', `/api/findings/favorites/${encodeURIComponent('2026-09-16::BI::0')}`);
+  await call('PUT', `/api/findings/favorites/${encodeURIComponent('2026-09-15::general::2')}`);
+  assert.deepEqual((await call('GET', '/api/journals')).body.findingsFavorites, ['2026-09-16::BI::0', '2026-09-15::general::2']);
+  await call('DELETE', `/api/findings/favorites/${encodeURIComponent('2026-09-16::BI::0')}`);
+  assert.deepEqual((await call('GET', '/api/journals')).body.findingsFavorites, ['2026-09-15::general::2']);
+  for (const bad of ['2026-09-16::BI', '2026-9-16::BI::0', '2026-09-16::bi::0', '2026-09-16::BI::abc']) {
+    assert.equal((await call('PUT', `/api/findings/favorites/${encodeURIComponent(bad)}`)).status, 400, bad);
+  }
+});
