@@ -1,11 +1,21 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Findings: 저널마다 따로 박스) / Claude Code
+최종 갱신: 2026-09-16 (Findings 박스 가로 배치 · 머리줄 고정) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Findings 박스 가로 우선 배치 · 머리줄(프로필 버튼) 고정 (2026-09-16, 사용자 지시 · Claude Code)
+
+- `phi-brain.css?v=20260916-4` 두 가지:
+  - Findings: 과목 박스 목록을 2열 → 1열(`.findings-list`)로 넓히고, 그 안의 Finding 박스를 `repeat(auto-fill,minmax(260px,1fr))`
+    그리드로 — 가로로 먼저 채우고 모자라면 다음 줄. 과목 박스가 좁을 때는(2열) 아무리 해도 세로로만 쌓여서 바깥 열 수부터 바꿨다.
+  - 머리줄: `.toolbar{position:sticky;top:0;z-index:15;background:var(--bg)}` — 어디로 스크롤해도 프로필 버튼이 같은 자리에 남는다.
+    팝업(z-index 20~30)과 `<dialog>` 서랍은 그대로 머리줄 위에 뜬다.
+- 검증(로컬 정적 서버, 1280px, 가짜 저널 3개 — BI 3건·TF 1건): BI 박스 안 3개가 한 줄(top 285, left 347/641/934, 각 284px),
+  TF 1개. 스크롤 후에도 프로필 버튼 위치 동일(top 25), 머리줄 배경 흰색으로 본문 가림. 서랍·날짜 팝업 정상. 테스트 데이터 삭제.
 
 ### Findings: 저널마다 따로 박스 (2026-09-16, 사용자 지시 · Claude Code)
 

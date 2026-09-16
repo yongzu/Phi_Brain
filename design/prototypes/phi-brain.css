@@ -52,7 +52,9 @@
 :root{--radius:20px;--radius-sm:4px}
 
 /* ---------- 2. Header: logo + wordmark, search, profile ---------- */
-.toolbar{display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
+/* 스크롤해도 프로필(닉네임) 버튼이 늘 같은 자리에 있도록 머리줄째 위에 붙인다(사용자 지시 2026-09-16).
+   본문이 비쳐 보이지 않게 배경색을 깔고, 팝업(z-index 20~30)보다는 아래에 둔다 */
+.toolbar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;align-items:center;gap:24px;padding:16px 32px 16px var(--text-start)}
 .brand-lockup{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .brand-logo{height:25px;width:25px;display:block}
 /*
@@ -579,12 +581,14 @@
    date it came from, hairline-divided instead of boxed again inside a box */
 .findings-hint{margin:6px 0 16px}
 .findings-filters{margin-bottom:10px}
-.findings-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* 과목 박스는 한 줄에 하나로 넓게(사용자 지시 2026-09-16) — 그래야 그 안의 Finding 박스가
+   가로로 먼저 채워진다. 2열이던 시절에는 박스가 좁아 Finding이 무조건 세로로 쌓였다 */
+.findings-list{grid-template-columns:1fr}
 .findings-list>.fi-box-empty{grid-column:1/-1}
-@media(max-width:560px){.findings-list{grid-template-columns:1fr}}
 /* 저널마다 따로 담기는 게 보이도록 각 Finding이 자기 박스를 갖는다(사용자 지시 2026-09-16).
    예전에는 한 과목 박스 안에서 얇은 선으로만 나뉘어 두 저널의 Finding이 붙어 보였다 */
-.findings-rows{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+/* 가로로 먼저 채우고 자리가 모자라면 다음 줄로(사용자 지시 2026-09-16). 한 칸 최소 260px */
+.findings-rows{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;align-items:start}
 .findings-item{padding:10px 12px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle}
 .findings-item .archive-preview{padding-bottom:0}
 .findings-date{display:block;margin-top:6px;color:var(--gray);font-size:.78rem}
