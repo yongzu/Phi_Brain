@@ -119,3 +119,17 @@ test('a message parked in review under older rules leaves the review queue once 
   await ingestEmail(db, email({ messageId: 'm-old' }));
   assert.equal((await db.prepare(`SELECT count(*) c FROM review_queue WHERE gmail_message_id = 'm-old'`).first()).c, 0);
 });
+
+// 지각 제출 판정(사용자 지시 2026-09-16)은 화면이 하지만, 견줄 시각은 여기서 내려준다:
+// 그 칸의 첫 확인메일 수신 시각. 재제출이 있어도 처음 낸 때가 기준이다.
+test('the week matrix carries each confirmed cell\'s first receipt time', async () => {
+  const db = testD1();
+  const targetId = await targetIdFor(db, 'ewa', 2, 'assignment');
+  await ingestEmail(db, email({ receivedAt: '2026-09-19T03:00:00.000Z', messageId: 'm-late' }));
+  await ingestEmail(db, email({ receivedAt: '2026-09-20T05:00:00.000Z', messageId: 'm-again' }));
+  const ewa = (await getWeekMatrix(db, 2)).rows.find(r => r.courseId === 'ewa');
+  assert.equal(ewa.assignment.targetId, targetId);
+  assert.equal(ewa.assignment.status, 'confirmed_mail');
+  assert.equal(ewa.assignment.confirmedAt, '2026-09-19T03:00:00.000Z');
+  assert.equal(ewa.selfFeedback.confirmedAt, null); // 확인메일이 없는 칸은 null
+});

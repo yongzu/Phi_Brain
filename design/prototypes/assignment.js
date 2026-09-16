@@ -151,7 +151,12 @@
 
   // 제출이 확인된 칸(메일 확인·직접 확인)은 검정 글씨(사용자 지시 2026-09-14) — 미확인·해당 없음은 회색 그대로
   const confirmedClass = status => (status === 'confirmed_mail' || status === 'confirmed_manual' ? ' is-confirmed' : '');
-  function renderCell(courseCode, kindLabel, cell) {
+  // 확인메일이 마감(과제 내용에 적힌 마감) 뒤에 왔으면 "제출 확인" 대신 "지각 제출"(사용자 지시 2026-09-16).
+  // 마감을 붙여넣지 않은 과목은 견줄 기준이 없어 예전처럼 "제출 확인" 그대로.
+  const isLate = (cell, note) => cell.status === 'confirmed_mail' && !!cell.confirmedAt && !!note?.dueAt
+    && Date.parse(cell.confirmedAt) > kstMs(note.dueAt);
+  const cellLabel = (cell, note) => (isLate(cell, note) ? '지각 제출' : STATUS_LABEL[cell.status] || cell.status);
+  function renderCell(courseCode, kindLabel, cell, note) {
     // 메일로 제출이 확인된 칸(로그인 상태)은 ↗가 메뉴 — 과제 제출폼 / 제출한 메일(사용자 지시 2026-09-14). 그 밖은 제출폼 바로 열기
     const mailMenu = cell.status === 'confirmed_mail' && cell.targetId != null;
     const shortcut = mailMenu
@@ -160,7 +165,7 @@
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
     // read-only mode has no detail panel (no mail details are published) — a plain label, not a button
-    const status = `${statusDot(cell.status)}<span>${STATUS_LABEL[cell.status] || cell.status}</span>`;
+    const status = `${statusDot(cell.status)}<span>${cellLabel(cell, note)}</span>`;
     return `<td><span class="am-cell">
       ${cell.targetId == null
         ? `<span class="am-status is-static${confirmedClass(cell.status)}">${status}</span>`
@@ -205,9 +210,9 @@
             ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
         </span></td>
-        ${renderCell(row.code, `${row.code} 과제`, row.assignment)}
+        ${renderCell(row.code, `${row.code} 과제`, row.assignment, row.note)}
         ${renderNoteCell(row)}
-        ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback)}
+        ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback, row.note)}
       </tr>`).join('');
   }
 
@@ -346,6 +351,9 @@
   function renderDetail(d) {
     const kindLabel = d.kind === 'assignment' ? '과제' : '셀프피드백';
     const latest = d.evidence[d.evidence.length - 1];
+    // 표와 같은 기준으로 "지각 제출" — 첫 확인메일(evidence[0], 수신 시각 오름차순)과 그 주 과제 내용의 마감을 견준다
+    const note = lastMatrix?.rows.find(r => r.courseId === d.courseId)?.note;
+    const statusLabel = cellLabel({ status: d.status, confirmedAt: d.evidence[0]?.received_at || null }, note);
     const conflictNote = d.status === 'conflict'
       ? `<p class="am-conflict">'해당 없음'으로 표시했지만 확인메일이 발견됐어요. 어느 쪽이 맞는지 확인해주세요.</p>` : '';
     const evidenceBlock = latest ? `
@@ -362,7 +370,7 @@
     return `
       <button type="button" class="am-detail-close" id="am-detail-close" aria-label="닫기">✕</button>
       <h2 class="am-detail-title">${esc(d.courseCode)}_${esc(d.courseName)} · ${d.weekNo}주차 · ${kindLabel}</h2>
-      <p class="am-detail-status">${statusDot(d.status)}${STATUS_LABEL[d.status]}</p>
+      <p class="am-detail-status">${statusDot(d.status)}${statusLabel}</p>
       ${conflictNote}
       ${evidenceBlock}
       <div class="am-detail-actions">

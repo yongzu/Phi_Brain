@@ -1,11 +1,25 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Findings 박스 가로 배치 · 머리줄 고정) / Claude Code
+최종 갱신: 2026-09-16 (Assignment Manage: 마감 뒤 확인메일은 "지각 제출") / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 마감 뒤 확인메일은 "제출 확인" 대신 "지각 제출" (2026-09-16, 사용자 지시 · Claude Code)
+
+- 판정 기준: 그 칸의 **첫 확인메일 수신 시각**(재제출이 있어도 처음 낸 때)이 그 주 **과제 내용에 적힌 마감(`dueAt`)** 보다 뒤면 지각.
+  지각 마감(`lateDueAt`)은 판정에 쓰지 않는다 — 지각 마감 안에 냈어도 마감은 지난 것이라 "지각 제출"이다.
+- `worker/src/assignment/service.js`: 주차 매트릭스 쿼리에 `min(received_at)` 추가 → 각 칸에 `confirmedAt`(확인메일 없으면 `null`).
+  `worker/test/service.test.js`에 회귀 테스트 1개 추가(첫 수신 시각·빈 칸 null). `node --test` 80개 전부 통과.
+- `assignment.js?v=20260916-1`: `isLate()`/`cellLabel()` — 표의 칸과 자세히 보기 패널이 같은 기준으로 "지각 제출"을 쓴다.
+  점·글자색은 제출 확인과 같다(확인된 제출이므로). 마감을 붙여넣지 않은 과목은 견줄 기준이 없어 예전처럼 "제출 확인".
+- 검증(로컬 정적 서버, 가짜 세션 + `window.fetch` 스텁): 마감 9/15 23:59 KST 기준 — 9/16 14:00 제출 "지각 제출",
+  9/15 14:00 제출 "제출 확인", 마감 정보 없는 과목 "제출 확인", 미확인 칸 그대로. 자세히 보기도 "지각 제출". 스텁·가짜 세션 삭제.
+- 남은 일 2가지:
+  - **Worker 배포 필요** — `confirmedAt`은 API가 내려주는 값이라 `worker/`를 배포(`npm run deploy`)하기 전까지 화면은 계속 "제출 확인"만 보여준다.
+  - 로그아웃(읽기 전용 `data/assignment-status.json`) 화면은 마감·수신 시각이 파일에 없어 지각 판정을 못 한다. 필요하면 스냅샷에 값을 추가해야 한다.
 
 ### Findings 박스 가로 우선 배치 · 머리줄(프로필 버튼) 고정 (2026-09-16, 사용자 지시 · Claude Code)
 

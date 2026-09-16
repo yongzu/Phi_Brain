@@ -40,7 +40,9 @@ export async function getWeekMatrix(db, weekNo) {
   const [{ results }, notes] = await db.batch([db.prepare(`
     SELECT c.id course_id, c.name, c.code, c.board_url, c.assignment_url, c.self_feedback_url,
       t.id target_id, t.kind, m.status manual_status,
-      (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id) evidence_count
+      (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id) evidence_count,
+      -- 첫 확인메일 수신 시각: 화면이 마감과 견줘 "지각 제출"을 가려낸다(사용자 지시 2026-09-16)
+      (SELECT min(e.received_at) FROM submission_evidence e WHERE e.target_id = t.id) first_received_at
     FROM submission_targets t
     JOIN courses c ON c.id = t.course_id
     LEFT JOIN manual_status m ON m.target_id = t.id
@@ -54,13 +56,14 @@ export async function getWeekMatrix(db, weekNo) {
     if (!byCourse.has(r.course_id)) {
       byCourse.set(r.course_id, {
         courseId: r.course_id, name: r.name, code: r.code, boardUrl: r.board_url, note: noteOf.get(r.course_id) || null,
-        assignment: { targetId: null, status: 'unconfirmed', url: r.assignment_url },
-        selfFeedback: { targetId: null, status: 'unconfirmed', url: r.self_feedback_url },
+        assignment: { targetId: null, status: 'unconfirmed', url: r.assignment_url, confirmedAt: null },
+        selfFeedback: { targetId: null, status: 'unconfirmed', url: r.self_feedback_url, confirmedAt: null },
       });
     }
     const cell = byCourse.get(r.course_id)[r.kind === 'assignment' ? 'assignment' : 'selfFeedback'];
     cell.targetId = r.target_id;
     cell.status = resolveStatus(r.manual_status, r.evidence_count);
+    cell.confirmedAt = r.first_received_at || null;
   }
   const rows = [...byCourse.values()];
   const all = rows.flatMap(r => [r.assignment.status, r.selfFeedback.status]);
