@@ -957,23 +957,20 @@
     }));
     return map;
   }
-  function findingsBoxHTML(key, box) {
-    const entries = box.get(key) || [];
+  // 과목별 큰 박스는 없앴다(사용자 지시 2026-09-16) — Finding 하나가 곧 박스 하나고,
+  // 과목 이름·날짜·별표는 그 박스의 머리줄에 들어간다. 별표는 여전히 과목 단위라
+  // (저장도 서버 API도 과목 코드), 한 박스에서 켜면 그 과목의 박스가 모두 앞으로 나온다.
+  function findingsCardHTML(key, e) {
     const label = key === 'general' ? 'General' : `<span class="nav-code">${esc(key)}</span>_${esc(courseName(key))}`;
-    const rows = entries.map(e => `
-      <li class="findings-item">
-        <div class="editor archive-preview">${e.html}</div>
-        <span class="findings-date">${esc(monthDay(e.date))}</span>
-      </li>`).join('');
     const isFav = store.findingsFavorites.all().includes(key);
     const plain = key === 'general' ? 'General' : key;
-    return `<section class="fi-box" data-box="${key}">
+    return `<section class="fi-box findings-card" data-box="${key}">
       <header class="fi-box-head">
         <h2 class="fi-box-title">${label}</h2>
-        <span class="resume-count" aria-label="${entries.length}개">${entries.length}</span>
+        <span class="findings-date">${esc(monthDay(e.date))}</span>
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
-      ${entries.length ? `<ul class="findings-rows">${rows}</ul>` : '<p class="fi-box-empty">아직 없어요.</p>'}
+      <div class="editor archive-preview findings-body">${e.html}</div>
     </section>`;
   }
   // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
@@ -986,24 +983,22 @@
     findingsFiltersEl.innerHTML = pill('all', 'All', total)
       + findingsKeys(box).map(k => pill(k, k === 'general' ? 'General' : k, box.get(k).length)).join('');
   }
-  // 즐겨찾기(사용자 요구사항 2026-09-14): Future Item 박스와 같은 별표. All에서는 별표한 박스를 "즐겨찾기" 줄에
-  // 별표한 순서대로 먼저, 나머지는 "과목" 줄에. 과목 필터를 고른 상태에서는 고른 순서 그대로(별표만 표시).
+  // 즐겨찾기(사용자 요구사항 2026-09-14): Future Item 박스와 같은 별표. 별표한 과목의 박스가
+  // 별표한 순서대로 앞에 서고(사용자 지시 2026-09-16 — "즐겨찾기 / 과목" 구분 줄은 없앴다),
+  // 나머지는 화면 순서대로. 과목 필터를 고른 상태에서는 고른 순서 그대로.
   function renderFindingsList(box) {
     const keys = findingsKeys(box);
     if (!keys.length) {
       findingsListEl.innerHTML = '<p class="fi-box-empty">아직 없어요. 저널의 Finding 아래에 과목 태그를 달면 여기에 모여요.</p>';
       return;
     }
-    if (findingsFilters.length) {
-      findingsListEl.innerHTML = findingsFilters.map(k => findingsBoxHTML(k, box)).join('');
-      return;
-    }
     const starred = store.findingsFavorites.all().filter(k => keys.includes(k));
-    const rest = keys.filter(k => !starred.includes(k));
-    findingsListEl.innerHTML = starred.length
-      ? `<p class="fi-section-label">즐겨찾기</p>${starred.map(k => findingsBoxHTML(k, box)).join('')}`
-        + (rest.length ? `<p class="fi-section-label">과목</p>${rest.map(k => findingsBoxHTML(k, box)).join('')}` : '')
-      : rest.map(k => findingsBoxHTML(k, box)).join('');
+    const order = findingsFilters.length
+      ? findingsFilters
+      : [...starred, ...keys.filter(k => !starred.includes(k))];
+    findingsListEl.innerHTML = order
+      .flatMap(k => (box.get(k) || []).map(e => findingsCardHTML(k, e)))
+      .join('');
   }
   findingsListEl.addEventListener('click', e => {
     const b = e.target.closest('[data-findings-fav]');

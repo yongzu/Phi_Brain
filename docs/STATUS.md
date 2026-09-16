@@ -1,11 +1,23 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Future Item 입력칸 Shift+Enter 줄바꿈) / Claude Code
+최종 갱신: 2026-09-16 (Findings: 과목 박스 없애고 Finding 하나당 박스, 2열 고정) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Findings: 과목별 큰 박스 제거 · 즐겨찾기 먼저 · 2열 고정 (2026-09-16, 사용자 지시 · Claude Code)
+
+- 과목별 큰 박스를 없애고 **Finding 하나가 박스 하나**. 머리줄에 과목 이름 · 날짜 · 별표가 들어간다(과목 박스에 있던 개수 뱃지는 없앰 — 필터 pill이 같은 수를 보여준다).
+- 순서: 별표한 과목의 박스가 별표 순서대로 앞, 나머지는 화면 순서(General → 과목 코드 순), 같은 과목 안에서는 날짜 내림차순.
+  "즐겨찾기 / 과목" 구분 줄은 없앴다. 과목 필터를 고른 상태에서는 고른 순서 그대로.
+- 별표는 여전히 **과목 단위**(localStorage·서버 API `/api/findings/favorites/<course>` 모두 과목 코드) — 한 박스에서 켜면 그 과목 박스가 전부 앞으로 온다.
+  화면 안내문도 "그 과목의 박스가 앞으로 와요"로 고쳤다.
+- `journal.js?v=20260916-3`: `findingsBoxHTML()` → `findingsCardHTML(key, entry)`, `renderFindingsList()`이 순서대로 flatMap.
+  `phi-brain.css?v=20260916-6`: `.findings-list`는 `repeat(2,minmax(0,1fr))` 고정(박스가 하나여도 절반 폭), 560px 이하 1열. `.findings-rows`·`.findings-item` 규칙 삭제.
+- 검증(로컬 정적 서버, 로그아웃, 가짜 저널 3개 — BI 3·TF 1·WI 1): 1280px에서 한 줄에 2개·각 443px(내용 901px),
+  순서 BI9/16·BI9/15·BI9/14·TF·WI → WI 별표 후 WI가 맨 앞, BI 필터에서 BI 3개만, 375px 1열·가로 스크롤 없음. 테스트 데이터 삭제.
 
 ### Shift+Enter 줄바꿈 (2026-09-16, 사용자 지시 · Claude Code)
 
