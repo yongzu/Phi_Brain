@@ -380,7 +380,7 @@
 .fi-check:checked{background:var(--ink);border-color:var(--ink)}
 .fi-check:focus-visible{outline:1px solid var(--gray);outline-offset:3px}
 /* 긴 문장은 말줄임(…) 대신 다음 줄로 넘김(사용자 지시 2026-09-15). 띄어쓰기 없는 긴 단어·URL도 박스 안에서 끊김 */
-.fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;padding-block:4px;white-space:normal;overflow-wrap:anywhere} /* 8pt → 10pt (사용자 지시 2026-09-14) */
+.fi-text{flex:1;min-width:0;color:var(--ink);font-size:10pt;padding-block:4px;white-space:pre-wrap;overflow-wrap:anywhere} /* 8pt → 10pt (사용자 지시 2026-09-14) */
 .fi-row.is-done .fi-text{color:var(--gray);text-decoration:line-through}
 /* 순서 번호(사용자 지시 2026-09-14): 체크 원과 문장 사이, 박스의 목록마다 1부터(완료한 항목 목록은 따로).
    CSS 카운터라 끌어서 순서를 바꾸면 번호도 따라간다. 1~2자리 번호가 같은 폭이라 문장 시작이 맞는다 */
@@ -391,7 +391,8 @@
    when there's no due date — the + button that shows while editing is how you add one. */
 .fi-due{align-self:flex-start;margin-left:42px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);font-size:8pt;color:var(--gray);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:pointer}
 .fi-row.is-overdue .fi-due{color:var(--ink)}
-.fi-edit{flex:1;min-width:0;align-self:center;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font-size:10pt} /* 보기(.fi-text)와 같은 10pt */
+/* input → textarea(2026-09-16 사용자 지시: Shift+Enter 줄바꿈). 높이는 future.js가 내용에 맞춰 늘린다 */
+.fi-edit{flex:1;min-width:0;align-self:center;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font:inherit;font-size:10pt;line-height:1.45;resize:none;overflow:hidden} /* 보기(.fi-text)와 같은 10pt */
 .fi-edit:focus-visible{outline:0}
 .fi-due-add{flex:0 0 auto}
 .fi-delete{flex:0 0 auto;margin-right:-6px}

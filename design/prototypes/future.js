@@ -255,7 +255,7 @@
         <input type="checkbox" class="fi-check"${i.done ? ' checked' : ''} aria-label="${i.done ? '완료 취소' : '완료'}: ${esc(i.text)}">
         <span class="fi-num" aria-hidden="true"></span>
         ${editing
-          ? `<input type="text" class="fi-edit" value="${esc(i.text)}" aria-label="행동 문구 수정 — Enter 저장, Esc 취소">`
+          ? `<textarea class="fi-edit" rows="1" aria-label="행동 문구 수정 — Enter 저장, Shift+Enter 줄바꿈, Esc 취소">${esc(i.text)}</textarea>`
           : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}
         ${editing && !i.dueAt ? `<button type="button" class="pill pill-icon fi-due-add" aria-label="마감 추가: ${esc(i.text)}">+</button>` : ''}
         <button type="button" class="pill pill-icon fi-delete" aria-label="삭제: ${esc(i.text)}">✕</button>
@@ -322,13 +322,15 @@
     [...$$('.fi-done', listEl), ...$$('.fi-done', topRowSlot)].forEach(d => window.StyleKit?.createAccordion(d));
   }
 
+  // 수정 칸(.fi-edit)은 한 줄로 시작해 Shift+Enter로 줄이 늘면 그만큼 키운다(사용자 지시 2026-09-16)
+  const growEdit = el => { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; };
   function render(focus) {
     renderWeekNav();
     renderFilters();
     renderList();
     if (sortEl) sortEl.hidden = filters.length > 0;
     renderScopeChips();
-    if (editingId) { const e = $('.fi-edit', listEl); if (e) { e.focus(); e.select(); } return; }
+    if (editingId) { const e = $('.fi-edit', listEl); if (e) { growEdit(e); e.focus(); e.select(); } return; }
     if (editingBoxId) { const e = $('.fi-box-name-edit', listEl); if (e) { e.focus(); e.select(); } return; }
     if (addingBox) { const e = $('.fi-box-add-input', listEl); if (e) e.focus(); return; }
     if (focus) (typeof focus === 'function' ? focus() : $(focus, view))?.focus();
@@ -633,9 +635,10 @@
 
   // ---- composer ----
   // Enter submits explicitly (not via implicit form submission), except while the
-  // Hangul IME is still composing — that Enter only commits the syllable
+  // Hangul IME is still composing — that Enter only commits the syllable.
+  // Shift+Enter는 줄바꿈(사용자 지시 2026-09-16) — 기본 동작에 맡긴다
   input.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     if (e.isComposing || e.keyCode === 229) return;
     form.requestSubmit();
@@ -1004,7 +1007,8 @@
     const ed = e.target.closest('.fi-edit');
     if (ed) {
       const id = ed.closest('.fi-row').dataset.id;
-      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); saveEdit(id, ed.value); }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); saveEdit(id, ed.value); } // Shift+Enter는 줄바꿈
+      if (e.key === 'Enter' && e.shiftKey) setTimeout(() => growEdit(ed)); // 줄이 늘면 칸도 늘린다
       if (e.key === 'Escape') { e.preventDefault(); saveEdit(id, '', true); }
       return;
     }

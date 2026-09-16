@@ -1,11 +1,24 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Assignment Manage: 지각 마감도 넘기면 "미제출") / Claude Code
+최종 갱신: 2026-09-16 (Future Item 입력칸 Shift+Enter 줄바꿈) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Shift+Enter 줄바꿈 (2026-09-16, 사용자 지시 · Claude Code)
+
+- 지시: 모든 텍스트 입력 구간에서 Shift+Enter는 줄바꿈. 닉네임만 제외.
+- 손댄 곳 — Future Item(`future.js?v=20260916-1`):
+  - 작성칸(`#fi-input`, textarea): Enter는 예전처럼 추가, **Shift+Enter는 기본 동작(줄바꿈)에 맡긴다**. 예전에는 Shift 여부를 안 보고 무조건 막았다.
+  - 행 수정칸(`.fi-edit`): `<input>` → `<textarea rows="1">`. Enter 저장 · Shift+Enter 줄바꿈 · Esc 취소. `growEdit()`이 내용만큼 높이를 늘린다.
+  - `phi-brain.css?v=20260916-5`: `.fi-edit`에 `font:inherit·resize:none·overflow:hidden`, `.fi-text`는 `white-space:pre-wrap`으로 저장된 줄바꿈을 그대로 보여준다.
+- 이미 되던 곳(확인만): 저널 본문(contenteditable), 과제 공지 붙여넣기 칸 — Enter를 가로채지 않아 Shift+Enter가 원래 줄바꿈이다.
+- 그대로 둔 곳(한 줄짜리 이름칸이라 줄바꿈 자체가 없다): 닉네임(지시대로 제외), 저널 제목(`#title-input`), 검색(`#search-input`),
+  Future Item 박스 이름(`.fi-box-name-edit`)·새 박스 이름(`.fi-box-add-input`). 여기를 여러 줄로 만들려면 저장·목록 표시까지 바꿔야 해서 사용자 확인 필요.
+- 검증(로컬 정적 서버, 로그아웃): 작성칸 Shift+Enter 이벤트 `defaultPrevented=false`·Enter는 추가, 수정칸 TEXTAREA·높이 26→45px·Enter 저장 후
+  본문이 "첫 줄\n둘째 줄"로 저장되고 두 줄(47px)로 보임, 저널 본문 Shift+Enter 막히지 않음. 테스트 데이터 삭제.
 
 ### Assignment Manage: 지각 마감도 넘긴 제출은 "미제출" (2026-09-16, 사용자 지시 · Claude Code)
 
