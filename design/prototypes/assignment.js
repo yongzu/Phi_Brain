@@ -151,11 +151,19 @@
 
   // 제출이 확인된 칸(메일 확인·직접 확인)은 검정 글씨(사용자 지시 2026-09-14) — 미확인·해당 없음은 회색 그대로
   const confirmedClass = status => (status === 'confirmed_mail' || status === 'confirmed_manual' ? ' is-confirmed' : '');
-  // 확인메일이 마감(과제 내용에 적힌 마감) 뒤에 왔으면 "제출 확인" 대신 "지각 제출"(사용자 지시 2026-09-16).
-  // 마감을 붙여넣지 않은 과목은 견줄 기준이 없어 예전처럼 "제출 확인" 그대로.
-  const isLate = (cell, note) => cell.status === 'confirmed_mail' && !!cell.confirmedAt && !!note?.dueAt
-    && Date.parse(cell.confirmedAt) > kstMs(note.dueAt);
-  const cellLabel = (cell, note) => (isLate(cell, note) ? '지각 제출' : STATUS_LABEL[cell.status] || cell.status);
+  // 확인메일이 언제 왔느냐로 갈리는 세 가지(사용자 지시 2026-09-16):
+  //   마감 안 → '제출 확인' / 마감은 넘겼지만 지각 마감 안 → '지각 제출' / 지각 마감도 넘김 → '미제출'(안 낸 것과 같게 친다).
+  // 지각 마감이 없는 과제는 마감만 보고 지각까지만 가른다. 마감을 붙여넣지 않은 과목은 견줄 기준이 없어 예전처럼 '제출 확인'.
+  function lateness(cell, note) {
+    if (cell.status !== 'confirmed_mail' || !cell.confirmedAt || !note?.dueAt) return null;
+    const at = Date.parse(cell.confirmedAt);
+    if (note.lateDueAt && at > kstMs(note.lateDueAt)) return 'missed';
+    return at > kstMs(note.dueAt) ? 'late' : null;
+  }
+  const LATENESS_LABEL = { late: '지각 제출', missed: '미제출' };
+  const cellLabel = (cell, note) => LATENESS_LABEL[lateness(cell, note)] || STATUS_LABEL[cell.status] || cell.status;
+  // 지각 마감까지 넘긴 칸은 '미확인'과 같은 회색·빈 점으로 — 글자만 미제출이고 점은 검정이면 낸 것처럼 보인다
+  const cellStatusKey = (cell, note) => (lateness(cell, note) === 'missed' ? 'unconfirmed' : cell.status);
   function renderCell(courseCode, kindLabel, cell, note) {
     // 메일로 제출이 확인된 칸(로그인 상태)은 ↗가 메뉴 — 과제 제출폼 / 제출한 메일(사용자 지시 2026-09-14). 그 밖은 제출폼 바로 열기
     const mailMenu = cell.status === 'confirmed_mail' && cell.targetId != null;
@@ -165,11 +173,12 @@
       ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
     // read-only mode has no detail panel (no mail details are published) — a plain label, not a button
-    const status = `${statusDot(cell.status)}<span>${cellLabel(cell, note)}</span>`;
+    const shown = cellStatusKey(cell, note);
+    const status = `${statusDot(shown)}<span>${cellLabel(cell, note)}</span>`;
     return `<td><span class="am-cell">
       ${cell.targetId == null
-        ? `<span class="am-status is-static${confirmedClass(cell.status)}">${status}</span>`
-        : `<button type="button" class="am-status${confirmedClass(cell.status)}" data-target-id="${cell.targetId}">${status}</button>`}
+        ? `<span class="am-status is-static${confirmedClass(shown)}">${status}</span>`
+        : `<button type="button" class="am-status${confirmedClass(shown)}" data-target-id="${cell.targetId}">${status}</button>`}
       ${shortcut}
     </span></td>`;
   }
@@ -202,7 +211,11 @@
   function render(matrix) {
     lastMatrix = matrix;
     renderWeekLabel(matrix.week);
-    progressEl.textContent = `완료 ${matrix.progress.done} / ${matrix.progress.total}`;
+    // 서버는 마감을 모르고 세므로, 지각 마감까지 넘겨 '미제출'이 된 칸은 여기서 뺀다
+    const missed = matrix.rows.reduce((n, r) => n
+      + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0)
+      + (lateness(r.selfFeedback, r.note) === 'missed' ? 1 : 0), 0);
+    progressEl.textContent = `완료 ${matrix.progress.done - missed} / ${matrix.progress.total}`;
     tbody.innerHTML = matrix.rows.map(row => `<tr>
         <td><span class="am-cell">
           <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
@@ -353,7 +366,9 @@
     const latest = d.evidence[d.evidence.length - 1];
     // 표와 같은 기준으로 "지각 제출" — 첫 확인메일(evidence[0], 수신 시각 오름차순)과 그 주 과제 내용의 마감을 견준다
     const note = lastMatrix?.rows.find(r => r.courseId === d.courseId)?.note;
-    const statusLabel = cellLabel({ status: d.status, confirmedAt: d.evidence[0]?.received_at || null }, note);
+    const asCell = { status: d.status, confirmedAt: d.evidence[0]?.received_at || null };
+    const statusLabel = cellLabel(asCell, note);
+    const statusKey = cellStatusKey(asCell, note);
     const conflictNote = d.status === 'conflict'
       ? `<p class="am-conflict">'해당 없음'으로 표시했지만 확인메일이 발견됐어요. 어느 쪽이 맞는지 확인해주세요.</p>` : '';
     const evidenceBlock = latest ? `
@@ -370,7 +385,7 @@
     return `
       <button type="button" class="am-detail-close" id="am-detail-close" aria-label="닫기">✕</button>
       <h2 class="am-detail-title">${esc(d.courseCode)}_${esc(d.courseName)} · ${d.weekNo}주차 · ${kindLabel}</h2>
-      <p class="am-detail-status">${statusDot(d.status)}${statusLabel}</p>
+      <p class="am-detail-status">${statusDot(statusKey)}${statusLabel}</p>
       ${conflictNote}
       ${evidenceBlock}
       <div class="am-detail-actions">
