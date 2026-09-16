@@ -70,6 +70,8 @@
 
   // ---- state ----
   let current = today, chosen = new Set(), saveTimer = 0, dirty = false;
+  // Journal Archive 안에서 수정 중인지 — 그때는 아래 버튼이 "저장하기"다(사용자 지시 2026-09-16)
+  let editingInArchive = false;
 
   const isEmpty = () => editor.textContent.trim() === '' && !editor.querySelector('h3, li, .course-box');
   const refreshEmpty = () => editor.classList.toggle('is-empty', isEmpty());
@@ -533,12 +535,15 @@
     if (li && e.clientX < li.getBoundingClientRect().left) { li.toggleAttribute('data-done'); scheduleSave(); }
   });
 
-  // ---- 정리하기: the AI step isn't connected, so it shows the failure path ----
-  function resetOrganize() { organize.disabled = false; organize.textContent = '정리하기'; }
+  // ---- 정리하기: the AI step isn't connected, so it shows the failure path.
+  // Journal Archive 안에서 수정할 때만은 AI 정리가 아니라 저장이라, 버튼도 "저장하기"고
+  // 끝나면 저장됐다고만 알린다(사용자 지시 2026-09-16) ----
+  function resetOrganize() { organize.disabled = false; organize.textContent = editingInArchive ? '저장하기' : '정리하기'; }
   organize.addEventListener('click', () => {
-    if (isEmpty()) { setStatus('정리할 내용을 먼저 적어주세요', 'error'); editor.focus(); return; }
+    if (isEmpty()) { setStatus(editingInArchive ? '저장할 내용을 먼저 적어주세요' : '정리할 내용을 먼저 적어주세요', 'error'); editor.focus(); return; }
     save();
     if (fiBtn.checked && !registerFutureItems()) return;
+    if (editingInArchive) { setStatus('변경 사항이 저장되었어요.'); return; }
     organize.disabled = true;
     setStatus('정리 중…', 'busy');
     setTimeout(() => {
@@ -753,11 +758,10 @@
 
   // ---- "수정하기"는 Journaling 탭으로 이동하는 대신 작성 세션을 Journal
   // Archive 안으로 그대로 옮겨온다 ----
-  let editingInArchive = false;
   function enterArchiveEdit(date) {
     save();
+    editingInArchive = true; // load() 안의 resetOrganize()가 "저장하기"로 쓰도록 먼저 켠다
     load(date);
-    editingInArchive = true;
     archiveBrowse.hidden = true;
     composeSlot.hidden = false;
     composeSlot.appendChild(journalSection);
@@ -767,6 +771,7 @@
     if (!editingInArchive) return;
     save();
     editingInArchive = false;
+    resetOrganize();
     viewJournal.prepend(journalSection); // 원래 자리(.resume 위)로 복귀
     composeSlot.hidden = true;
     archiveBrowse.hidden = false;
@@ -784,6 +789,7 @@
     favorites.removeForDate(date);
     if (editingInArchive && current === date) {
       editingInArchive = false;
+      resetOrganize();
       viewJournal.prepend(journalSection);
       composeSlot.hidden = true;
       archiveBrowse.hidden = false;
