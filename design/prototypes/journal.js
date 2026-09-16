@@ -487,8 +487,9 @@
   // 줄은 4F 소제목으로, **TF**·**General** 같은 단독 굵게 줄은 과목 박스로 바꾼다.
   // 그 외 `**내용**`은 줄 전체든 문장 중간이든 굵게(<b>)로 바꾼다 — 과목 박스는
   // 블록이라 줄 전체가 과목명일 때만 만들고, 문장 중간의 **BI**는 그냥 굵은 글자다.
-  // 짝이 안 맞는 **는 원문 그대로 둔다.
-  const inlineBold = s => esc(s).replace(/\*\*(?=\S)((?:(?!\*\*).)+?)(?<=\S)\*\*/g, '<b>$1</b>');
+  // 짝이 안 맞는 **는 원문 그대로 둔다. `**굵게 **다음` 처럼 ** 바로 안쪽에 공백이 있어도
+  // 굵게로 바꾼다(디스코드에서 흔한 형태 — 사용자 지시 2026-09-16). 그 공백은 <b> 밖에 그대로 남긴다.
+  const inlineBold = s => esc(s).replace(/\*\*(\s*)(\S(?:(?:(?!\*\*)[\s\S])*?\S)?)(\s*)\*\*/g, '$1<b>$2</b>$3');
   const FOUR_F_ALIASES = { fact: 'Fact', feeling: 'Feeling', feelings: 'Feeling', finding: 'Finding', findings: 'Finding', 'future item': 'Future Item', futureitem: 'Future Item' };
   function resolveCourseWord(word) {
     const w = word.trim();
