@@ -1,11 +1,21 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (VT 보드 링크를 Figma 보드 주소로) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 앱 1단계 — 배포 화면을 여는 Electron 창) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 앱 1단계: 배포 화면을 여는 Electron 창 (2026-09-17, 사용자 지시 · Claude Code)
+
+- 계획·인계 문서 신설: **`docs/DESKTOP.md`** — 7단계, 담당표, 파일 경계, 하지 않기로 한 것. 다른 도구가 이어받을 때 이 문서부터 읽는다.
+- 사용자 확정: 온라인 전용(오프라인·로컬 저장 범위 밖) · Electron · **화면은 배포 주소를 그대로 연다**(앱에 번들하지 않음 — 원점이 바뀌면 CORS·Google 로그인 등록·Gmail 복귀 주소가 전부 따라 바뀐다).
+- `desktop/` 신설: `package.json`(electron 38.1.0, `npm start`), `main.js`.
+  창 크기·위치·최대화 기억(`userData/window-state.json`), 바깥 링크는 기본 브라우저로(`setWindowOpenHandler`·`will-navigate`),
+  로드 실패 시 안내 화면 + 다시 시도, `nodeIntegration:false`·`contextIsolation:true`(원격 페이지를 여는 창이라 고정), 단일 인스턴스 잠금(2단계의 `phibrain://` 수신 자리).
+- 검증: `npm install` 후 `npm start` → 프로세스 정상, 창 상태 파일 기록됨(1280×860). **화면 내용·로그인 동작은 사용자 눈으로 확인 필요**(에이전트가 Electron 창을 캡처할 수단이 없다).
+- 다음: 2단계 로그인(시스템 브라우저 + `phibrain://` 복귀 + 1회용 코드 교환). 1단계에서 앱 안 로그인이 막히는 것은 정상 — Google 정책.
 
 ### VT 보드 링크: go.phi.design 단축주소 → Figma 보드 직접 링크 (2026-09-17, 사용자 지시 · Claude Code)
 

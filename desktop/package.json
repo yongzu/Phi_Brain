@@ -1,0 +1,13 @@
+{
+  "name": "phi-brain-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Phi Brain 데스크톱 앱 — 배포된 화면을 여는 창 (docs/DESKTOP.md)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "38.1.0"
+  }
+}
