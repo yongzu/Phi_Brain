@@ -1,11 +1,25 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-16 (Findings 별표를 박스 하나 단위로) / Claude Code
+최종 갱신: 2026-09-17 (VT 보드 링크를 Figma 보드 주소로) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### VT 보드 링크: go.phi.design 단축주소 → Figma 보드 직접 링크 (2026-09-17, 사용자 지시 · Claude Code)
+
+- 값: `https://www.figma.com/board/eAeCinqhdU8SMb0aEi8MRM/-1%EA%B8%B0-B--Visual-Translation?node-id=0-1`
+  (사용자가 준 주소에서 `t=` 공유 토큰은 뺐다 — 세션용 꼬리표라 링크에 박아 둘 값이 아니다. `node-id`는 유지.)
+- 보드 주소를 쓰는 곳 세 군데를 모두 맞췄다:
+  - `server/db.js`: `BOARD_URL` 예외 표 신설(`courseLinks()`가 여기 있으면 그 값을, 없으면 예전처럼 `go.phi.design/<id>/board`).
+    주간 동기화가 쓰는 스냅샷도 이 함수를 거치므로 다음 동기화부터 같은 값이 나간다.
+  - `worker/migrations/0006_vt_board_url.sql`(신규): 서버 DB의 `courses.board_url` UPDATE.
+  - `design/prototypes/data/assignment-status.json`: 로그아웃(읽기 전용) 화면이 보는 파일도 지금 바로 맞춰 둠.
+- 적용함: `npx wrangler@4.131.1 d1 migrations apply phi-brain --remote` → `0006_vt_board_url.sql` ✅.
+  적용 후 확인 쿼리 — vt는 Figma 주소, bi는 `go.phi.design/bi/board` 그대로. 워커 코드 변경은 없어 재배포하지 않았다.
+  (처음 한 번은 D1 query API가 7403으로 실패했다가 그대로 다시 실행하니 통과 — 일시적. `d1 list`·읽기 쿼리는 그 사이에도 정상이었다.)
+- `worker/test/service.test.js`에 vt board_url 검사 추가 → `node --test` 81개 통과.
 
 ### Findings 별표: 과목 단위 → 박스(Finding) 하나 단위 (2026-09-16, 사용자 지시 · Claude Code)
 
