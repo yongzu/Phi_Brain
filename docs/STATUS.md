@@ -1,11 +1,32 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (Findings 즐겨찾기 전용 필터) / Claude Code
+최종 갱신: 2026-09-18 (왼쪽 탭 순서 변경 · 첫 화면 Future Item · Archive 이름 변경) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 왼쪽 탭 순서 변경 · 첫 화면 Future Item · Journal Archive → Archive (2026-09-18, 사용자 지시 · Claude Code)
+
+- 가장 중요한 두 기능을 맨 위 대표 탭으로 올렸다: **Future Item**(첫 화면) **→ Assignment Manage** 순서로 나란히.
+  둘 다 예전 Journaling 탭이 쓰던 12pt·볼드 — CSS는 `.nav-tab[data-view="journal"]` → `.nav-tab[data-view="future"],.nav-tab[data-view="assignment"]`.
+  그룹 머리글(Management·Course Agent)은 기본 크기 그대로.
+- **Management 묶음은 삭제**했다(사용자 지시). Journaling · Findings · Archive 세 탭이 머리글 없이 대표 탭 두 개 아래에 선다.
+  글자는 기존 tab2(회색·기본 크기) 그대로 두고 들여쓰기만 없앴다 — 위에 머리글이 없으니 대표 탭과 같은 왼쪽 선(32px)에 맞췄다:
+  `.side-nav>.nav-group>.nav-tab.tab2{margin-left:0}` (Course Agent 묶음 안의 과목 탭은 예전처럼 들여쓴 채로).
+- `Journal Archive` 탭 이름만 **Archive**로 바꿨다. 화면 제목(h1)·해시(`#journal-archive`)·`data-view` 값은 그대로 둬서
+  journal.js의 라우팅과 데스크톱 앱 단축키(`desktop/preload.js`의 `[data-view="journal"]`)가 그대로 동작한다.
+- 첫 화면: `future.js`의 기본값을 journal → future로 바꿨다(`currentView` 초기값, `show()` 폴백, `route()`).
+  해시 없이 열면 Future Item이 뜨고 주소는 `#future-item`이 된다. `#journal`로 들어오면 Journaling을 연다(예전엔 해시 없음 = Journaling).
+- 최종 순서: Future Item · Assignment Manage / Journaling · Findings · Archive / Course Agent(12과목).
+- Course Agent는 **예전처럼 늘 펼친 목록**이다. 중간에 "호버·클릭으로 열리는 드롭다운 + 펼침 애니메이션"을 넣었다가
+  사용자 지시로 **되돌렸다**(드롭다운도 인터랙션도 없앤다). 넓은 화면에서는 클릭해도 접히지 않고, 좁은 화면(860px 이하)에서만 아코디언으로 접힌다 — 예전 동작 그대로.
+- `home.html`: `phi-brain.css?v=20260918-5`, `future.js?v=20260918-1`.
+- 검증(로컬, 1440px): 첫 로드 = Future Item·`#future-item`, 맨 위/맨 아래 탭 16px·700(예전 Journaling 탭과 동일), Archive 라벨 확인,
+  다섯 탭 모두 클릭 시 해당 화면과 active 표시 정상, 대표 탭 둘 16px·700 · 나머지 네 탭 모두 왼쪽 선 32px 정렬 확인.
+  Course Agent: 되돌린 뒤 첫 로드부터 과목 12개가 보이고(사이드바 735px), 클릭·호버로 아무 일도 일어나지 않으며 사이드바 애니메이션 0개 확인.
+  375px에서 세 탭이 한 줄로 접히고, Course Agent도 접힌 채 시작해 탭하면 열린다(176 → 468px). 가로 스크롤 없음.
 
 ### Findings: 즐겨찾기만 모아 보는 필터 (2026-09-17, 사용자 지시 · Claude Code)
 

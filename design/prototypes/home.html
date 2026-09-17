@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260917-3">
+<link rel="stylesheet" href="phi-brain.css?v=20260918-5">
 </head>
 <body>
 
@@ -54,18 +54,17 @@
 
 <div class="app-body">
 <nav class="side-nav" aria-label="주요 탐색">
+  <!-- 사용자 지시 2026-09-18: 가장 중요한 두 기능(Future Item·Assignment Manage)을 맨 위·맨 아래 대표 탭으로 -->
   <div class="nav-group">
-    <button type="button" class="nav-tab tab1 active" aria-current="page" data-view="journal">Journaling</button>
+    <button type="button" class="nav-tab tab1 active" aria-current="page" data-view="future">Future Item</button>
+    <button type="button" class="nav-tab tab1" data-view="assignment">Assignment Manage</button>
   </div>
-  <details class="nav-group nav-accordion" open>
-    <summary class="nav-tab tab1">Management<span class="caret nav-caret" aria-hidden="true">▾</span></summary>
-    <div class="nav-list accordion-content">
-      <button type="button" class="nav-tab tab2" data-view="assignment">Assignment Manage</button>
-      <button type="button" class="nav-tab tab2" data-view="future">Future Item</button>
-      <button type="button" class="nav-tab tab2" data-view="findings">Findings</button>
-      <button type="button" class="nav-tab tab2" data-view="journal-archive">Journal Archive</button>
-    </div>
-  </details>
+  <!-- Management 묶음 삭제(사용자 지시 2026-09-18) — 세 탭이 대표 탭과 같은 왼쪽 선에 바로 선다 -->
+  <div class="nav-group">
+    <button type="button" class="nav-tab tab2" data-view="journal">Journaling</button>
+    <button type="button" class="nav-tab tab2" data-view="findings">Findings</button>
+    <button type="button" class="nav-tab tab2" data-view="journal-archive">Archive</button>
+  </div>
   <details class="nav-group nav-accordion" open>
     <summary class="nav-tab tab1">Course Agent<span class="caret nav-caret" aria-hidden="true">▾</span></summary>
     <div class="nav-list nav-list-course accordion-content">
@@ -438,9 +437,8 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { setOpen(false); trigger.focus(); } });
   })();
 
-  // Left nav: General/Course only behave as an accordion once the layout
-  // stacks to mobile (@media(max-width:860px) in phi-brain.css) — on the
-  // wide layout a click does nothing and both stay permanently open.
+  // Left nav: Course Agent는 넓은 화면에서 늘 펼쳐 둔다(클릭해도 접히지 않는다).
+  // 좁은 화면(@media(max-width:860px))에서만 아코디언으로 접힌다.
   (() => {
     const mobileQuery = matchMedia('(max-width:860px)');
     const groups = document.querySelectorAll('.nav-accordion');
@@ -457,7 +455,7 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260916-1"></script>
+<script src="future.js?v=20260918-1"></script>
 <script src="auth.js?v=20260917-2"></script>
 <script src="future-sync.js?v=3"></script>
 <script src="journal-store.js?v=4"></script>
