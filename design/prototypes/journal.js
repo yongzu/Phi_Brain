@@ -900,12 +900,19 @@
   // no course checked falls into General rather than being dropped. ----
   const findingsFiltersEl = $('#findings-filters'), findingsListEl = $('#findings-list');
   // 복수 선택(사용자 확정) — 빈 배열 = All. 해시는 쉼표로: #findings/BI,EWA
+  // 별표만 모아 보기(사용자 지시 2026-09-17)는 과목이 아니라 보기 방식이라 따로 둔다 — #findings/fav.
+  // 과목 필터와는 배타적: 한쪽을 켜면 다른 쪽이 풀린다(둘을 겹치면 "BI 중 별표"인지 "BI 또는 별표"인지 모호해진다).
+  const FAV_FILTER = 'fav';
   let findingsFilters = [];
-  const findingsHashFor = fs => (fs.length ? `#findings/${fs.join(',')}` : '#findings');
+  let findingsFavOnly = false;
+  const findingsHashFor = () => (findingsFavOnly ? `#findings/${FAV_FILTER}`
+    : findingsFilters.length ? `#findings/${findingsFilters.join(',')}` : '#findings');
   const findingsFilterFromHash = h => {
     if (!h.startsWith('#findings')) return [];
-    return (h.split('/')[1] || '').split(',').map(p => {
-      const raw = p.trim().toUpperCase();
+    const parts = (h.split('/')[1] || '').split(',').map(p => p.trim());
+    if (parts.some(p => p.toLowerCase() === FAV_FILTER)) return [FAV_FILTER];
+    return parts.map(p => {
+      const raw = p.toUpperCase();
       if (raw === 'GENERAL') return 'general';
       const code = ALIASES[raw] || raw;
       return COURSES.some(c => c[0] === code) ? code : null;
@@ -981,12 +988,23 @@
   }
   // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
   const findingsKeys = box => ['general', ...COURSES.map(c => c[0])].filter(k => box.has(k));
+  // 별표한 박스만 — 별표한 순서 그대로. 저널을 고쳐 사라진 Finding의 별표는 셈에서 빠진다
+  function starredCards(box) {
+    const all = findingsKeys(box).flatMap(k => (box.get(k) || []).map(e => [k, e]));
+    return store.findingsFavorites.all()
+      .map(key => all.find(([, e]) => e.key === key))
+      .filter(Boolean);
+  }
   function renderFindingsFilters(box) {
     const total = [...box.values()].reduce((n, list) => n + list.length, 0);
-    const pressed = k => (k === 'all' ? !findingsFilters.length : findingsFilters.includes(k));
+    const pressed = k => (k === 'all' ? !findingsFilters.length && !findingsFavOnly
+      : k === FAV_FILTER ? findingsFavOnly : findingsFilters.includes(k));
     const pill = (k, label, n) => `<button type="button" class="pill fi-filter" data-findings-filter="${k}" aria-pressed="${pressed(k)}">`
       + `${label}<span class="f-count" aria-hidden="true">${n}</span></button>`;
+    const favCount = starredCards(box).length;
     findingsFiltersEl.innerHTML = pill('all', 'All', total)
+      // 별표가 하나도 없으면 아예 그리지 않는다 — 빈 과목 pill을 안 그리는 것과 같은 규칙
+      + (favCount ? pill(FAV_FILTER, '즐겨찾기', favCount) : '')
       + findingsKeys(box).map(k => pill(k, k === 'general' ? 'General' : k, box.get(k).length)).join('');
   }
   // 즐겨찾기(사용자 요구사항 2026-09-14, 박스 단위로 2026-09-16): Future Item 박스와 같은 별표.
@@ -996,6 +1014,13 @@
     const keys = findingsKeys(box);
     if (!keys.length) {
       findingsListEl.innerHTML = '<p class="fi-box-empty">아직 없어요. 저널의 Finding 아래에 과목 태그를 달면 여기에 모여요.</p>';
+      return;
+    }
+    if (findingsFavOnly) {
+      const fav = starredCards(box);
+      findingsListEl.innerHTML = fav.length
+        ? fav.map(([k, e]) => findingsCardHTML(k, e)).join('')
+        : '<p class="fi-box-empty">별표한 Finding이 없어요. 박스의 별표를 누르면 여기에 모여요.</p>';
       return;
     }
     const cards = (findingsFilters.length ? findingsFilters : keys)
@@ -1010,15 +1035,17 @@
     if (!b) return;
     const key = b.dataset.findingsFav;
     store.findingsFavorites.toggle(key);
-    renderFindingsList(findingsByBox());
+    // 별표를 켜고 끄면 "즐겨찾기" pill의 개수도 달라진다. 즐겨찾기 보기에서 마지막 별표를 끄면 All로 돌아간다
+    applyFindingsFilters(findingsFavOnly ? [FAV_FILTER] : findingsFilters, findingsByBox());
     findingsListEl.querySelector(`[data-findings-fav="${key}"]`)?.focus();
   });
   // 화면 순서로 정렬 + 내용 없는 과목(딥링크로 들어온 빈 과목 포함)은 뺀다
   function applyFindingsFilters(fs, box) {
-    findingsFilters = findingsKeys(box).filter(k => fs.includes(k));
+    findingsFavOnly = fs.includes(FAV_FILTER) && starredCards(box).length > 0; // 별표가 없으면 All로 돌아간다
+    findingsFilters = findingsFavOnly ? [] : findingsKeys(box).filter(k => fs.includes(k));
     renderFindingsFilters(box);
     renderFindingsList(box);
-    if (window.PhiBrain.getCurrentView() === 'findings') history.replaceState(null, '', findingsHashFor(findingsFilters));
+    if (window.PhiBrain.getCurrentView() === 'findings') history.replaceState(null, '', findingsHashFor());
   }
   function renderFindings() {
     applyFindingsFilters(findingsFilterFromHash(location.hash), findingsByBox());
@@ -1029,7 +1056,11 @@
     const b = e.target.closest('[data-findings-filter]');
     if (!b) return;
     const k = b.dataset.findingsFilter;
-    const next = k === 'all' ? [] : findingsFilters.includes(k) ? findingsFilters.filter(x => x !== k) : [...findingsFilters, k];
+    const next = k === 'all' ? []
+      : k === FAV_FILTER ? (findingsFavOnly ? [] : [FAV_FILTER])            // 다시 누르면 All로
+      : findingsFavOnly ? [k]                                              // 즐겨찾기 보기에서 과목을 고르면 그 과목만
+      : findingsFilters.includes(k) ? findingsFilters.filter(x => x !== k)
+      : [...findingsFilters, k];
     applyFindingsFilters(next, findingsByBox());
     findingsFiltersEl.querySelector(`[data-findings-filter="${k}"]`)?.focus();
   });
