@@ -1,11 +1,20 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (Findings·Journal Archive 별표 순서 간헐 뒤바뀜 수정) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 숨기기 Ctrl+Backspace · Ctrl+X는 잘라내기로 환원) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 단축키: 숨기기 Ctrl+Backspace · Ctrl+X는 잘라내기 (2026-09-17, 사용자 지시 · Claude Code)
+
+- 4단계 실동작 확인 결과 사용자 OK(X/Ctrl+X 숨김·트레이 복원, 확대·축소, Ctrl+Alt+J, Gmail 신규 연결 복귀 모두 동작). 이어 단축키만 조정.
+- `desktop/shell.js`: 트레이 숨기기를 `Control+X` → `Control+Backspace`로, 잘라내기는 `Shift+Delete` 지정을 없애 기본 `Ctrl+X`로 환원.
+  `before-input-event`에서 가로채는 키도 `x` → `backspace`(Shift 조합은 그대로 흘려보냄).
+- `desktop/test/shell.test.cjs`: 해당 테스트를 "Ctrl+X는 가로채지 않는다 + Ctrl+Backspace로 숨는다 + 메뉴 가속기 표시"로 교체. 데스크톱 16개 통과.
+- **알아둘 점(사용자 판단 필요):** 글을 쓰는 중 `Ctrl+Backspace`는 원래 **앞 단어 지우기**다. 이제 앱 어디서든 숨기기가 먼저 잡혀 그 기능을 쓸 수 없다.
+  불편하면 `Ctrl+Shift+Backspace`나 다른 키로 옮기면 된다.
 
 ### 별표 순서가 간헐적으로 뒤바뀌던 것 수정 (2026-09-17, Claude Code)
 

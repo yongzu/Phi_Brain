@@ -99,11 +99,19 @@ test('F5 reloads and Ctrl+F5 bypasses cache; Windows session end does not hide i
   f.win.emit('session-end'); assert.equal(f.close(), false);
 });
 
-test('Ctrl+X hides without exiting; cut uses Shift+Delete', () => {
+// 2026-09-17 사용자 지시: 숨기기는 Ctrl+Backspace, Ctrl+X는 원래대로 잘라내기
+test('Ctrl+Backspace hides without exiting; Ctrl+X stays cut', () => {
   const f = fixture(); f.win.emit('ready-to-show'); let prevented = false;
-  f.win.webContents.emit('before-input-event', { preventDefault() { prevented = true; } }, { type: 'keyDown', key: 'x', control: true });
+  const press = (key, extra = {}) => f.win.webContents.emit('before-input-event',
+    { preventDefault() { prevented = true; } }, { type: 'keyDown', key, control: true, ...extra });
+  press('x');
+  assert.equal(prevented, false, 'Ctrl+X는 가로채지 않는다 — 잘라내기 그대로');
+  assert.equal(f.win.visible, true);
+  press('Backspace');
   assert.equal(prevented, true); assert.equal(f.win.visible, false); assert.equal(f.tray.destroyed, undefined);
-  assert.equal(f.menu.find(x => x.label === '편집').submenu.find(x => x.role === 'cut').accelerator, 'Shift+Delete');
+  // 잘라내기는 기본 가속기(Ctrl+X)를 쓴다 — 따로 지정하지 않는다
+  assert.equal(f.menu.find(x => x.label === '편집').submenu.find(x => x.role === 'cut').accelerator, undefined);
+  assert.equal(f.menu.find(x => x.label === 'Phi Brain').submenu.find(x => x.label === '트레이로 숨기기').accelerator, 'Control+Backspace');
 });
 test('zoom accepts equals, shifted plus and numpad plus; menu and keyboard share zoom state', () => {
   const f = fixture(); let prevented = 0;

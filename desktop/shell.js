@@ -76,7 +76,7 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
   function commonMenu() {
     return [
       { label: 'Phi Brain 열기', click: showWindow },
-      { label: '트레이로 숨기기', accelerator: 'Control+X', registerAccelerator: false, enabled: hasTray(), click: hideWindow },
+      { label: '트레이로 숨기기', accelerator: 'Control+Backspace', registerAccelerator: false, enabled: hasTray(), click: hideWindow },
       { label: '저널 바로 쓰기', accelerator: JOURNAL_SHORTCUT, registerAccelerator: false, click: openJournal },
       ...(!globalRegistered ? [{ label: 'Ctrl+Alt+J: 다른 앱에서 사용 중 · 앱 안에서 사용 가능', enabled: false }] : []),
       { type: 'separator' },
@@ -91,7 +91,7 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
       { label: 'Phi Brain', submenu: commonMenu() },
       { label: '편집', submenu: [
         { role: 'undo', label: '실행 취소' }, { role: 'redo', label: '다시 실행' }, { type: 'separator' },
-        { role: 'cut', label: '잘라내기', accelerator: 'Shift+Delete' }, { role: 'copy', label: '복사' }, { role: 'paste', label: '붙여넣기' },
+        { role: 'cut', label: '잘라내기' }, { role: 'copy', label: '복사' }, { role: 'paste', label: '붙여넣기' },
         { role: 'selectAll', label: '전체 선택' },
       ] },
       { label: '보기', submenu: [
@@ -118,7 +118,8 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
       if (input.type !== 'keyDown' || input.isAutoRepeat) return;
       if (input.control && !input.alt && !input.meta) {
         const key = input.key.toLowerCase();
-        if (key === 'x' && !input.shift && hasTray()) {
+        // 트레이로 숨기기: Ctrl+Backspace (사용자 지시 2026-09-17 — Ctrl+X는 잘라내기로 되돌렸다)
+        if (key === 'backspace' && !input.shift && hasTray()) {
           e.preventDefault(); hideWindow(); return;
         }
         // Windows layouts report the plus key as '=' or '+', depending on Shift.
