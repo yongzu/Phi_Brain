@@ -1,11 +1,25 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 6단계 — Windows 설치 파일 생성) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 맥용 빌드 추가 — 깃허브 맥 러너) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 맥용 설치 파일 (2026-09-17, 사용자 지시 · Claude Code)
+
+- **맥 앱은 맥에서만 만들 수 있다**(애플 `codesign`이 macOS 전용, Apple Silicon은 서명 없는 바이너리를 실행하지 않음).
+  그래서 윈도우 PC에서 만들지 않고 `.github/workflows/desktop-build.yml`이 깃허브 맥 러너에서 빌드하게 했다(공개 저장소라 무료).
+- 워크플로: `desktop/**` 변경 push 또는 수동 실행 → macos-14와 windows-latest에서 `npm ci` → `npm test` → `electron-builder`.
+  `fail-fast: false`라 한쪽이 실패해도 다른 쪽 설치 파일은 받을 수 있다. 결과는 그 실행의 Artifacts(14일 보관), 저장소에는 넣지 않는다.
+- `desktop/package.json`에 `mac` 설정 추가: dmg(arm64 + x64), 카테고리 productivity, **`identity: null`(서명 안 함)**.
+  `CSC_IDENTITY_AUTO_DISCOVERY: false`로 러너가 인증서를 찾다 실패하지 않게 했다.
+- 첫 실행 결과: [run 35216501888](https://github.com/yongzu/Phi_Brain/actions/runs/35216501888) 맥·윈도우 **둘 다 성공**.
+  산출물 `phi-brain-mac` 215MB(dmg 2종), `phi-brain-windows` 85MB.
+- **맥에서 처음 열 때 Gatekeeper가 막는다** — 앱 우클릭 → 열기로 한 번만 넘기면 된다. 정식 배포하려면 Apple Developer Program(연 $99)과 공증이 필요하다.
+- **미확인:** 맥 실제 설치·실행·로그인 복귀(확인할 맥 기기가 없다). 윈도우 설치본도 사용자 확인 대기.
+- 7단계(자동 업데이트)는 사용자 판단으로 **보류** — 화면은 서버에서 오므로 앱 껍데기가 바뀔 때만 의미가 있다.
 
 ### 데스크톱 6단계: Windows 설치 파일 (2026-09-17, 사용자 지시 · Claude Code)
 

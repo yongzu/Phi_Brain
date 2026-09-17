@@ -21,8 +21,8 @@
 | 3 | Gmail 연결도 같은 길로 | 0.5일 | **구현·배포 완료 · 기존 연결 표시 확인 · 신규 연결 복귀 미확인** | Codex |
 | 4 | 앱답게 다듬기 — 트레이·자동 실행·전역 단축키 | 1일 | **구현 완료 · Ctrl+X/확대 수정 확인 대기** | Codex |
 | 5 | 세션 토큰을 OS 자격 증명 저장소로 | 0.5일 | 2단계에서 함께 처리(`safeStorage`) | Claude Code |
-| 6 | 설치 파일(electron-builder) | 1일 | **빌드 성공 · 사용자 설치 확인 대기** | Claude Code |
-| 7 | 자동 업데이트(GitHub Releases) | 0.5일 | 대기 | — |
+| 6 | 설치 파일(electron-builder) — 윈도우 + 맥 | 1일 | **빌드 성공(둘 다) · 사용자 설치 확인 대기** | Claude Code |
+| 7 | 자동 업데이트(GitHub Releases) | 0.5일 | **보류 — 필요해지면 착수**(사용자 판단 2026-09-17) | — |
 
 **나눠 맡길 때 권장 조합:** 2·3·5(로그인/보안)를 한 사람이, 4·6·7(포장)을 다른 사람이. 파일이 거의 겹치지 않는다.
 1번이 끝나기 전에는 나머지를 시작하지 않는다 — `desktop/main.js`가 모든 단계의 바탕이다.
@@ -118,6 +118,18 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 ```
 
 (7za는 `desktop/node_modules/7zip-bin/win/x64/7za.exe`. 관리자 PowerShell에서 빌드하거나 윈도우 개발자 모드를 켜도 해결된다.)
+
+### 맥용 (2026-09-17, 사용자 지시)
+
+**맥 앱은 맥에서만 만들 수 있다** — 애플 서명 도구(`codesign`)가 macOS 전용이고, Apple Silicon은 서명 없는 실행 파일을 아예 실행하지 않는다.
+그래서 윈도우 PC에서 만들지 않고 **`.github/workflows/desktop-build.yml`이 깃허브의 맥 러너에서 빌드한다**(공개 저장소라 무료).
+
+- 언제 도나: `desktop/**`가 바뀌어 main에 올라갈 때, 또는 Actions 탭에서 직접 실행(workflow_dispatch).
+- 무엇이 나오나: 맥 `.dmg`(arm64 + 인텔 x64), 윈도우 `.exe`. 그 실행의 **Artifacts**에 붙는다(14일 보관). 저장소에는 넣지 않는다.
+- `mac.identity: null` — 애플 개발자 인증서가 없어 서명하지 않는다. 처음 열 때 Gatekeeper가 막으므로
+  **앱을 우클릭 → 열기**로 한 번만 넘기면 그다음부터는 그냥 열린다. 정식 배포하려면 Apple Developer Program(연 $99)과 공증(notarization)이 필요하다.
+- 맥에서도 `phibrain://` 복귀는 `protocols` 설정이 앱 번들에 심어 준다(윈도우 NSIS와 같은 설정을 공유).
+- 미확인: 맥 실제 설치·실행·로그인 복귀. 이 저장소를 만든 사람은 윈도우만 쓰고 있어 확인할 기기가 없다.
 
 ## 7. 자동 업데이트
 
