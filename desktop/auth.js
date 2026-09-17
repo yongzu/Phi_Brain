@@ -43,7 +43,7 @@ function startLogin(appUrl) {
   pending = crypto.randomBytes(24).toString('base64url'); // 서버의 STATE_RE와 같은 모양
   const u = new URL(appUrl);
   u.searchParams.set('desktop', pending);
-  shell.openExternal(u.toString());
+  return shell.openExternal(u.toString());
 }
 
 // phibrain://auth?state=…&code=… → 진짜 세션으로 교환. 성공하면 세션을 돌려준다.

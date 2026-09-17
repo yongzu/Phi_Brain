@@ -71,6 +71,7 @@
   }
 
   function signOut() {
+    window.phiDesktop?.signOut();
     ls.set(SIGNED_OUT_KEY, '1');
     setSession(null);
     window.google?.accounts.id.disableAutoSelect(); // don't silently pick the same account next time
@@ -172,6 +173,24 @@
   // GIS loads async from accounts.google.com — render the button once it's there
   let promptShown = false;
   function mountGoogleButton() {
+    // Electron must start system-browser login directly: FedCM opens no popup to intercept.
+    if (window.phiDesktop) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'pill';
+      button.textContent = 'Google 계정으로 로그인';
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          await window.phiDesktop.startLogin();
+          toast('기본 브라우저에서 로그인을 계속해 주세요');
+        } catch {
+          toast('브라우저를 열지 못했어요. 다시 시도해 주세요', null, 'error');
+        } finally { button.disabled = false; }
+      });
+      buttonSlot.replaceChildren(button);
+      return;
+    }
     if (!CONFIG.googleClientId) return;
     if (!window.google?.accounts?.id) { setTimeout(mountGoogleButton, 200); return; }
     google.accounts.id.initialize({
@@ -188,7 +207,7 @@
   }
   // no session, and the user didn't sign out on purpose → let Google sign the known account back in
   function autoSignIn() {
-    if (session || promptShown || ls.get(SIGNED_OUT_KEY) || !window.google?.accounts?.id) return;
+    if (window.phiDesktop || session || promptShown || ls.get(SIGNED_OUT_KEY) || !window.google?.accounts?.id) return;
     promptShown = true;
     google.accounts.id.prompt();
   }

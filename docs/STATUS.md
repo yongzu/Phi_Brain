@@ -1,11 +1,20 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 앱 2단계 — 브라우저 로그인 + phibrain:// 복귀) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 로그인 클릭 무반응 수정) / Codex
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 로그인 클릭 무반응 수정 (2026-09-17, Codex)
+
+- 사용자 확인: Google 계정으로 로그인 클릭 시 아무 반응 없음. 화면은 FedCM 버튼인데 앱은 팝업만 가로채므로 로그인 시작이 연결되지 않음.
+- 앱 전용 버튼 → preload의 제한된 startLogin bridge → 메인 프로세스 → 기본 브라우저로 직접 연결. 앱에서는 GIS 버튼·One Tap을 실행하지 않으며 웹의 로그인 방식은 유지.
+- IPC는 앱 창의 배포 페이지 메인 프레임만 허용. 브라우저 열기 실패는 화면에 안내.
+- 로그아웃을 앱에 즉시 알리고, 새 로그인 복귀 시 이전 signed-out 표시 때문에 새 세션이 삭제되지 않게 preload 복원 순서 수정.
+- 변경: desktop/{main,preload,auth}.js, design/prototypes/{auth.js,home.html}(auth.js?v=20260917-2), docs/{STATUS,DESKTOP}.md.
+- 검증: desktop/test/login.test.cjs 5개(클릭·실패 안내·웹 로그인 유지·로그아웃 전달·재로그인 세션 복원) 통과, worker node --test 86개 통과, JS 구문·diff 검사 통과. 실제 Google 인증·앱 복귀·재시작 유지 확인 후 3단계 진행.
 
 ### 데스크톱 앱 2단계: 브라우저 로그인 + `phibrain://` 복귀 (2026-09-17, 사용자 지시 · Claude Code)
 

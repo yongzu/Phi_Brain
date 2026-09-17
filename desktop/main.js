@@ -124,8 +124,20 @@ if (!app.requestSingleInstanceLock()) {
   app.on('open-url', (e, url) => { e.preventDefault(); handleAuthUrl(url); }); // macOS
 
   // 페이지(preload)와 주고받는 것: 앱이 들고 있는 세션을 넘기고, 로그아웃은 앱에서도 지운다
-  ipcMain.on('phi:session', e => { e.returnValue = auth.session; });
-  ipcMain.on('phi:signed-out', () => auth.clear());
+  const trustedPage = e => {
+    if (!mainWindow || mainWindow.isDestroyed() || e.sender !== mainWindow.webContents ||
+        e.senderFrame !== mainWindow.webContents.mainFrame) return false;
+    try {
+      const url = new URL(e.senderFrame.url);
+      return url.origin === APP_ORIGIN && url.pathname === new URL(APP_URL).pathname;
+    } catch { return false; }
+  };
+  ipcMain.handle('phi:start-login', async e => {
+    if (!trustedPage(e)) throw new Error('Untrusted login request');
+    await auth.startLogin(APP_URL);
+  });
+  ipcMain.on('phi:session', e => { e.returnValue = trustedPage(e) ? auth.session : null; });
+  ipcMain.on('phi:signed-out', e => { if (trustedPage(e)) auth.clear(); });
 
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null); // 기본 메뉴줄은 숨긴다 — 4단계에서 필요한 항목만 다시 만든다
