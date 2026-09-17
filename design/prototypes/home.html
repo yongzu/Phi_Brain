@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260916-6">
+<link rel="stylesheet" href="phi-brain.css?v=20260917-2">
 </head>
 <body>
 
@@ -31,6 +31,22 @@
     </div>
   </div>
   <button class="profile-trigger" id="drawer-trigger" aria-haspopup="dialog" aria-expanded="false">프로필</button>
+  <!-- 데스크톱 앱 내려받기(사용자 지시 2026-09-17): 프로필은 왼쪽으로 밀고 이 자리를 차지한다.
+       파일은 GitHub Releases의 latest — 새 버전을 내도 이 주소는 그대로다(파일명에 버전을 넣지 않는 이유). -->
+  <div class="desktop-dl" id="desktop-dl">
+    <button type="button" class="desktop-dl-btn" id="desktop-dl-trigger" aria-haspopup="menu" aria-expanded="false" aria-controls="desktop-dl-menu">
+      Desktop App<span class="caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="desktop-dl-menu" id="desktop-dl-menu" role="menu" aria-label="설치 파일 내려받기" hidden>
+      <a class="cm-item ddl-item" role="menuitem" href="https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup.exe">
+        Windows<span class="ddl-meta">.exe</span>
+      </a>
+      <a class="cm-item ddl-item" role="menuitem" href="https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain.dmg">
+        macOS<span class="ddl-meta">.dmg</span>
+      </a>
+      <p class="ddl-hint">처음 열 때 Windows는 “추가 정보 → 실행”, macOS는 앱을 <b>우클릭 → 열기</b> 해주세요.</p>
+    </div>
+  </div>
 </header>
 
 <div class="app-body">
@@ -405,6 +421,19 @@
     options: document.getElementById('search-options'),
   });
   document.querySelectorAll('.courses, .resume-row').forEach(d => StyleKit.createAccordion(d));
+
+  // Desktop App 내려받기 메뉴 — 클릭으로 열고, 바깥을 누르거나 Esc로 닫는다(다른 팝업과 같은 방식)
+  (() => {
+    const trigger = document.getElementById('desktop-dl-trigger');
+    const menu = document.getElementById('desktop-dl-menu');
+    const setOpen = open => { menu.hidden = !open; trigger.setAttribute('aria-expanded', String(open)); };
+    trigger.addEventListener('click', () => setOpen(menu.hidden));
+    menu.addEventListener('click', e => { if (e.target.closest('a')) setOpen(false); }); // 받기 시작하면 닫는다
+    document.addEventListener('pointerdown', e => {
+      if (!menu.hidden && !menu.contains(e.target) && !trigger.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { setOpen(false); trigger.focus(); } });
+  })();
 
   // Left nav: General/Course only behave as an accordion once the layout
   // stacks to mobile (@media(max-width:860px) in phi-brain.css) — on the

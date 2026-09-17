@@ -1,7 +1,7 @@
 {
   "name": "phi-brain-desktop",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Phi Brain 데스크톱 앱 — 배포된 화면을 여는 창 (설정 설명은 docs/DESKTOP.md 6단계)",
   "main": "main.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "win": {
       "target": ["nsis"],
       "icon": "assets/logo.png",
-      "artifactName": "PhiBrain-Setup-${version}.${ext}"
+      "artifactName": "PhiBrain-Setup.${ext}"
     },
     "mac": {
       "target": [{ "target": "dmg", "arch": ["universal"] }],
@@ -33,7 +33,7 @@
     },
     "dmg": {
       "title": "Phi Brain",
-      "artifactName": "PhiBrain-${version}.${ext}"
+      "artifactName": "PhiBrain.${ext}"
     },
     "nsis": {
       "oneClick": false,
