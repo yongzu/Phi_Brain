@@ -131,6 +131,29 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 - 맥에서도 `phibrain://` 복귀는 `protocols` 설정이 앱 번들에 심어 준다(윈도우 NSIS와 같은 설정을 공유).
 - 미확인: 맥 실제 설치·실행·로그인 복귀. 이 저장소를 만든 사람은 윈도우만 쓰고 있어 확인할 기기가 없다.
 
+### 배포용 파일 (2026-09-17, 사용자 지시 — 다운로드 사이트를 만들 예정)
+
+**플랫폼당 파일 하나면 된다.** 배포할 것은 아래 둘뿐이고, `desktop/dist`의 나머지(`win-unpacked`, `.blockmap`, `builder-debug.yml`)는 빌드 부산물이라 필요 없다.
+
+| 플랫폼 | 파일 | 크기 | 비고 |
+|---|---|---|---|
+| Windows | `PhiBrain-Setup-<버전>.exe` | 85MB | NSIS 설치 파일. 앱 전체(73개 파일)가 이 안에 들어 있다 |
+| macOS | `PhiBrain-<버전>.dmg` | 193MB | **유니버설** — 애플 실리콘·인텔 맥 모두에서 열린다(그래서 크다) |
+
+**고정 내려받기 주소:** 태그를 밀면(`git tag v0.1.0 && git push origin v0.1.0`) 같은 빌드가 GitHub Releases에 붙는다.
+`latest`를 쓰면 새 버전을 내도 사이트의 링크를 고치지 않아도 된다 — 다만 파일 이름에 버전이 들어가므로,
+버전을 올릴 때는 사이트의 파일명도 함께 바꾸거나 `artifactName`에서 버전을 빼야 한다.
+
+```
+https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup-0.1.0.exe
+https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-0.1.0.dmg
+```
+
+첫 배포 확인: [run 35216915406](https://github.com/yongzu/Phi_Brain/actions/runs/35216915406) → [릴리스 v0.1.0](https://github.com/yongzu/Phi_Brain/releases/tag/v0.1.0) 생성, 두 파일 모두 첨부됨.
+
+**사이트에 꼭 적어야 할 안내:** 둘 다 서명하지 않은 빌드라 처음 열 때 운영체제가 막는다.
+Windows는 "추가 정보 → 실행", macOS는 "앱 우클릭 → 열기"(더블클릭으로는 안 된다).
+
 ## 7. 자동 업데이트
 
 `electron-updater` + GitHub Releases. 화면 내용은 원격이라 자동 반영되므로, 이 단계는 앱 껍데기가 바뀔 때만 의미가 있다.
