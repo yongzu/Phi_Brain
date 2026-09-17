@@ -124,8 +124,8 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 **맥 앱은 맥에서만 만들 수 있다** — 애플 서명 도구(`codesign`)가 macOS 전용이고, Apple Silicon은 서명 없는 실행 파일을 아예 실행하지 않는다.
 그래서 윈도우 PC에서 만들지 않고 **`.github/workflows/desktop-build.yml`이 깃허브의 맥 러너에서 빌드한다**(공개 저장소라 무료).
 
-- 언제 도나: `desktop/**`가 바뀌어 main에 올라갈 때, 또는 Actions 탭에서 직접 실행(workflow_dispatch).
-- 무엇이 나오나: 맥 `.dmg`(arm64 + 인텔 x64), 윈도우 `.exe`. 그 실행의 **Artifacts**에 붙는다(14일 보관). 저장소에는 넣지 않는다.
+- 언제 도나: Actions 탭에서 직접 실행(workflow_dispatch)하거나 `v*` 태그를 밀 때. main 푸시마다 돌리지 않는다(맥·윈도우 러너를 매번 쓰지 않으려고).
+- 무엇이 나오나: 맥 `.dmg`(유니버설 하나 — 애플 실리콘·인텔 모두), 윈도우 `.exe`. 그 실행의 **Artifacts**에 붙는다(14일 보관). 저장소에는 넣지 않는다.
 - `mac.identity: null` — 애플 개발자 인증서가 없어 서명하지 않는다. 처음 열 때 Gatekeeper가 막으므로
   **앱을 우클릭 → 열기**로 한 번만 넘기면 그다음부터는 그냥 열린다. 정식 배포하려면 Apple Developer Program(연 $99)과 공증(notarization)이 필요하다.
 - 맥에서도 `phibrain://` 복귀는 `protocols` 설정이 앱 번들에 심어 준다(윈도우 NSIS와 같은 설정을 공유).
@@ -137,16 +137,16 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 
 | 플랫폼 | 파일 | 크기 | 비고 |
 |---|---|---|---|
-| Windows | `PhiBrain-Setup-<버전>.exe` | 85MB | NSIS 설치 파일. 앱 전체(73개 파일)가 이 안에 들어 있다 |
-| macOS | `PhiBrain-<버전>.dmg` | 193MB | **유니버설** — 애플 실리콘·인텔 맥 모두에서 열린다(그래서 크다) |
+| Windows | `PhiBrain-Setup.exe` | 85MB | NSIS 설치 파일. 앱 전체(73개 파일)가 이 안에 들어 있다 |
+| macOS | `PhiBrain.dmg` | 193MB | **유니버설** — 애플 실리콘·인텔 맥 모두에서 열린다(그래서 크다) |
 
 **고정 내려받기 주소:** 태그를 밀면(`git tag v0.1.0 && git push origin v0.1.0`) 같은 빌드가 GitHub Releases에 붙는다.
-`latest`를 쓰면 새 버전을 내도 사이트의 링크를 고치지 않아도 된다 — 다만 파일 이름에 버전이 들어가므로,
-버전을 올릴 때는 사이트의 파일명도 함께 바꾸거나 `artifactName`에서 버전을 빼야 한다.
+**파일 이름에 버전을 넣지 않는다**(2026-09-17 사용자 지시로 다운로드 박스를 만들면서 결정) — 새 버전을 내도 아래 주소와 화면의 링크가 그대로다.
+파일만 봐서는 버전을 알 수 없으니 버전은 릴리스 태그로 확인한다.
 
 ```
-https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup-0.1.0.exe
-https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-0.1.0.dmg
+https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup.exe
+https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain.dmg
 ```
 
 첫 배포 확인: [run 35216915406](https://github.com/yongzu/Phi_Brain/actions/runs/35216915406) → [릴리스 v0.1.0](https://github.com/yongzu/Phi_Brain/releases/tag/v0.1.0) 생성, 두 파일 모두 첨부됨.

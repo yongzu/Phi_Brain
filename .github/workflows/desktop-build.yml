@@ -11,8 +11,8 @@ name: Desktop app build
 #
 # 배포용 내려받기 주소가 필요하면 태그를 밀면 된다: git tag v0.1.0 && git push origin v0.1.0
 # → 같은 빌드가 GitHub Releases에 붙어 고정 주소가 생긴다(다운로드 사이트에서 그 주소를 링크).
-#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup-0.1.0.exe
-#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-0.1.0.dmg
+#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup.exe
+#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain.dmg
 
 # 언제 도나: Actions 탭에서 직접 실행하거나, 배포 태그(v로 시작)를 밀 때.
 # main에 올릴 때마다 돌리지 않는다 — 맥·윈도우 두 대를 5분씩 쓰는 일이라 필요할 때만 돌린다.
