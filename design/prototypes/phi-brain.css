@@ -357,11 +357,19 @@
    Findings는 1/2 칸 그대로(2026-09-14 사용자 지시, 예전 .fi-box:only-child 전체 폭 규칙 제거) */
 .fi-list>.fi-section-label,.fi-list>.fi-box-add{grid-column:1/-1}
 .fi-section-label{margin:12px 0 -4px;color:var(--gray)}
-.fi-box{padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
+.fi-box{position:relative;padding:10px 14px 8px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;transition:background 140ms,outline-color 140ms}
 .fi-box.is-temp{border-style:dashed}
-.fi-box[draggable="true"]{cursor:grab}
+/* 박스는 머리줄에서만 끈다(사용자 제보 2026-09-18: 본문에서 끌면 행이 끌려 다른 박스로 들어갔다).
+   ⠿ 손잡이는 평소엔 테두리 색으로 거의 안 보이다가, 박스에 마우스를 올리면 회색으로 또렷해진다 */
+.fi-box-head[draggable="true"]{cursor:grab}
+.fi-box-head[draggable="true"]:active{cursor:grabbing}
+.fi-box-grip{flex:0 0 auto;margin:0 -4px 0 -2px;color:var(--line);letter-spacing:-2px;transition:color 140ms}
+.fi-box:hover .fi-box-grip,.fi-box-head:focus-within .fi-box-grip{color:var(--gray)}
 .fi-box.box-drag-src{opacity:.4}
-.fi-box.box-drop-over{outline:1px solid var(--ink);background:var(--fill)}
+/* 놓을 자리는 박스를 칠하는 대신 "여기에 꽂힌다"는 세로 선으로 — 칸 사이 16px 틈 한가운데 */
+.fi-box.box-drop-before::after,.fi-box.box-drop-after::after{content:"";position:absolute;top:0;bottom:0;width:2px;border-radius:2px;background:var(--ink)}
+.fi-box.box-drop-before::after{left:-9px}
+.fi-box.box-drop-after::after{right:-9px}
 .fi-box-head{display:flex;align-items:center;gap:10px;min-height:28px}
 .fi-box-title{margin:0;color:var(--ink);overflow-wrap:anywhere}
 .fi-box-name-edit{flex:1;min-width:0;padding:3px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink)}

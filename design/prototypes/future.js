@@ -184,6 +184,38 @@
     return { ok: false };
   }
 
+  // ---- 되돌리기: 토스트의 "되돌리기" 버튼과 Ctrl+Z가 같은 것을 되돌린다 ----
+  // 되돌릴 일이 생길 때마다 "원래대로 돌리는 함수"를 쌓아 둔다. 버튼으로 한 번 되돌린 걸
+  // Ctrl+Z가 또 되돌리지 않도록 각 항목은 한 번만 실행된다(used).
+  const undoStack = [];
+  function undoable(run) {
+    const entry = { used: false };
+    entry.once = () => { if (entry.used) return false; entry.used = true; run(); return true; };
+    undoStack.push(entry);
+    if (undoStack.length > 30) undoStack.shift();
+    return entry.once;
+  }
+  function undoLast() {
+    while (undoStack.length) {
+      const entry = undoStack.pop();
+      if (entry.once()) { toast('되돌렸어요'); return; }
+    }
+    toast('되돌릴 게 없어요');
+  }
+  // Ctrl/⌘+Z — Future Item 화면에서만. 입력칸·본문 안에서는 브라우저의 글자 실행취소를 그대로 둔다
+  addEventListener('keydown', e => {
+    if ((e.key !== 'z' && e.key !== 'Z') || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+    if (currentView !== 'future') return;
+    // 글자를 치는 칸에서는 브라우저의 글자 실행취소를 그대로 둔다. 체크박스·버튼처럼
+    // 글자를 담지 않는 요소에 포커스가 있을 때는 우리 되돌리기가 동작해야 한다
+    const el = document.activeElement;
+    const typing = el && (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'
+      || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file'].includes(el.type)));
+    if (typing) return;
+    e.preventDefault();
+    undoLast();
+  });
+
   // ---- UI state ----
   // 선택한 박스 필터들(복수 선택, 사용자 확정) — 빈 배열 = All. 순서는 누른 순서가
   // 아니라 늘 화면의 박스 순서로 정규화해 둔다(orderedFilters)
@@ -276,8 +308,9 @@
     const empty = open.length ? '' : `<p class="fi-box-empty">${
       done.length ? '남은 항목이 없어요.' : temp ? '소속을 정하지 않은 항목이 여기에 모여요.' : '아직 없어요. 위에서 실행할 행동을 추가해 보세요.'}</p>`;
     return `
-      <section class="fi-box${temp ? ' is-temp' : ''}" data-box="${key}" data-drop="${key}" draggable="${inGrid}" aria-label="${esc(temp ? '임시 — 소속 미지정' : fullLabel(key))}">
-        <header class="fi-box-head">
+      <section class="fi-box${temp ? ' is-temp' : ''}" data-box="${key}" data-drop="${key}" aria-label="${esc(temp ? '임시 — 소속 미지정' : fullLabel(key))}">
+        <header class="fi-box-head"${inGrid ? ' draggable="true"' : ''}>
+          ${inGrid ? '<span class="fi-box-grip" aria-hidden="true" title="끌어서 박스 순서 바꾸기">⠿</span>' : ''}
           ${key === editingBoxId
             ? `<input type="text" class="fi-box-name-edit" value="${esc(customName(key.slice(7)))}" aria-label="박스 이름 수정 — Enter 저장, Esc 취소" maxlength="24">`
             : `<h2 class="fi-box-title" title="${esc(temp ? '소속을 정하지 않은 항목' : fullLabel(key))}">${titleHTML(key)}</h2>`}
@@ -385,10 +418,9 @@
       Object.assign(it, scopeOf(key), { placedAt: now, updatedAt: now }); // arrives as the newest in its new box
     }, { focus: stillHere ? `[data-id="${id}"] .fi-delete` : null });
     if (!r.ok) return;
-    toast(`${toPhrase(key)} 옮겼어요`, {
-      label: '되돌리기',
-      run: () => commit(s => { const it = s.items.find(i => i.id === id); if (it) Object.assign(it, prev); }, { focus: `[data-id="${id}"] .fi-delete` }),
-    }, '', !stillHere); // item left this view → hand keyboard focus to 되돌리기
+    const undo = undoable(() => commit(s => { const it = s.items.find(i => i.id === id); if (it) Object.assign(it, prev); },
+      { focus: `[data-id="${id}"] .fi-delete` }));
+    toast(`${toPhrase(key)} 옮겼어요`, { label: '되돌리기', run: undo }, '', !stillHere); // item left this view → hand keyboard focus to 되돌리기
   }
 
   function toggleDone(id) {
@@ -407,8 +439,12 @@
       focus: item.done ? `[data-id="${id}"] .fi-check`
         : neighbour ? `[data-id="${neighbour}"] .fi-check` : `[data-done="${box}"] summary`,
     });
+    if (!r.ok) return;
+    const wasDoneAt = item.doneAt;
+    undoable(() => commit(s => { const it = s.items.find(i => i.id === id); if (it) { it.done = !finishing; it.doneAt = wasDoneAt; } },
+      { focus: `[data-id="${id}"] .fi-check` }));
     // 완료할 때만 알림(사용자 확정) — 완료 취소는 조용히. 저장 실패 시엔 commit이 이미 오류 토스트를 띄웠다
-    if (r.ok && finishing) toast(`${doneSubject(item.text)} 완료했어요`);
+    if (finishing) toast(`${doneSubject(item.text)} 완료했어요`);
   }
   // "OOO를 완료했어요" — 긴 문장은 20자에서 줄이고, 조사(을/를)는 원문 마지막 글자의
   // 받침으로 고른다. 한글로 끝나지 않으면(영문·숫자 등) 받침을 알 수 없어 "을(를)".
@@ -444,11 +480,9 @@
     const copy = clone(state.items[index]);
     const r = commit(s => { s.items.splice(s.items.findIndex(i => i.id === id), 1); });
     if (!r.ok) return;
-    toast('삭제했어요', {
-      label: '되돌리기',
-      run: () => commit(s => { if (!s.items.some(i => i.id === id)) s.items.splice(Math.min(index, s.items.length), 0, copy); },
-        { focus: `[data-id="${id}"] .fi-delete` }),
-    }, '', true);
+    const undo = undoable(() => commit(s => { if (!s.items.some(i => i.id === id)) s.items.splice(Math.min(index, s.items.length), 0, copy); },
+      { focus: `[data-id="${id}"] .fi-delete` }));
+    toast('삭제했어요', { label: '되돌리기', run: undo }, '', true);
   }
 
   function toggleFavorite(key) {
@@ -509,16 +543,14 @@
       refreshBoxKeys();
     });
     if (!r.ok) { refreshBoxKeys(); return; }
-    toast(`'${boxCopy.name}' 박스를 삭제했어요`, {
-      label: '되돌리기',
-      run: () => commit(s => {
+    const undo = undoable(() => commit(s => {
         if (!s.customBoxes.some(b => b.id === id)) s.customBoxes.splice(Math.min(boxIdx, s.customBoxes.length), 0, boxCopy);
         if (orderIdx >= 0 && !s.boxOrder.includes(key)) s.boxOrder.splice(Math.min(orderIdx, s.boxOrder.length), 0, key);
         if (wasFav && !s.favorites.includes(key)) s.favorites.push(key);
         affected.forEach(a => { const it = s.items.find(i => i.id === a.id); if (it) Object.assign(it, { scope: a.scope, courseId: a.courseId, customId: a.customId }); });
-        refreshBoxKeys();
-      }),
-    }, '', true);
+      refreshBoxKeys();
+    }));
+    toast(`'${boxCopy.name}' 박스를 삭제했어요`, { label: '되돌리기', run: undo }, '', true);
   }
 
   // ---- reordering course/custom boxes (드래그로 순서 변경, 상하좌우 모두) ----
@@ -533,7 +565,10 @@
     const without = order.filter(k => k !== srcKey);
     const insertAt = without.indexOf(targetKey) + (srcIdx < tgtIdx ? 1 : 0);
     without.splice(insertAt, 0, srcKey);
-    commit(s => { s.boxOrder = without; }, { focus: `[data-box="${srcKey}"] .fi-box-title` });
+    const prevOrder = [...state.boxOrder];
+    // 새 자리로 미끄러져 들어가게(FLIP)
+    flipBoxes(() => commit(s => { s.boxOrder = without; }, { focus: `[data-box="${srcKey}"] .fi-box-title` }));
+    undoable(() => flipBoxes(() => commit(s => { s.boxOrder = prevOrder; }, { focus: `[data-box="${srcKey}"] .fi-box-title` })));
   }
 
   // ---- reordering activities within a box (드래그로 순서 변경) ----
@@ -554,8 +589,11 @@
     const insertAt = without.indexOf(targetId) + (srcIdx < tgtIdx ? 1 : 0);
     without.splice(insertAt, 0, srcId);
     const now = Date.now();
+    const prevPlaced = order.map(id => [id, find(id)?.placedAt]);
     commit(s => { without.forEach((id, i) => { const it = s.items.find(x => x.id === id); if (it) it.placedAt = now - i; }); },
       { focus: `[data-id="${srcId}"] .fi-delete` });
+    undoable(() => commit(s => { prevPlaced.forEach(([id, at]) => { const it = s.items.find(x => x.id === id); if (it && at != null) it.placedAt = at; }); },
+      { focus: `[data-id="${srcId}"] .fi-delete` }));
   }
 
   // ---- sorting the whole course/custom grid at once (정렬 버튼) ----
@@ -1042,16 +1080,46 @@
 
   // ---- drag to change an item's membership (filters except All, boxes, 임시) ----
   let dragId = null;
-  // ---- drag to reorder course/custom boxes themselves (상하좌우 — a grid position
-  // is just an index, so moving one entry in boxOrder relocates it any direction) ----
+  // ---- 박스 순서 바꾸기(상하좌우 — 그리드 자리는 결국 boxOrder의 인덱스 하나다) ----
+  // 박스는 머리줄(⠿ 손잡이가 있는 줄)에서만 끌 수 있다. 예전엔 박스 전체가 draggable이라 본문
+  // 아무 데나 잡아도 끌렸는데, 행 위에서 시작하면 행이 끌려 "박스 순서를 바꾸려다 행동이 다른
+  // 박스로 들어가는" 일이 생겼다(사용자 제보 2026-09-18).
   let dragBoxKey = null;
   const clearDrag = () => {
     dragId = null;
     dragBoxKey = null;
     view.classList.remove('is-dragging', 'is-dragging-box');
-    $$('.drop-ok, .drop-over, .is-drag-src, .box-drag-src, .box-drop-over, .row-drop-over', view)
-      .forEach(el => el.classList.remove('drop-ok', 'drop-over', 'is-drag-src', 'box-drag-src', 'box-drop-over', 'row-drop-over'));
+    $$('.drop-ok, .drop-over, .is-drag-src, .box-drag-src, .box-drop-before, .box-drop-after, .row-drop-over', view)
+      .forEach(el => el.classList.remove('drop-ok', 'drop-over', 'is-drag-src', 'box-drag-src', 'box-drop-before', 'box-drop-after', 'row-drop-over'));
   };
+  // 순서가 바뀐 박스들이 새 자리로 미끄러져 들어간다(FLIP): 바꾸기 전 위치를 재두고, 다시 그린 뒤
+  // 그 차이에서 0으로 애니메이션한다 — 무엇이 어디로 갔는지 눈으로 따라갈 수 있게
+  function flipBoxes(run) {
+    const before = new Map($$('.fi-box[data-box]', listEl).map(el => [el.dataset.box, el.getBoundingClientRect()]));
+    run();
+    if (reduce.matches) return;
+    $$('.fi-box[data-box]', listEl).forEach(el => {
+      const b = before.get(el.dataset.box);
+      if (!b) return;
+      const a = el.getBoundingClientRect();
+      const dx = Math.round(b.left - a.left), dy = Math.round(b.top - a.top);
+      if (!dx && !dy) return;
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 320, easing: EASE });
+    });
+  }
+  // 끌고 있는 박스가 목표보다 앞에 있으면 목표 뒤에, 뒤에 있으면 목표 앞에 꽂힌다(reorderBox와 같은
+  // 규칙) — 그 자리를 칸 사이 틈의 세로 선으로 미리 보여준다
+  const boxDropTarget = e => {
+    const t = e.target.closest?.('.fi-box[data-box]');
+    return t && listEl.contains(t) && t.dataset.box !== dragBoxKey ? t : null;
+  };
+  function markBoxTarget(t) {
+    const order = gridOrder();
+    const after = order.indexOf(dragBoxKey) < order.indexOf(t.dataset.box);
+    $$('.box-drop-before, .box-drop-after', view).forEach(el => el !== t && el.classList.remove('box-drop-before', 'box-drop-after'));
+    t.classList.toggle('box-drop-after', after);
+    t.classList.toggle('box-drop-before', !after);
+  }
   // dropping an item ON another row reorders within that row's box (only when
   // it's the same box the dragged item is already in and both are open items)
   const rowDropTarget = e => {
@@ -1062,6 +1130,20 @@
   };
   view.addEventListener('dragstart', e => {
     closeRowDuePopover();
+    const head = e.target.closest?.('.fi-box-head[draggable="true"]');
+    if (head) { // 머리줄에서 시작 = 박스 순서 바꾸기
+      if (e.target.closest('button, input') || addingBox || editingBoxId) { e.preventDefault(); return; }
+      const box = head.closest('.fi-box');
+      dragBoxKey = box.dataset.box;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      // 끌리는 그림은 머리줄이 아니라 박스 전체 — 무엇을 옮기는지 분명하게
+      const r = box.getBoundingClientRect();
+      e.dataTransfer.setDragImage?.(box, e.clientX - r.left, e.clientY - r.top);
+      view.classList.add('is-dragging-box');
+      box.classList.add('box-drag-src');
+      return;
+    }
     const row = e.target.closest?.('.fi-row');
     if (row && !editingId) {
       dragId = row.dataset.id;
@@ -1073,23 +1155,15 @@
       $$('[data-drop]', view).forEach(t => t.classList.toggle('drop-ok', t.dataset.drop !== from));
       return;
     }
-    const box = e.target.closest?.('.fi-box[draggable="true"]');
-    if (box && !addingBox && !e.target.closest('button, input, .fi-done')) {
-      dragBoxKey = box.dataset.box;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', '');
-      view.classList.add('is-dragging-box');
-      box.classList.add('box-drag-src');
-    }
+    e.preventDefault(); // 그 밖의 곳(본문·빈 자리)에서는 아무것도 끌리지 않는다
   });
   view.addEventListener('dragover', e => {
     if (dragBoxKey) {
-      const t = e.target.closest?.('.fi-box[draggable="true"]');
-      if (!t || t.dataset.box === dragBoxKey) return;
+      const t = boxDropTarget(e);
+      if (!t) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      $$('.box-drop-over', view).forEach(el => el !== t && el.classList.remove('box-drop-over'));
-      t.classList.add('box-drop-over');
+      markBoxTarget(t);
       return;
     }
     if (dragId) {
@@ -1113,18 +1187,18 @@
   });
   view.addEventListener('dragleave', e => {
     const t = e.target.closest?.('[data-drop]');
-    if (t && !t.contains(e.relatedTarget)) t.classList.remove('drop-over', 'box-drop-over');
+    if (t && !t.contains(e.relatedTarget)) t.classList.remove('drop-over', 'box-drop-before', 'box-drop-after');
     const row = e.target.closest?.('.fi-row');
     if (row && !row.contains(e.relatedTarget)) row.classList.remove('row-drop-over');
   });
   view.addEventListener('drop', e => {
     if (dragBoxKey) {
-      const t = e.target.closest?.('.fi-box[draggable="true"]');
-      if (t && t.dataset.box !== dragBoxKey) {
+      const t = boxDropTarget(e);
+      if (t) {
         e.preventDefault();
-        const srcKey = dragBoxKey;
+        const srcKey = dragBoxKey, targetKey = t.dataset.box;
         clearDrag();
-        reorderBox(srcKey, t.dataset.box);
+        reorderBox(srcKey, targetKey);
         return;
       }
       clearDrag();
@@ -1223,6 +1297,7 @@
     snapshot: () => ({ items: clone(state.items), favorites: [...state.favorites], customBoxes: clone(state.customBoxes), boxOrder: [...state.boxOrder] }),
     localBoard: loadState, // this browser's own signed-out board (shown again after sign-out)
     replace(board) {
+      undoStack.length = 0; // 다른 보드로 바뀌면 쌓아 둔 되돌리기는 더 이상 맞지 않는다
       state = normalizeBoard(board);
       refreshBoxKeys();
       render();
