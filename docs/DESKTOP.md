@@ -126,8 +126,11 @@ cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
 
 - 언제 도나: Actions 탭에서 직접 실행(workflow_dispatch)하거나 `v*` 태그를 밀 때. main 푸시마다 돌리지 않는다(맥·윈도우 러너를 매번 쓰지 않으려고).
 - 무엇이 나오나: 맥 `.dmg`(유니버설 하나 — 애플 실리콘·인텔 모두), 윈도우 `.exe`. 그 실행의 **Artifacts**에 붙는다(14일 보관). 저장소에는 넣지 않는다.
-- `mac.identity: null` — 애플 개발자 인증서가 없어 서명하지 않는다. 처음 열 때 Gatekeeper가 막으므로
-  **앱을 우클릭 → 열기**로 한 번만 넘기면 그다음부터는 그냥 열린다. 정식 배포하려면 Apple Developer Program(연 $99)과 공증(notarization)이 필요하다.
+- `mac.identity: null` — 애플 개발자 인증서가 없어 서명하지 않는다. 처음 열 때 Gatekeeper가 막는다.
+  **macOS 15(Sequoia)부터는 "우클릭 → 열기"가 통하지 않는다**(2026-09-17 사용자 화면에서 확인 — 대화상자에 "완료" 버튼만 있다). 넘기는 방법:
+  ① dmg에서 앱을 **응용 프로그램으로 옮긴 뒤** 실행 → ② 차단 대화상자에서 완료 → ③ **시스템 설정 → 개인정보 보호 및 보안** 아래쪽
+  "'Phi Brain'이(가) 차단되었습니다" 옆 **그래도 열기** → ④ 다시 실행해 열기. 터미널이면 `xattr -dr com.apple.quarantine "/Applications/Phi Brain.app"`.
+  이 번거로움을 없애려면 Apple Developer Program(연 $99) + 공증(notarization)이 필요하다 — 사용자 결정 사항.
 - 맥에서도 `phibrain://` 복귀는 `protocols` 설정이 앱 번들에 심어 준다(윈도우 NSIS와 같은 설정을 공유).
 - 미확인: 맥 실제 설치·실행·로그인 복귀. 이 저장소를 만든 사람은 윈도우만 쓰고 있어 확인할 기기가 없다.
 
@@ -151,8 +154,8 @@ https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain.dmg
 
 첫 배포 확인: [run 35216915406](https://github.com/yongzu/Phi_Brain/actions/runs/35216915406) → [릴리스 v0.1.0](https://github.com/yongzu/Phi_Brain/releases/tag/v0.1.0) 생성, 두 파일 모두 첨부됨.
 
-**사이트에 꼭 적어야 할 안내:** 둘 다 서명하지 않은 빌드라 처음 열 때 운영체제가 막는다.
-Windows는 "추가 정보 → 실행", macOS는 "앱 우클릭 → 열기"(더블클릭으로는 안 된다).
+**사이트 안내(머리줄 Desktop App 메뉴 안에 넣어 뒀다):** 둘 다 서명하지 않은 빌드라 처음 열 때 운영체제가 막는다.
+Windows는 "추가 정보 → 실행", macOS는 응용 프로그램으로 옮긴 뒤 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**.
 
 ## 7. 자동 업데이트
 

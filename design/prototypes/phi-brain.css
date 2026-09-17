@@ -77,7 +77,7 @@
 .desktop-dl-btn:hover,.desktop-dl-btn:focus-visible{background:#1a1a1a}
 .desktop-dl-btn:active{transform:scale(.98)}
 .desktop-dl-btn .caret{color:#fff}
-.desktop-dl-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:210px;padding:6px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
+.desktop-dl-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:260px;padding:6px;background:var(--bg);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
 .desktop-dl-menu[hidden]{display:none}
 .ddl-item{display:flex;align-items:center;gap:8px}
 .ddl-meta{margin-left:auto;font-size:.78rem;color:var(--gray)}
