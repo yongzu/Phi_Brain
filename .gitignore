@@ -2,3 +2,6 @@
 server/data/
 server/.env
 node_modules/
+
+# 데스크톱 앱 빌드 산출물 (desktop/dist) — 설치 파일은 저장소에 넣지 않는다
+desktop/dist/

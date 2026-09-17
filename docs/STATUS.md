@@ -1,11 +1,26 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 숨기기 Ctrl+Backspace · Ctrl+X는 잘라내기로 환원) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 6단계 — Windows 설치 파일 생성) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 6단계: Windows 설치 파일 (2026-09-17, 사용자 지시 · Claude Code)
+
+- `desktop/package.json`에 electron-builder 설정 추가(`npm run dist` → `desktop/dist/Phi Brain Setup 0.1.0.exe`, 89MB).
+  appId는 `design.phi.brain`(main.js `setAppUserModelId`와 일치), 아이콘은 기존 `assets/logo.png`.
+  `files`에는 앱 파일만 — 화면은 배포 주소에서 읽으므로 `design/`은 넣지 않는다.
+- `protocols: phibrain` 등록 — 설치본에서도 2단계 로그인 복귀가 되려면 필요하다(개발 실행은 `app.setAsDefaultProtocolClient`가 맡는다).
+- NSIS: 관리자 권한 불필요(사용자 폴더 설치), 설치 경로 선택 가능, 바탕화면·시작 메뉴 바로가기, **제거해도 세션·창 상태는 남긴다**.
+- `.gitignore`에 `desktop/dist/` 추가 — 설치 파일은 저장소에 올리지 않는다(7단계에서 GitHub Releases로 올릴 예정).
+- **빌드 걸림돌과 해결(문서: docs/DESKTOP.md 6단계):** electron-builder가 winCodeSign 꾸러미를 풀며 macOS용 `.dylib` 심볼릭 링크를
+  만들지 못해 실패(윈도우 심볼릭 링크는 관리자/개발자 모드 필요). 윈도우 빌드에 필요 없는 부분이라 `-xr!darwin`으로 캐시를 직접 만들어 통과시켰다.
+  `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0`. 관리자 PowerShell 빌드나 개발자 모드로도 해결된다.
+- **코드 서명 없음** — 설치할 때 "알 수 없는 게시자" 경고가 뜬다. 본인 사용이면 무시 가능, 배포하려면 인증서 필요(사용자 결정 사항).
+- **남은 확인(사용자):** 설치 → 바탕화면 아이콘 실행 → 로그인 유지 → 트레이·단축키. 특히 **설치본에서 `phibrain://` 복귀**가 되는지
+  (개발 실행과 등록 경로가 다르다). 설치본과 개발 실행은 같은 `userData`를 쓰므로 로그인은 그대로 이어진다.
 
 ### 데스크톱 단축키: 숨기기 Ctrl+Backspace · Ctrl+X는 잘라내기 (2026-09-17, 사용자 지시 · Claude Code)
 

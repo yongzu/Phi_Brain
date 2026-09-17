@@ -21,7 +21,7 @@
 | 3 | Gmail 연결도 같은 길로 | 0.5일 | **구현·배포 완료 · 기존 연결 표시 확인 · 신규 연결 복귀 미확인** | Codex |
 | 4 | 앱답게 다듬기 — 트레이·자동 실행·전역 단축키 | 1일 | **구현 완료 · Ctrl+X/확대 수정 확인 대기** | Codex |
 | 5 | 세션 토큰을 OS 자격 증명 저장소로 | 0.5일 | 2단계에서 함께 처리(`safeStorage`) | Claude Code |
-| 6 | 설치 파일(electron-builder) | 1일 | 대기 | — |
+| 6 | 설치 파일(electron-builder) | 1일 | **빌드 성공 · 사용자 설치 확인 대기** | Claude Code |
 | 7 | 자동 업데이트(GitHub Releases) | 0.5일 | 대기 | — |
 
 **나눠 맡길 때 권장 조합:** 2·3·5(로그인/보안)를 한 사람이, 4·6·7(포장)을 다른 사람이. 파일이 거의 겹치지 않는다.
@@ -97,6 +97,27 @@
 
 `electron-builder`로 Windows 설치 파일(NSIS). **코드 서명이 없으면 설치 시 "알 수 없는 게시자" 경고가 뜬다** —
 본인만 쓰면 무시 가능, 배포하려면 코드 서명 인증서가 필요(연 15만원 안팎, 사용자 결정 사항).
+
+구현(2026-09-17, Claude Code):
+
+- `desktop/package.json`의 `build`: appId `design.phi.brain`(main.js의 `setAppUserModelId`와 같아야 작업표시줄·알림이 한 앱으로 묶인다),
+  productName "Phi Brain", 아이콘은 `assets/logo.png`(1000×1000 → .ico 자동 변환).
+- `files`에는 **앱 파일만** 넣는다. 화면은 배포 주소에서 읽으므로 `design/`은 들어가지 않는다.
+- `protocols`로 `phibrain://`를 설치본에 등록한다 — 2단계 로그인 복귀가 설치본에서도 되려면 필요하다.
+- NSIS: 관리자 권한 없이 사용자 폴더에 설치(`perMachine: false`), 설치 경로 선택 가능, 바탕화면·시작 메뉴 바로가기,
+  **제거해도 사용자 데이터는 남긴다**(`deleteAppDataOnUninstall: false` — 세션·창 상태).
+- 빌드: `cd desktop && npm run dist` → `desktop/dist/Phi Brain Setup <버전>.exe`. `desktop/dist/`는 `.gitignore`에 넣어 저장소에 올리지 않는다.
+
+**빌드가 막힐 때(이 PC에서 겪은 것):** electron-builder가 서명 도구 꾸러미(winCodeSign)를 풀 때
+그 안의 macOS용 `.dylib` 심볼릭 링크를 만들지 못해 실패한다(윈도우에서 심볼릭 링크 생성은 관리자 권한이나 개발자 모드가 필요).
+윈도우 빌드에는 그 파일들이 필요 없으므로, 캐시를 직접 만들어 두면 통과한다:
+
+```
+cd %LOCALAPPDATA%\electron-builder\Cache\winCodeSign
+7za x winCodeSign-2.6.0.7z -o"winCodeSign-2.6.0" -xr!darwin -y
+```
+
+(7za는 `desktop/node_modules/7zip-bin/win/x64/7za.exe`. 관리자 PowerShell에서 빌드하거나 윈도우 개발자 모드를 켜도 해결된다.)
 
 ## 7. 자동 업데이트
 
