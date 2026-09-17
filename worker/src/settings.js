@@ -14,8 +14,10 @@ const COURSE_RE = /^(general|[A-Z]{2,4})$/; // 예전(과목 단위) 키
 const FINDING_KEY_RE = /^\d{4}-\d{2}-\d{2}::(general|[A-Z]{2,4})::\d{1,3}$/;
 export const NICKNAME_MAX = 20;
 
+// 별표한 순서가 곧 화면 순서다. created_at은 밀리초라 연달아 누르면 같은 값이 나오는데,
+// 그때 course 이름순으로 깨지던 것을 넣은 순서(rowid)로 바로잡았다(2026-09-17, 간헐 실패 재현 후 수정).
 export async function listFindingsFavorites(db) {
-  const { results } = await db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, course').all();
+  const { results } = await db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, rowid').all();
   return results.map(r => r.course);
 }
 

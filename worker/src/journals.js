@@ -44,8 +44,9 @@ export function cleanJournal(body) {
 export async function listJournals(db) {
   const [journals, favorites, findings] = await db.batch([
     db.prepare('SELECT * FROM journals ORDER BY date DESC'),
-    db.prepare('SELECT date, course FROM journal_favorites ORDER BY created_at'),
-    db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, course'),
+    // 같은 밀리초에 눌린 별표끼리는 넣은 순서(rowid)로 — settings.js listFindingsFavorites와 같은 이유
+    db.prepare('SELECT date, course FROM journal_favorites ORDER BY created_at, rowid'),
+    db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, rowid'),
   ]);
   return {
     journals: journals.results.map(toJournal),

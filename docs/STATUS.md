@@ -1,11 +1,27 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 4단계 트레이·자동 실행·단축키) / Codex
+최종 갱신: 2026-09-17 (Findings·Journal Archive 별표 순서 간헐 뒤바뀜 수정) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 별표 순서가 간헐적으로 뒤바뀌던 것 수정 (2026-09-17, Claude Code)
+
+- Codex가 4단계 회귀 검사에서 "Findings 별표 순서 테스트 1개 실패"로 남긴 항목의 원인을 찾아 고쳤다. **테스트 문제가 아니라 제품 버그였다.**
+- 원인: `ORDER BY created_at, course`. `created_at`이 밀리초라 별표를 연달아 누르면 값이 같아지고, 그때 **과목 이름 알파벳순**으로 정렬돼 사용자가 누른 순서가 깨졌다.
+  `test/settings.test.js`를 10회 돌려 8회 중 3회 실패로 재현.
+- 수정 `worker/src/settings.js`·`worker/src/journals.js`: 동점일 때 넣은 순서(`rowid`)로 정렬. Journal Archive 즐겨찾기(`journal_favorites`)도 같은 문제라 함께 고쳤다.
+- 검증: 같은 테스트 10회 연속 통과, 워커 전체 89개 통과. 배포 완료(버전 `2eb5fece-de96-4df6-ac25-851db5be11f7`). 마이그레이션 불필요(질의만 변경).
+- 참고: 화면은 서버가 준 순서를 그대로 쓰므로 별도 변경 없음. 로그아웃(localStorage) 상태는 원래 배열 순서라 영향 없었다.
+
+### 데스크톱 Ctrl+X 트레이 숨김 · 확대 단축키 수정 (2026-09-17, Codex)
+
+- 사용자 요청 범위 두 가지: Ctrl+X로 트레이 숨김, 축소만 되고 확대가 안 되는 문제 수정.
+- desktop/shell.js: Ctrl+X를 앱 내부 숨김에 배정, 잘라내기는 Shift+Delete로 충돌 해소. 확대는 Ctrl+=·Ctrl++·숫자패드 +를 직접 처리하고 메뉴도 같은 zoom 함수 사용. Ctrl+- 축소, Ctrl+0 원래 크기 유지.
+- 변경 파일: desktop/{shell.js,test/shell.test.cjs}, docs/{DESKTOP,STATUS}.md. 서버·화면 파일 변경 없음.
+- 검증: 데스크톱 테스트 16개 통과(Claude Code 재확인). 실행 중인 사용자 앱은 종료하지 않음; 적용하려면 트레이 종료 후 재시작 필요.
 
 ### 데스크톱 4단계 구현·검증 완료 (2026-09-17, Codex)
 
