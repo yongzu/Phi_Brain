@@ -219,6 +219,32 @@
   // a session that ran out while the page was open → try the automatic sign-in once
   listeners.add(s => { if (!s) { promptShown = false; setTimeout(autoSignIn, 0); } });
 
+  // ---- 데스크톱 앱 로그인 (docs/DESKTOP.md 2단계) ----
+  // 앱이 기본 브라우저로 이 페이지를 ?desktop=<state> 로 연다. 여기서 평소처럼 로그인하면
+  // 1회용 코드를 받아 phibrain:// 주소로 앱을 깨운다 — 세션 토큰 자체는 주소에 싣지 않는다.
+  const DESKTOP_STATE_KEY = 'phi-brain:desktop-state';
+  const desktopState = () => {
+    const fromUrl = new URLSearchParams(location.search).get('desktop');
+    if (fromUrl) { try { sessionStorage.setItem(DESKTOP_STATE_KEY, fromUrl); } catch {} return fromUrl; }
+    try { return sessionStorage.getItem(DESKTOP_STATE_KEY); } catch { return null; }
+  };
+  async function handOffToDesktop(state) {
+    const res = await apiFetch('/api/session/desktop/code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state }),
+    }).catch(() => null);
+    const body = await res?.json().catch(() => null);
+    if (!res?.ok || !body?.code) { toast('앱으로 돌아가지 못했어요 — 앱에서 다시 로그인해 주세요', null, 'error'); return; }
+    try { sessionStorage.removeItem(DESKTOP_STATE_KEY); } catch {}
+    toast('앱으로 돌아가는 중…');
+    location.href = `phibrain://auth?state=${encodeURIComponent(state)}&code=${encodeURIComponent(body.code)}`;
+  }
+  (() => {
+    const state = desktopState();
+    if (!state) return;
+    if (session) { handOffToDesktop(state); return; }
+    listeners.add(s => { if (s) handOffToDesktop(state); }); // 로그인이 끝나는 순간 넘긴다
+  })();
+
   window.PhiBrain.auth = {
     apiBase: API_BASE,
     get session() { return session; },

@@ -13,6 +13,7 @@ import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, 
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
 import { settingsApi } from './settings.js';
+import { createLoginCode, exchangeLoginCode } from './desktop.js';
 
 const allowedOrigins = env => (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -158,12 +159,23 @@ export default {
 
       if (url.pathname === '/auth/google/callback' && request.method === 'GET') return gmailCallback(url, env);
 
+      // 데스크톱 앱이 1회용 코드를 세션으로 바꿔 가는 자리 — 세션 없이 부르는 게 정상이다(코드 자체가 열쇠).
+      if (url.pathname === '/api/session/desktop/exchange' && request.method === 'POST') {
+        const { code, state } = await request.json().catch(() => ({}));
+        return json(200, await exchangeLoginCode(env.DB, env.SESSION_SECRET, code, state));
+      }
+
       // ---- everything below requires a valid session ----
       const session = await requireSession(request, env);
       if (!session) return json(401, { error: 'unauthorized' });
 
       if (url.pathname === '/api/me' && request.method === 'GET') return json(200, { email: session.email });
       // sliding sign-in: a still-valid session is swapped for a fresh 30-day one (the page does this now and then)
+      // 브라우저에서 로그인을 마친 화면이 부른다 — 앱에 넘길 1회용 코드를 받아 간다
+      if (url.pathname === '/api/session/desktop/code' && request.method === 'POST') {
+        const { state } = await request.json().catch(() => ({}));
+        return json(200, await createLoginCode(env.DB, session.email, state));
+      }
       if (url.pathname === '/api/session/refresh' && request.method === 'POST') {
         const { token, exp } = await signSession(env.SESSION_SECRET, { email: session.email });
         return json(200, { token, email: session.email, expiresAt: exp * 1000 });

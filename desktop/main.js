@@ -6,15 +6,14 @@
 //
 // 1단계에서는 로그인이 안 되는 게 정상이다. Google이 앱 안 브라우저에서의 로그인을 막기 때문이고,
 // 2단계(시스템 브라우저 + phibrain:// 복귀)가 그것을 푼다.
-const { app, BrowserWindow, shell, Menu } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const auth = require('./auth');
 
 const APP_URL = 'https://yongzu.github.io/Phi_Brain/prototypes/home.html';
 const APP_ORIGIN = new URL(APP_URL).origin;
-// 로그인 창은 2단계에서 시스템 브라우저로 넘긴다. 그 전까지도 Google 주소만은 창 안에서 막지 않는다 —
-// 막아 두면 "왜 아무 일도 안 일어나지?"가 되고, 열어 두면 Google이 왜 거부하는지 화면으로 보인다.
-const IN_APP_ORIGINS = [APP_ORIGIN, 'https://accounts.google.com'];
+const GOOGLE_ORIGIN = 'https://accounts.google.com';
 
 const STATE_FILE = () => path.join(app.getPath('userData'), 'window-state.json');
 const DEFAULT_STATE = { width: 1280, height: 860 };
@@ -51,6 +50,7 @@ function createWindow() {
       // 원격 페이지를 여는 창이다. 이 둘은 절대 끄지 않는다 — 페이지 스크립트가 파일 시스템에 닿으면 안 된다.
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'), // 앱이 들고 있는 세션을 페이지보다 먼저 놓아둔다
     },
   });
 
@@ -58,16 +58,22 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.loadURL(APP_URL);
 
-  // 바깥 링크(공간예약·Phi LMS·출결 스프레드시트·Figma 보드)는 기본 브라우저로
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (IN_APP_ORIGINS.includes(new URL(url).origin)) return { action: 'allow' };
+  // 페이지가 Google 로그인 창을 열려고 하면(화면의 "Google로 로그인" 버튼) 가로채서
+  // 데스크톱 방식으로 바꾼다 — 앱 안에서는 Google이 로그인을 거부하기 때문(docs/DESKTOP.md 2단계).
+  // 나머지 바깥 링크(공간예약·Phi LMS·출결 스프레드시트·Figma 보드)는 그냥 기본 브라우저로.
+  const external = url => {
+    if (new URL(url).origin === GOOGLE_ORIGIN) { auth.startLogin(APP_URL); return; }
     shell.openExternal(url);
+  };
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (new URL(url).origin === APP_ORIGIN) return { action: 'allow' };
+    external(url);
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (e, url) => {
-    if (IN_APP_ORIGINS.includes(new URL(url).origin)) return;
+    if (new URL(url).origin === APP_ORIGIN) return;
     e.preventDefault();
-    shell.openExternal(url);
+    external(url);
   });
 
   // 인터넷이 끊겼거나 서버가 죽었을 때: 빈 창 대신 이유와 다시 시도 버튼을 보여준다(온라인 전용 앱이라 더 중요)
@@ -92,20 +98,42 @@ function createWindow() {
 }
 
 // 창 하나짜리 앱 — 두 번 실행하면 이미 떠 있는 창을 앞으로 가져온다.
-// (2단계에서 phibrain:// 주소도 이 자리로 들어온다 — 윈도우는 새 프로세스로 URL을 넘긴다.)
+// 브라우저에서 로그인을 마치면 윈도우가 phibrain:// 주소를 "두 번째 실행"으로 넘겨준다.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   let mainWindow = null;
-  app.on('second-instance', () => {
-    if (!mainWindow) return;
+
+  // 로그인 복귀: 코드를 세션으로 바꾸고, 페이지를 다시 읽어 로그인된 화면으로 만든다
+  async function handleAuthUrl(rawUrl) {
+    if (!rawUrl) return;
+    const session = await auth.completeLogin(rawUrl);
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
+    if (session) mainWindow.loadURL(APP_URL); // preload가 이 세션을 페이지에 놓는다
+  }
+
+  app.on('second-instance', (e, argv) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+    handleAuthUrl(auth.urlFromArgv(argv));
   });
+  app.on('open-url', (e, url) => { e.preventDefault(); handleAuthUrl(url); }); // macOS
+
+  // 페이지(preload)와 주고받는 것: 앱이 들고 있는 세션을 넘기고, 로그아웃은 앱에서도 지운다
+  ipcMain.on('phi:session', e => { e.returnValue = auth.session; });
+  ipcMain.on('phi:signed-out', () => auth.clear());
 
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null); // 기본 메뉴줄은 숨긴다 — 4단계에서 필요한 항목만 다시 만든다
+    auth.registerProtocol();
+    auth.load();
     mainWindow = createWindow();
+    // 첫 실행이 곧 복귀인 경우(앱이 꺼진 채로 브라우저에서 로그인을 끝낸 경우)
+    handleAuthUrl(auth.urlFromArgv(process.argv));
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow(); });
   });
 

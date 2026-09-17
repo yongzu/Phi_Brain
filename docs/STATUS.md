@@ -1,11 +1,31 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 앱 1단계 — 배포 화면을 여는 Electron 창) / Claude Code
+최종 갱신: 2026-09-17 (데스크톱 앱 2단계 — 브라우저 로그인 + phibrain:// 복귀) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 앱 2단계: 브라우저 로그인 + `phibrain://` 복귀 (2026-09-17, 사용자 지시 · Claude Code)
+
+- 흐름: 앱에서 "Google로 로그인" 클릭 → 앱이 그 팝업을 가로채 **기본 브라우저**로 `…/home.html?desktop=<state>` 열기 →
+  거기서 평소처럼 로그인 → 화면이 1회용 코드를 받아 `phibrain://auth?state=…&code=…` 로 앱을 깨움 →
+  앱이 코드를 세션으로 교환 → 페이지 새로고침. 앱 안에서 직접 로그인하지 않는 이유는 Google 정책(내장 브라우저 차단)이고, 우회는 하지 않는다.
+- 서버: `worker/migrations/0007_desktop_login_codes.sql`(코드·email·state·만료), `worker/src/desktop.js`
+  (`POST /api/session/desktop/code` 세션 필요 → 코드 발급 / `POST /api/session/desktop/exchange` 세션 없이 → 토큰).
+  코드는 무작위 256비트·**60초·1회용**, 성공하든 실패하든 조회 즉시 삭제, 실패 이유는 구분해 주지 않는다(찔러보기 단서 차단).
+  만료분은 발급·교환 때마다 청소. 토큰을 복귀 주소에 싣지 않는 이유: 주소는 브라우저 기록·로그에 남는다.
+- 화면 `auth.js?v=20260917-1`: `?desktop=<state>`가 붙어 열리면 (이미 로그인 상태면 즉시, 아니면 로그인 직후) 코드를 받아 `phibrain://`로 넘긴다.
+  state는 `sessionStorage`에 둬서 로그인 도중 주소가 바뀌어도 잃지 않는다.
+- 앱: `desktop/auth.js`(프로토콜 등록·state 생성·교환·세션 보관), `desktop/preload.js`(페이지 스크립트보다 먼저 세션을 localStorage에 놓기),
+  `main.js`(두 번째 실행·`open-url`로 복귀 주소 수신, Google 팝업 가로채기, 로그아웃 시 앱 세션도 삭제).
+  세션은 **`safeStorage`로 암호화**해 `userData/session.bin`에 저장 — 5단계 몫을 여기서 같이 처리했다.
+- 검증: `worker/test/desktop.test.js` 6개 추가(1회용·state 불일치 시 폐기·만료·형식 거부·세션 없이 발급 401) → `node --test` **86개 통과**.
+  배포: 마이그레이션 0007 적용 ✅, 워커 배포(버전 `85da644f-7bdc-45e2-a2b5-ce6a6fa171e3`).
+  배포본 확인 — 잘못된 코드로 교환 시 `{"error":"bad_code"}`, 세션 없이 발급 시 401.
+- **남은 확인(사용자):** 실제 Google 계정으로 앱 → 브라우저 → 앱 복귀까지의 실동작. 에이전트가 대신 로그인할 수 없다.
+- 다음: 3단계(Gmail 연결도 같은 복귀 경로 사용 — `worker/src/secrets.js`의 `safeReturnTo`에 `phibrain://` 허용 추가).
 
 ### 데스크톱 앱 1단계: 배포 화면을 여는 Electron 창 (2026-09-17, 사용자 지시 · Claude Code)
 
