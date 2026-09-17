@@ -1,0 +1,58 @@
+name: Desktop app build
+
+# 데스크톱 앱 설치 파일을 만든다 (docs/DESKTOP.md 6단계).
+# 맥용은 맥에서만 만들 수 있어서(애플 서명 도구가 macOS 전용) 깃허브가 빌려주는 맥에서 돌린다.
+# 결과물은 이 실행의 Artifacts에 붙는다 — 저장소에는 넣지 않는다(.gitignore의 desktop/dist).
+#
+# 서명하지 않은 빌드다:
+#   윈도우 — 설치할 때 "알 수 없는 게시자" 경고. 추가 정보 → 실행.
+#   맥    — 처음 열 때 Gatekeeper가 막는다. 앱을 우클릭 → 열기로 한 번만 넘기면 된다.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false   # 한쪽 OS가 실패해도 다른 쪽 설치 파일은 받을 수 있게
+      matrix:
+        include:
+          - os: macos-14        # Apple Silicon — arm64와 x64(인텔 맥)용을 함께 만든다
+            platform: --mac
+            artifact: phi-brain-mac
+            pattern: 'desktop/dist/*.dmg'
+          - os: windows-latest
+            platform: --win
+            artifact: phi-brain-windows
+            pattern: 'desktop/dist/*.exe'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+      - name: Test
+        working-directory: desktop
+        run: npm test
+      - name: Build
+        working-directory: desktop
+        run: npx electron-builder ${{ matrix.platform }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false   # 인증서가 없으니 찾지 않는다(맥에서 서명 단계로 실패하는 것 방지)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.pattern }}
+          if-no-files-found: error
+          retention-days: 14
