@@ -8,16 +8,21 @@ name: Desktop app build
 #   윈도우 — 설치할 때 "알 수 없는 게시자" 경고. 추가 정보 → 실행.
 #   맥    — 처음 열 때 Gatekeeper가 막는다. 앱을 우클릭 → 열기로 한 번만 넘기면 된다.
 
+#
+# 배포용 내려받기 주소가 필요하면 태그를 밀면 된다: git tag v0.1.0 && git push origin v0.1.0
+# → 같은 빌드가 GitHub Releases에 붙어 고정 주소가 생긴다(다운로드 사이트에서 그 주소를 링크).
+#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-Setup-0.1.0.exe
+#   https://github.com/yongzu/Phi_Brain/releases/latest/download/PhiBrain-0.1.0.dmg
+
+# 언제 도나: Actions 탭에서 직접 실행하거나, 배포 태그(v로 시작)를 밀 때.
+# main에 올릴 때마다 돌리지 않는다 — 맥·윈도우 두 대를 5분씩 쓰는 일이라 필요할 때만 돌린다.
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths:
-      - 'desktop/**'
-      - '.github/workflows/desktop-build.yml'
+    tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write   # 태그를 밀었을 때 Releases에 설치 파일을 붙이기 위해
 
 jobs:
   build:
@@ -25,7 +30,7 @@ jobs:
       fail-fast: false   # 한쪽 OS가 실패해도 다른 쪽 설치 파일은 받을 수 있게
       matrix:
         include:
-          - os: macos-14        # Apple Silicon — arm64와 x64(인텔 맥)용을 함께 만든다
+          - os: macos-14        # 유니버설 dmg 하나 — 애플 실리콘·인텔 맥 모두에서 열린다
             platform: --mac
             artifact: phi-brain-mac
             pattern: 'desktop/dist/*.dmg'
@@ -56,3 +61,18 @@ jobs:
           path: ${{ matrix.pattern }}
           if-no-files-found: error
           retention-days: 14
+      # 태그로 돌린 경우에만: 같은 파일을 Releases에 붙여 고정 주소를 만든다
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes "Phi Brain 데스크톱 앱 ${GITHUB_REF_NAME}" || true
+      - name: Upload installers to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" ${{ matrix.pattern == 'desktop/dist/*.dmg' && 'dist/*.dmg' || 'dist/*.exe' }} --clobber
