@@ -10,6 +10,7 @@ const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const auth = require('./auth');
+const gmail = require('./gmail');
 
 const APP_URL = 'https://yongzu.github.io/Phi_Brain/prototypes/home.html';
 const APP_ORIGIN = new URL(APP_URL).origin;
@@ -107,6 +108,13 @@ if (!app.requestSingleInstanceLock()) {
   // 로그인 복귀: 코드를 세션으로 바꾸고, 페이지를 다시 읽어 로그인된 화면으로 만든다
   async function handleAuthUrl(rawUrl) {
     if (!rawUrl) return;
+    const gmailPage = gmail.returnPage(rawUrl, APP_URL);
+    if (gmailPage && mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      await mainWindow.loadURL(gmailPage); // connection status is read from the API, never from the URL
+      return;
+    }
     const session = await auth.completeLogin(rawUrl);
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
@@ -135,6 +143,10 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.handle('phi:start-login', async e => {
     if (!trustedPage(e)) throw new Error('Untrusted login request');
     await auth.startLogin(APP_URL);
+  });
+  ipcMain.handle('phi:connect-gmail', async (e, url) => {
+    if (!trustedPage(e)) throw new Error('Untrusted Gmail request');
+    await shell.openExternal(gmail.consentUrl(url));
   });
   ipcMain.on('phi:session', e => { e.returnValue = trustedPage(e) ? auth.session : null; });
   ipcMain.on('phi:signed-out', e => { if (trustedPage(e)) auth.clear(); });

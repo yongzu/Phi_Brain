@@ -267,14 +267,21 @@
   // the API hands back a URL with a signed state that brings the browser back here
   connectBtn.addEventListener('click', async () => {
     connectBtn.disabled = true;
-    const returnTo = `${location.origin}${location.pathname}#assignment`;
+    const returnTo = window.phiDesktop?.connectGmail ? 'phibrain://gmail' : `${location.origin}${location.pathname}#assignment`;
     const res = await api('/gmail/connect', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnTo }),
     });
     const body = res && await res.json().catch(() => null);
     connectBtn.disabled = false;
     if (!body?.url) { toast(body?.error === 'server_not_configured' ? SYNC_ERROR.server_not_configured : 'Gmail 연결을 시작하지 못했어요', null, 'error'); return; }
-    location.href = body.url;
+    if (window.phiDesktop?.connectGmail) {
+      try {
+        await window.phiDesktop.connectGmail(body.url);
+        toast('기본 브라우저에서 Gmail 연결을 계속해 주세요');
+      } catch { toast('브라우저를 열지 못했어요. 다시 시도해 주세요', null, 'error'); }
+    } else {
+      location.href = body.url;
+    }
   });
 
   // The server reads Gmail in small batches (worker/src/assignment/sync.js);

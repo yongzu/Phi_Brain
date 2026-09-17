@@ -8,6 +8,7 @@ if (window === window.top && location.origin === 'https://yongzu.github.io' &&
     location.pathname === '/Phi_Brain/prototypes/home.html') {
   contextBridge.exposeInMainWorld('phiDesktop', {
     startLogin: () => ipcRenderer.invoke('phi:start-login'),
+    connectGmail: url => ipcRenderer.invoke('phi:connect-gmail', url),
     signOut: () => ipcRenderer.send('phi:signed-out'),
   });
 }

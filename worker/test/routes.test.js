@@ -130,3 +130,47 @@ test('the weekly cron starts a run; follow-up triggers only continue a pending o
     assert.equal((await env.DB.prepare('SELECT last_sync_error FROM gmail_connection').first()).last_sync_error, 'not_connected');
   } finally { globalThis.fetch = realFetch; }
 });
+
+
+test('desktop Gmail return allowlist accepts only the fixed destination', async () => {
+  const env = makeEnv();
+  const token = await ownerToken(env);
+  const res = await call(env, '/api/assignment/gmail/connect', { method: 'POST', token, body: { returnTo: 'phibrain://gmail' } });
+  assert.equal(res.status, 200);
+  const u = new URL((await res.json()).url);
+  assert.equal((await verifyState(env.SESSION_SECRET, u.searchParams.get('state'), { allowedEmail: OWNER })).returnTo, 'phibrain://gmail');
+  assert.equal(u.searchParams.get('redirect_uri'), API + '/auth/google/callback');
+  for (const returnTo of ['phibrain://auth', 'phibrain://gmail.evil', 'phibrain://user@gmail', 'phibrain://gmail/path', 'phibrain://gmail?next=https://evil.example', 'phibrain://gmail#x', 'file:///gmail', 'javascript:alert(1)']) {
+    assert.equal((await call(env, '/api/assignment/gmail/connect', { method: 'POST', token, body: { returnTo } })).status, 400, returnTo);
+  }
+});
+
+test('desktop Gmail callback handles success, missing scope, missing refresh token and cancellation', async t => {
+  const realFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = realFetch; });
+  for (const result of ['connected', 'scope_missing', 'no_refresh_token', 'denied', 'error']) {
+    const env = makeEnv();
+    const state = await signState(env.SESSION_SECRET, { email: OWNER, returnTo: 'phibrain://gmail' });
+    globalThis.fetch = async url => {
+      if (String(url).startsWith('https://oauth2.googleapis.com/token')) {
+        return Response.json({ access_token: 'at', refresh_token: result === 'no_refresh_token' ? undefined : 'test-refresh',
+          scope: result === 'scope_missing' ? 'openid' : 'https://www.googleapis.com/auth/gmail.readonly' });
+      }
+      if (String(url).endsWith('/profile')) return Response.json({ emailAddress: OWNER });
+      throw new Error('Unexpected request');
+    };
+    const query = result === 'denied' ? 'error=access_denied' : result === 'error' ? 'error=server_error' : 'code=test-code';
+    const res = await call(env, '/auth/google/callback?' + query + '&state=' + encodeURIComponent(state));
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get('Location'), 'phibrain://gmail?gmail=' + result);
+    const row = await env.DB.prepare('SELECT * FROM gmail_connection').first();
+    assert.equal(row.connected, result === 'connected' ? 1 : 0);
+    if (result === 'connected') assert.equal(await decryptToken(env.TOKEN_KEY, row.refresh_token_enc), 'test-refresh');
+  }
+});
+
+test('callback rechecks a signed desktop return destination before redirecting', async () => {
+  const env = makeEnv();
+  const state = await signState(env.SESSION_SECRET, { email: OWNER, returnTo: 'phibrain://auth' });
+  assert.equal((await call(env, '/auth/google/callback?error=access_denied&state=' + encodeURIComponent(state))).status, 400);
+});

@@ -1,11 +1,23 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-17 (데스크톱 로그인 클릭 무반응 수정) / Codex
+최종 갱신: 2026-09-17 (데스크톱 로그인 확인 · Gmail 앱 복귀) / Codex
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 2단계 사용자 확인 · 3단계 Gmail 복귀 구현 (2026-09-17, Codex)
+
+- 사용자 확인: 로그인 동작 및 앱 재시작 후 로그인 유지 성공. 2단계 완료.
+- 3단계 구현: Gmail 연결은 시스템 브라우저에서 진행하고 phibrain://gmail?gmail=<결과>로 앱의 Assignment Manage 화면에 복귀. 연결 상태는 서버에서 다시 읽고 성공 시 기존 새로고침 흐름 실행.
+- worker/src/secrets.js: phibrain://gmail 문자열 하나만 허용(다른 host·경로·query·fragment 불허). 웹 returnTo 허용은 유지, OAuth state 서명·만료 검증 재사용. Google에 등록된 HTTPS callback은 변경 없음.
+- desktop/gmail.js(신규): Google Gmail 읽기 전용 동의 URL 및 고정 결과만 허용. desktop/{main,preload}.js: 검증된 앱 메인 프레임 IPC로 기본 브라우저를 열고 딥링크 수신 시 과제 화면 표시. 로그인 팝업 가로채기와 분리.
+- design/prototypes/assignment.js: 앱은 전용 bridge, 일반 웹은 기존 페이지 이동. home.html 캐시 assignment.js?v=20260917-1.
+- 검증: worker node --test 89개, desktop/test/*.test.cjs 7개 통과. 신규 테스트는 악성 복귀 주소, OAuth 성공·취소·권한 누락·refresh token 누락, 앱 복귀 결과 처리 포함. JS 구문·git diff 검사 통과.
+- 서버 배포 완료: Wrangler 4.131.1, 버전 1e9700c7-4896-4869-8d7d-7238ceae90e7. DB 변경 없음.
+- 남은 사용자 확인: 앱을 재시작한 뒤 Gmail 연결 → 기본 브라우저 동의 → 앱 복귀 및 연결됨 표시. 이미 Gmail 연결됨이면 기존 연결을 유지하며 강제 해제하지 않는다.
+- docs/DESKTOP.md: 2단계 완료, 3단계 사용자 확인 대기로 담당표 갱신.
 
 ### 데스크톱 로그인 클릭 무반응 수정 (2026-09-17, Codex)
 
