@@ -22,6 +22,9 @@ function fixture({ hidden = false, trayFails = false, shortcutTaken = false } = 
   win.setIcon = () => {};
   win.webContents = new EventEmitter();
   win.webContents.loading = false;
+  win.webContents.zoomLevel = 0;
+  win.webContents.getZoomLevel = () => win.webContents.zoomLevel;
+  win.webContents.setZoomLevel = value => { win.webContents.zoomLevel = value; };
   win.webContents.isLoadingMainFrame = () => win.webContents.loading;
   win.webContents.send = name => sent.push(name);
   win.webContents.reload = () => { win.reloads = (win.reloads || 0) + 1; };
@@ -94,4 +97,22 @@ test('F5 reloads and Ctrl+F5 bypasses cache; Windows session end does not hide i
   for (const control of [false, true]) f.win.webContents.emit('before-input-event', { preventDefault() { prevented++; } }, { type: 'keyDown', key: 'F5', control });
   assert.equal(prevented, 2); assert.equal(f.win.reloads, 1); assert.equal(f.win.hardReloads, 1);
   f.win.emit('session-end'); assert.equal(f.close(), false);
+});
+
+test('Ctrl+X hides without exiting; cut uses Shift+Delete', () => {
+  const f = fixture(); f.win.emit('ready-to-show'); let prevented = false;
+  f.win.webContents.emit('before-input-event', { preventDefault() { prevented = true; } }, { type: 'keyDown', key: 'x', control: true });
+  assert.equal(prevented, true); assert.equal(f.win.visible, false); assert.equal(f.tray.destroyed, undefined);
+  assert.equal(f.menu.find(x => x.label === '편집').submenu.find(x => x.role === 'cut').accelerator, 'Shift+Delete');
+});
+test('zoom accepts equals, shifted plus and numpad plus; menu and keyboard share zoom state', () => {
+  const f = fixture(); let prevented = 0;
+  const press = (key, extra = {}) => f.win.webContents.emit('before-input-event', { preventDefault() { prevented++; } }, { type: 'keyDown', control: true, key, ...extra });
+  press('='); press('+', { shift: true }); press('Add', { code: 'NumpadAdd' });
+  assert.equal(f.win.webContents.zoomLevel, 1.5);
+  press('-'); assert.equal(f.win.webContents.zoomLevel, 1);
+  press('0'); assert.equal(f.win.webContents.zoomLevel, 0); assert.equal(prevented, 5);
+  const menu = f.menu.find(x => x.label === '보기').submenu;
+  menu.find(x => x.label === '확대').click(); assert.equal(f.win.webContents.zoomLevel, 0.5);
+  menu.find(x => x.label === '축소').click(); assert.equal(f.win.webContents.zoomLevel, 0);
 });

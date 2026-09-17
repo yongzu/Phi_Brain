@@ -63,9 +63,20 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
     } catch { report('자동 실행 설정을 바꾸지 못했어요. 다시 시도해 주세요.'); }
     rebuildMenus();
   }
+  function hideWindow() {
+    const win = getWindow();
+    if (hasTray() && win && !win.isDestroyed()) win.hide();
+  }
+  function zoom(delta) {
+    const win = getWindow();
+    if (win && !win.isDestroyed()) {
+      win.webContents.setZoomLevel(delta === 0 ? 0 : win.webContents.getZoomLevel() + delta);
+    }
+  }
   function commonMenu() {
     return [
       { label: 'Phi Brain 열기', click: showWindow },
+      { label: '트레이로 숨기기', accelerator: 'Control+X', registerAccelerator: false, enabled: hasTray(), click: hideWindow },
       { label: '저널 바로 쓰기', accelerator: JOURNAL_SHORTCUT, registerAccelerator: false, click: openJournal },
       ...(!globalRegistered ? [{ label: 'Ctrl+Alt+J: 다른 앱에서 사용 중 · 앱 안에서 사용 가능', enabled: false }] : []),
       { type: 'separator' },
@@ -80,15 +91,17 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
       { label: 'Phi Brain', submenu: commonMenu() },
       { label: '편집', submenu: [
         { role: 'undo', label: '실행 취소' }, { role: 'redo', label: '다시 실행' }, { type: 'separator' },
-        { role: 'cut', label: '잘라내기' }, { role: 'copy', label: '복사' }, { role: 'paste', label: '붙여넣기' },
+        { role: 'cut', label: '잘라내기', accelerator: 'Shift+Delete' }, { role: 'copy', label: '복사' }, { role: 'paste', label: '붙여넣기' },
         { role: 'selectAll', label: '전체 선택' },
       ] },
       { label: '보기', submenu: [
         { role: 'reload', label: '새로고침', accelerator: 'Control+R' },
         { role: 'forceReload', label: '캐시 없이 새로고침', accelerator: 'Control+Shift+R' },
         { role: 'toggleDevTools', label: '개발자 도구', accelerator: 'Control+Shift+I' },
-        { type: 'separator' }, { role: 'resetZoom', label: '기본 크기' },
-        { role: 'zoomIn', label: '확대' }, { role: 'zoomOut', label: '축소' },
+        { type: 'separator' },
+        { label: '기본 크기', accelerator: 'Control+0', registerAccelerator: false, click: () => zoom(0) },
+        { label: '확대', accelerator: 'Control+=', registerAccelerator: false, click: () => zoom(0.5) },
+        { label: '축소', accelerator: 'Control+-', registerAccelerator: false, click: () => zoom(-0.5) },
         { role: 'togglefullscreen', label: '전체 화면' },
       ] },
     ]));
@@ -103,6 +116,17 @@ function createDesktopShell({ app, Menu, Tray, nativeImage, globalShortcut, dial
     win.webContents.on('did-finish-load', () => sendJournal(win));
     win.webContents.on('before-input-event', (e, input) => {
       if (input.type !== 'keyDown' || input.isAutoRepeat) return;
+      if (input.control && !input.alt && !input.meta) {
+        const key = input.key.toLowerCase();
+        if (key === 'x' && !input.shift && hasTray()) {
+          e.preventDefault(); hideWindow(); return;
+        }
+        // Windows layouts report the plus key as '=' or '+', depending on Shift.
+        const delta = key === '=' || key === '+' || input.code === 'NumpadAdd' ? 0.5
+          : key === '-' || input.code === 'NumpadSubtract' ? -0.5
+          : key === '0' ? 0 : null;
+        if (delta !== null) { e.preventDefault(); zoom(delta); return; }
+      }
       if (input.key === 'F5' && !input.alt && !input.meta && !input.shift) {
         e.preventDefault();
         input.control ? win.webContents.reloadIgnoringCache() : win.webContents.reload();
