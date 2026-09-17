@@ -6,6 +6,11 @@ const { ipcRenderer, contextBridge } = require('electron');
 // Only the deployed app's top-level page gets this narrow bridge. No arbitrary URLs or IPC.
 if (window === window.top && location.origin === 'https://yongzu.github.io' &&
     location.pathname === '/Phi_Brain/prototypes/home.html') {
+  // Navigate within the existing page so a shortcut never reloads or replaces a draft.
+  ipcRenderer.on('phi:open-journal', () => {
+    document.querySelector('.side-nav [data-view="journal"]')?.click();
+    document.querySelector('#editor')?.focus({ preventScroll: true });
+  });
   contextBridge.exposeInMainWorld('phiDesktop', {
     startLogin: () => ipcRenderer.invoke('phi:start-login'),
     connectGmail: url => ipcRenderer.invoke('phi:connect-gmail', url),

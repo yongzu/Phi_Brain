@@ -52,7 +52,7 @@ test('preload restores newly exchanged session despite previous logout flag', ()
   vm.runInNewContext(fs.readFileSync(root + 'desktop/preload.js', 'utf8'), {
     window, location: new URL('https://yongzu.github.io/Phi_Brain/prototypes/home.html'),
     localStorage: { getItem: k => values.get(k), setItem: (k, v) => values.set(k, v), removeItem: k => values.delete(k) },
-    require: () => ({ ipcRenderer: { sendSync: () => session }, contextBridge: { exposeInMainWorld: (key, value) => { bridge = value; } } }),
+    require: () => ({ ipcRenderer: { on() {}, sendSync: () => session }, contextBridge: { exposeInMainWorld: (key, value) => { bridge = value; } } }),
   });
   assert.ok(bridge.startLogin);
   assert.equal(values.has('phi-brain:signed-out'), false);

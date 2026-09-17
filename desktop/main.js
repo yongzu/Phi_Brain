@@ -6,7 +6,10 @@
 //
 // 1단계에서는 로그인이 안 되는 게 정상이다. Google이 앱 안 브라우저에서의 로그인을 막기 때문이고,
 // 2단계(시스템 브라우저 + phibrain:// 복귀)가 그것을 푼다.
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const electron = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = electron;
+const { createDesktopShell } = require('./shell');
+let desktopShell = null;
 const path = require('node:path');
 const fs = require('node:fs');
 const auth = require('./auth');
@@ -47,6 +50,7 @@ function createWindow() {
     title: 'Phi Brain',
     backgroundColor: '#ffffff', // 로딩 중 흰 화면 — 페이지 배경과 같게 해서 깜빡임을 없앤다
     show: false,
+    autoHideMenuBar: true, // Alt로 메뉴 표시; 단축키는 항상 사용 가능
     webPreferences: {
       // 원격 페이지를 여는 창이다. 이 둘은 절대 끄지 않는다 — 페이지 스크립트가 파일 시스템에 닿으면 안 된다.
       nodeIntegration: false,
@@ -56,7 +60,7 @@ function createWindow() {
   });
 
   if (state.maximized) win.maximize();
-  win.once('ready-to-show', () => win.show());
+  desktopShell.attachWindow(win);
   win.loadURL(APP_URL);
 
   // 페이지가 Google 로그인 창을 열려고 하면(화면의 "Google로 로그인" 버튼) 가로채서
@@ -110,22 +114,19 @@ if (!app.requestSingleInstanceLock()) {
     if (!rawUrl) return;
     const gmailPage = gmail.returnPage(rawUrl, APP_URL);
     if (gmailPage && mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+      desktopShell.showWindow();
       await mainWindow.loadURL(gmailPage); // connection status is read from the API, never from the URL
       return;
     }
     const session = await auth.completeLogin(rawUrl);
     if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+    desktopShell.showWindow();
     if (session) mainWindow.loadURL(APP_URL); // preload가 이 세션을 페이지에 놓는다
   }
 
   app.on('second-instance', (e, argv) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+      desktopShell.showWindow();
     }
     handleAuthUrl(auth.urlFromArgv(argv));
   });
@@ -152,14 +153,19 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.on('phi:signed-out', e => { if (trustedPage(e)) auth.clear(); });
 
   app.whenReady().then(() => {
-    Menu.setApplicationMenu(null); // 기본 메뉴줄은 숨긴다 — 4단계에서 필요한 항목만 다시 만든다
+    app.setAppUserModelId('design.phi.brain');
+    desktopShell = createDesktopShell(electron, {
+      getWindow: () => mainWindow,
+      createWindow: () => { mainWindow = createWindow(); return mainWindow; },
+    });
+    desktopShell.start();
     auth.registerProtocol();
     auth.load();
     mainWindow = createWindow();
     // 첫 실행이 곧 복귀인 경우(앱이 꺼진 채로 브라우저에서 로그인을 끝낸 경우)
     handleAuthUrl(auth.urlFromArgv(process.argv));
-    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow(); });
+    app.on('activate', () => desktopShell.showWindow());
   });
 
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+  app.on('window-all-closed', () => { if (!desktopShell?.hasTray() && process.platform !== 'darwin') app.quit(); });
 }
