@@ -307,7 +307,7 @@ const PHASES = [
     label: '01 · 발산 · 지금 단계',
     name: 'Discover',
     lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
-    items: ['직접 겪은 불편: 저널링 A1~A3 · 과제 제출 B1~B3', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
+    items: ['문제상황: 저널 활용 A · 저널링 B · 과제 제출 C', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
   },
   {
     label: '02 · 수렴 · 다음 단계',
@@ -356,6 +356,48 @@ if (dd) {
   dd.querySelector('.dd__svg').addEventListener('mouseleave', () => show(0));
   show(0);
 }
+
+// ---------- Blueprint: a cell with problem badges shows those problems on hover, focus or click ----------
+const tip = document.createElement('div');
+tip.className = 'pain-tip';
+tip.setAttribute('role', 'tooltip');
+tip.hidden = true;
+document.body.appendChild(tip);
+let tipCell = null;
+let tipPinned = false;
+const showTip = (cellEl) => {
+  const items = cellEl.dataset.pains.split(',').map((code) => {
+    const li = document.querySelector(`.pain-card__list [data-pain="${code}"]`);
+    if (!li) return '';
+    return `<div class="pain-tip__item"><span class="pain-card__num">${code}</span><div><p class="pain-tip__title">${esc(li.querySelector('.pain-card__title').textContent)}</p><p class="pain-tip__body">${esc(li.querySelector('.pain-card__body').textContent)}</p></div></div>`;
+  }).join('');
+  tip.innerHTML = items;
+  tip.hidden = false;
+  tipCell = cellEl;
+  const r = cellEl.getBoundingClientRect();
+  const w = tip.offsetWidth;
+  const hgt = tip.offsetHeight;
+  const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
+  const below = r.bottom + 12 + hgt <= window.innerHeight;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${below ? r.bottom + 12 : r.top - hgt - 12}px`;
+};
+const hideTip = () => { tip.hidden = true; tipCell = null; tipPinned = false; };
+document.querySelectorAll('.bp__cell[data-pains]').forEach((c) => {
+  c.addEventListener('mouseenter', () => { if (!tipPinned) showTip(c); });
+  c.addEventListener('mouseleave', () => { if (!tipPinned) hideTip(); });
+  c.addEventListener('focus', () => showTip(c));
+  c.addEventListener('blur', () => { if (!tipPinned) hideTip(); });
+  c.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (tipPinned && tipCell === c) return hideTip();
+    showTip(c);
+    tipPinned = true;
+  });
+});
+document.addEventListener('click', () => { if (tipPinned) hideTip(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tip.hidden) hideTip(); });
+window.addEventListener('scroll', () => { if (!tip.hidden) hideTip(); }, { passive: true });
 
 // ---------- Qualitative research: fill these after the interviews ----------
 // INTERVIEWS: { who: '학습자 1 · 2학기', quote: '한 줄 인용', points: ['발견 1', '발견 2'] }
