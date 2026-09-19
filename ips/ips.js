@@ -218,6 +218,109 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') step(-1);
 });
 
+// ---------- Double diamond: hover / focus a phase to see what happens inside ----------
+const PHASES = [
+  {
+    label: '01 · 발산 · 지금 단계',
+    name: 'Discover',
+    lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
+    items: ['서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '직접 겪은 불편: 저널링 A1~A3 · 과제 제출 B1~B3', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
+  },
+  {
+    label: '02 · 수렴 · 다음 단계',
+    name: 'Define',
+    lead: 'Discover에서 모은 현상을 하나의 진짜 문제로 좁힌다.',
+    items: ['인터뷰와 하루 기록 시나리오 정리', '반복되는 불편의 우선순위 정하기', '5 Whys로 근본 원인 좁히기', '인사이트 문장과 HMW 질문 확정'],
+  },
+  {
+    label: '03 · 발산',
+    name: 'Develop',
+    lead: '해법을 여러 번 시도하고 고친다.',
+    items: ['저널 시스템과 제출 시스템을 따로 설계', '개입 시점 정하기: 저널을 저장하는 순간, 마감 전', 'Phi Brain 프로토타입 반복'],
+  },
+  {
+    label: '04 · 수렴',
+    name: 'Deliver',
+    lead: '하나의 제품으로 완성하고 검증한다.',
+    items: ['Phi Brain 배포', '제출 데이터로 누락이 줄었는지 확인', '동료 사용 테스트'],
+  },
+];
+const dd = document.querySelector('.dd');
+if (dd) {
+  const phases = [...dd.querySelectorAll('.dd__phase')];
+  const detail = dd.querySelector('.dd__detail');
+  let shown = -1;
+  const show = (i) => {
+    if (i === shown) return;
+    shown = i;
+    phases.forEach((g, k) => {
+      g.classList.toggle('is-active', k === i);
+      g.classList.toggle('is-later', k > 0 && k !== i);
+    });
+    const p = PHASES[i];
+    detail.innerHTML = `
+      <span class="typo-label color-tertiary">${esc(p.label)}</span>
+      <h3 class="typo-subheading">${esc(p.name)}</h3>
+      <p class="typo-body color-secondary">${esc(p.lead)}</p>
+      <ul class="typo-body color-secondary">${p.items.map((t) => `<li class="dash">${esc(t)}</li>`).join('')}</ul>`;
+  };
+  phases.forEach((g, i) => {
+    g.addEventListener('mouseenter', () => show(i));
+    g.addEventListener('focus', () => show(i));
+    g.addEventListener('click', () => show(i));
+    g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(i); } });
+  });
+  dd.querySelector('.dd__svg').addEventListener('mouseleave', () => show(0));
+  show(0);
+}
+
+// ---------- Blueprint: hovering a stage column dims the others ----------
+const bp = document.querySelector('.bp');
+if (bp) {
+  bp.addEventListener('mouseover', (e) => {
+    const col = e.target.closest('[data-col]');
+    if (col) bp.dataset.active = col.dataset.col;
+  });
+  bp.addEventListener('mouseleave', () => delete bp.dataset.active);
+}
+
+// ---------- Qualitative research: fill these after the interviews ----------
+// INTERVIEWS: { who: '학습자 1 · 2학기', quote: '한 줄 인용', points: ['발견 1', '발견 2'] }
+// INTERVIEW_STATS: { num: '3/5명', title: '지난주 저널을 다시 보지 않았다', body: '설명' }
+const INTERVIEW_DATE = '9월 21일';
+const INTERVIEWS = [];
+const INTERVIEW_STATS = [];
+
+document.querySelector('[data-interview-status]').textContent = INTERVIEWS.length
+  ? `${INTERVIEWS.length}명 완료`
+  : `${INTERVIEW_DATE} 진행 예정`;
+
+const interviewGrid = document.querySelector('[data-interviews]');
+interviewGrid.innerHTML = (INTERVIEWS.length ? INTERVIEWS : [null, null, null])
+  .map((iv, i) => iv
+    ? `<article class="note-card" data-r>
+        <span class="typo-label color-tertiary">${esc(iv.who)}</span>
+        <p class="note-card__quote typo-title">${esc(iv.quote)}</p>
+        <ul class="typo-body color-secondary">${iv.points.map((t) => `<li class="dash">${esc(t)}</li>`).join('')}</ul>
+      </article>`
+    : `<article class="note-card note-card--empty" data-r>
+        <span class="typo-label color-tertiary">인터뷰 ${pad(i + 1)}</span>
+        <p class="typo-title color-tertiary">결과 추가 예정</p>
+        <p class="typo-body color-tertiary">${INTERVIEW_DATE} 인터뷰 후 핵심 인용과 발견을 채웁니다.</p>
+      </article>`)
+  .join('');
+
+const STAT_SLOTS = [
+  { num: 'N/5명', title: '지난주 저널을 다시 보지 않았다', body: '저널을 다시 보는 빈도 · 질문 1' },
+  { num: 'N/5명', title: '셀프 피드백을 놓친 적이 있다', body: '놓친 경험과 알게 된 시점 · 질문 4' },
+  { num: 'N/5명', title: '할 일을 다른 곳에 다시 적는다', body: '할 일을 챙기는 방법 · 질문 3' },
+];
+document.querySelector('[data-interview-stats]').innerHTML = (INTERVIEW_STATS.length ? INTERVIEW_STATS : STAT_SLOTS)
+  .map((s) => `<div class="stat${INTERVIEW_STATS.length ? '' : ' stat--todo'}" data-r>
+      <span class="stat__num">${esc(s.num)}</span><span class="typo-title">${esc(s.title)}</span><span class="typo-body color-secondary">${esc(s.body)}</span>
+    </div>`)
+  .join('');
+
 // ---------- Dropdown (auto-open on scroll, click toggles) ----------
 document.querySelectorAll('.dropdown').forEach((dd) => {
   const trigger = dd.querySelector('.dropdown__trigger');
