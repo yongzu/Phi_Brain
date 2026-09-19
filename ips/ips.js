@@ -40,27 +40,27 @@ const PAPERS = [
     title: '학습성찰도구로서 e-포트폴리오 활성화를 위한 연구',
     cite: '강인애·유승현·강연경 (2011) · 한국콘텐츠학회논문지 11(2)',
     method: '경희대 학습 포트폴리오 참여 학생 설문 289명 + 성찰저널 240편 분석',
-    claim: '과목에 맞지 않는 도구는 쓰기 어렵다',
+    claim: '성찰은 배움을 키우지만, 도구가 쉬워야 이어진다',
     points: [
       {
-        title: '성찰 도구로서의 효과 (수치 근거)',
+        title: '성찰 기록이 학습을 키운다 (성찰저널 240편)',
         items: [
-          '도움이 된 점 1위는 <b>학업에 대한 자기성찰 향상 66.1%</b>였다.',
-          '성찰저널 분석에서 <b>학습조절능력 향상 54.17%</b>, 학습과정 강화 27.08%가 나왔다.',
-          '배운 내용을 다시 정리해 쓰는 과정에서 더 잘 이해되고 기억된다.',
+          '성찰저널 분석에서 <b>학습조절능력 향상 54.17%</b>가 가장 큰 효과로 나왔다.',
+          '다음으로 <b>학습과정 강화 27.08%</b>가 뒤를 이었다.',
+          '설문에서도 도움이 된 점 1위는 <b>학업에 대한 자기성찰 향상 66.1%</b>였다.',
         ],
       },
       {
-        title: '좋은 도구여도 과목과 안 맞으면 쓰기 어렵다',
+        title: '이를 쉽게 하려면 시스템 개선이 필요했다',
         items: [
-          '성찰저널 작성자의 <b>52.92%가 과목·전공 특성과 포트폴리오 기능이 맞지 않아 어려웠다</b>고 답했다.',
-          '설문 응답자의 <b>51.21%가 쉬운 편집(시스템 개선)</b>을 요구했다.',
+          '설문 응답자의 <b>51.21%가 시스템 개선(쉬운 편집 및 관리)</b>을 요구했다.',
+          '성찰저널 작성자의 <b>52.92%는 과목·전공 특성과 포트폴리오 기능이 맞지 않아 어려웠다</b>고 답했다.',
         ],
       },
     ],
-    insight: '설문 응답자의 51.21%가 시스템 개선(쉬운 편집)을 요구했습니다.',
+    insight: '설문 응답자의 51.21%가 시스템 개선(쉬운 편집 및 관리)을 요구했습니다.',
     flow: [
-      ['과목과 맞지 않는 기능', '편집이 어려움', '51.21%가 쉬운 편집 요구'],
+      ['성찰저널 작성', '편집 및 관리 어려움', '개선'],
     ],
     url: 'https://doi.org/10.5392/JKCA.2011.11.2.495',
   },
@@ -70,7 +70,7 @@ const PAPERS = [
     title: 'Information behaviour that keeps found things found',
     cite: 'Bruce · Jones · Dumais (2004) · Information Research 10(1)',
     method: '24명 관찰 · 12명 3~6개월 뒤 재검색 실험 · 214명 설문. 웹페이지를 보관하고 다시 찾는 행동을 다룬 PIM(개인 정보 관리) 연구',
-    claim: '보관은 흩어지고, 안 보이면 잊는다',
+    claim: '보관은 흩어지고,\n안 보이면 잊는다',
     points: [
       {
         title: '보관 방법은 흩어지고, 완벽한 방법은 없다',
@@ -195,7 +195,7 @@ document.querySelectorAll('[data-papers]').forEach((grid) => {
         <span class="paper-card__face">
           <span class="paper-card__num">${pad(i + 1)}</span>
           <span class="paper-card__claim typo-subheading">${esc(p.claim)}</span>
-          <span class="paper-card__title typo-body color-secondary">${esc(p.title)}</span>
+          <span class="paper-card__title typo-body color-secondary" title="${esc(p.title)}">${esc(p.title)}</span>
         </span>
         <span class="paper-card__preview" aria-hidden="true">
           <span class="paper-card__preview-inner">
@@ -307,7 +307,7 @@ const PHASES = [
     label: '01 · 발산 · 지금 단계',
     name: 'Discover',
     lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
-    items: ['서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '직접 겪은 불편: 저널링 A1~A3 · 과제 제출 B1~B3', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
+    items: ['직접 겪은 불편: 저널링 A1~A3 · 과제 제출 B1~B3', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
   },
   {
     label: '02 · 수렴 · 다음 단계',
