@@ -517,6 +517,11 @@
 .am-course-name:hover{background:var(--fill)}
 
 .am-cell{display:inline-flex;align-items:center;gap:6px}
+/* 과목 즐겨찾기 별표(사용자 지시 2026-09-19): Future Item과 같은 .fi-box-fav 별표를 과목명 왼쪽에. 즐겨찾기한 과목은 표 맨 위로 가고,
+   그 묶음 끝 줄은 회색 선으로 나머지와 가른다. 과목명의 호버 배경이 별표를 덮지 않게 왼쪽 음수 여백을 줄였다 */
+.am-fav{margin-left:0}
+.am-fav+.am-course-name{margin-left:-6px}
+.am-table tr.am-fav-last td{border-bottom-color:var(--gray)}
 .am-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
 .am-status:hover{background:var(--fill);color:var(--ink)}
 /* read-only (deployed site): not clickable, so no hover box */
@@ -552,6 +557,12 @@
 .am-note-body{color:var(--ink);word-break:break-word}
 .am-note-body p{margin:0 0 6px}
 .am-note-body a{color:var(--ink);text-decoration:underline}
+/* 보기 상태 맨 아래 "추가" 입력창(사용자 지시 2026-09-19): 기존 공지 아래에 이어 붙일 내용. 본문과는 선 하나로 가르고,
+   입력칸은 붙여넣기 칸(.am-note-input)과 같은 옅은 채움 — 두 줄에서 시작해 쓰는 만큼 끌어 늘린다 */
+.am-note-append{display:flex;align-items:flex-end;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.am-note-append-input{flex:1;min-width:0;min-height:2.6em;resize:vertical;font:inherit;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:6px 10px}
+.am-note-append-input:focus-visible{outline:0}
+.am-note-append .btn-primary{flex:0 0 auto}
 .am-note-section{margin:12px 0 4px;font-size:1em;font-weight:700}
 .am-note-list{margin:0 0 6px;padding-left:1.1em}
 .am-note-input{display:block;width:100%;min-height:180px;resize:vertical;font:inherit;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:8px 10px;margin:0 0 8px}
@@ -582,6 +593,7 @@
   .am-table,.am-table thead,.am-table tbody,.am-table tr,.am-table td{display:block}
   .am-table thead{display:none}
   .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
+  .am-table tr.am-fav-last{border-bottom-color:var(--gray)}
   .am-table td{border-bottom:none;padding:2px 0}
   .am-detail,.am-detail.is-note{top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none}
   .am-detail.is-note.is-expanded{inset:16px;width:auto;max-height:none;padding:18px}
