@@ -304,6 +304,7 @@
     // they're never draggable and have no 즐겨찾기 별표(고정 자리라 즐겨찾기할
     // 대상이 아님)나 ⋯ 메뉴(과목은 이름바꾸기·삭제할 게 없고, 커스텀 박스만 있다).
     const inGrid = key !== 'unassigned' && key !== 'general';
+    // 즐겨찾기 별표는 과목명 바로 왼쪽(사용자 지시 2026-09-19) — 누르면 박스가 맨 위 즐겨찾기 줄로 올라간다
     const isCustom = key.startsWith('custom:'), isFav = state.favorites.includes(key);
     const empty = open.length ? '' : `<p class="fi-box-empty">${
       done.length ? '남은 항목이 없어요.' : temp ? '소속을 정하지 않은 항목이 여기에 모여요.' : '아직 없어요. 위에서 실행할 행동을 추가해 보세요.'}</p>`;
@@ -311,11 +312,11 @@
       <section class="fi-box${temp ? ' is-temp' : ''}" data-box="${key}" data-drop="${key}" aria-label="${esc(temp ? '임시 — 소속 미지정' : fullLabel(key))}">
         <header class="fi-box-head"${inGrid ? ' draggable="true"' : ''}>
           ${inGrid ? '<span class="fi-box-grip" aria-hidden="true" title="끌어서 박스 순서 바꾸기">⠿</span>' : ''}
+          ${inGrid ? `<button type="button" class="fi-box-fav fi-box-fav-lead${isFav ? ' is-fav' : ''}" data-box-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(shortLabel(key))}"></button>` : ''}
           ${key === editingBoxId
             ? `<input type="text" class="fi-box-name-edit" value="${esc(customName(key.slice(7)))}" aria-label="박스 이름 수정 — Enter 저장, Esc 취소" maxlength="24">`
             : `<h2 class="fi-box-title" title="${esc(temp ? '소속을 정하지 않은 항목' : fullLabel(key))}">${titleHTML(key)}</h2>`}
           <span class="resume-count" aria-label="미완료 ${open.length}개">${open.length}</span>
-          ${inGrid ? `<button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-box-fav="${key}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(shortLabel(key))}"></button>` : ''}
           ${inGrid && isCustom && key !== editingBoxId ? `<button type="button" class="pill pill-icon fi-box-more" data-box-menu="${key}" aria-haspopup="menu" aria-label="${esc(shortLabel(key))} 박스 메뉴">⋯</button>` : ''}
         </header>
         ${temp && (forced || open.length) ? '<p class="fi-box-hint">박스나 위 필터로 끌어다 놓아 자리를 정해 주세요.</p>' : ''}
@@ -489,7 +490,7 @@
     commit(s => {
       const at = s.favorites.indexOf(key);
       at >= 0 ? s.favorites.splice(at, 1) : s.favorites.push(key); // new pins go to the end; pinned order never shuffles
-    }, { focus: `[data-box-menu="${key}"]` });
+    }, { focus: `[data-box-fav="${key}"]` }); // 별표는 박스와 함께 다른 줄로 옮겨 가니 포커스를 따라 보낸다
   }
 
   // ---- custom boxes (과목 섹션에 박스 추가) ----

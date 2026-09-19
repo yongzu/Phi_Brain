@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260918-6">
+<link rel="stylesheet" href="phi-brain.css?v=20260919-2">
 </head>
 <body>
 
@@ -426,6 +426,9 @@
 
   // Desktop App 내려받기 메뉴 — 클릭으로 열고, 바깥을 누르거나 Esc로 닫는다(다른 팝업과 같은 방식)
   (() => {
+    // 데스크톱 앱 안에서는 이미 앱을 쓰고 있으니 내려받기 상자를 치운다(사용자 지시 2026-09-19).
+    // 앱의 preload가 놓는 phiDesktop, 또는 Electron 창의 User-Agent로 알아본다 — 이미 설치된 앱도 다시 깔 필요 없이 통한다
+    if (window.phiDesktop || /\bElectron\//.test(navigator.userAgent)) { document.getElementById('desktop-dl').remove(); return; }
     const trigger = document.getElementById('desktop-dl-trigger');
     const menu = document.getElementById('desktop-dl-menu');
     const setOpen = open => { menu.hidden = !open; trigger.setAttribute('aria-expanded', String(open)); };
@@ -455,12 +458,12 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260918-3"></script>
+<script src="future.js?v=20260919-1"></script>
 <script src="auth.js?v=20260917-2"></script>
 <script src="future-sync.js?v=3"></script>
 <script src="journal-store.js?v=4"></script>
 <script src="journal.js?v=20260917-1"></script>
 <script src="assignment-notice.js?v=2"></script>
-<script src="assignment.js?v=20260917-1"></script>
+<script src="assignment.js?v=20260919-1"></script>
 </body>
 </html>

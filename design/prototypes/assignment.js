@@ -326,6 +326,12 @@
   function placeDetail() {
     if (detailAnchor == null || detail.hidden) return;
     if (detailSheet.matches) { detail.style.top = detail.style.left = ''; return; }
+    // 전체보기는 칸이 아니라 화면 가운데
+    if (detail.classList.contains('is-expanded')) {
+      detail.style.top = `${Math.max(0, (innerHeight - detail.offsetHeight) / 2)}px`;
+      detail.style.left = `${Math.max(0, (innerWidth - detail.offsetWidth) / 2)}px`;
+      return;
+    }
     const anchor = tbody.querySelector(detailAnchor);
     if (!anchor) return;
     const r = anchor.getBoundingClientRect(), gap = 6, edge = 16;
@@ -361,7 +367,7 @@
     if (!d) return;
     detailAnchor = `.am-status[data-target-id="${targetId}"]`;
     noteState = null;
-    detail.classList.remove('is-note');
+    detail.classList.remove('is-note', 'is-expanded');
     detail.innerHTML = renderDetail(d);
     popIn(detail);
     placeDetail(); // 같은 프레임 안이라 우하단에 먼저 그려졌다 튀는 일은 없다
@@ -484,6 +490,7 @@
     const linkBtn = e.target.closest('[data-link-target]');
     if (linkBtn) { linkMenuAnchor === linkBtn ? closeLinkMenu() : (closeLinkMenu(), openLinkMenu(linkBtn)); return; }
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
+    if (e.detail > 1 && e.target.closest('[data-note-course]')) return; // 더블클릭의 두 번째 클릭은 닫지 않는다 — 아래 dblclick이 전체보기로 연다
     if (btn) {
       const sel = `.am-status[data-target-id="${btn.dataset.targetId}"]`;
       if (detailAnchor === sel && !detail.hidden && detail.dataset.open) { closeDetail(); return; } // same cell again = close
@@ -496,6 +503,14 @@
       if (detailAnchor === `[data-note-course="${noteBtn.dataset.noteCourse}"]` && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
       openNote(noteBtn.dataset.noteCourse);
     }
+  });
+  // "자세히보기"를 더블클릭하면 바로 크게(전체보기) 연다(사용자 지시 2026-09-19)
+  tbody.addEventListener('dblclick', e => {
+    const noteBtn = e.target.closest('[data-note-course]');
+    if (!noteBtn) return;
+    const courseId = noteBtn.dataset.noteCourse;
+    if (noteState?.courseId !== courseId || detail.hidden || !detail.dataset.open) openNote(courseId);
+    setNoteExpanded(true);
   });
 
   // ---- 과제 내용 팝오버: 보기 / 붙여넣기·수정 ----
@@ -512,6 +527,7 @@
     if (noteState.mode === 'edit') startDraft();
     detailAnchor = `[data-note-course="${courseId}"]`;
     detail.classList.add('is-note');
+    detail.classList.remove('is-expanded'); // 새로 열 때는 늘 칸 옆 작은 팝업부터
     renderNote();
     popIn(detail);
     placeDetail();
@@ -526,6 +542,20 @@
     const kept = unsavedDrafts.get(`${noteState.courseId}:${currentWeekNo}`);
     if (kept) { noteState.draft = kept; unsavedDrafts.delete(`${noteState.courseId}:${currentWeekNo}`); } // what was pasted before closing
   }
+  // 전체보기: 칸 옆 작은 팝업 ↔ 화면 가운데 큰 창(사용자 지시 2026-09-19 — 팝업이 답답하다).
+  // 여는 길은 셋 — "자세히보기" 더블클릭, 공지 본문 더블클릭, ⋯ 메뉴의 "전체보기". 닫으면 다음엔 다시 작게 열린다.
+  function setNoteExpanded(on) {
+    if (!noteState) return;
+    const input = detail.querySelector('.am-note-input'), caret = input && [input.selectionStart, input.selectionEnd];
+    detail.classList.toggle('is-expanded', on);
+    noteState.menu = false;
+    renderNote();
+    popIn(detail); // 같은 흐림→선명 등장으로 새 자리에 다시 나타난다
+    placeDetail();
+    const nextInput = detail.querySelector('.am-note-input');
+    if (nextInput) { nextInput.focus(); if (caret) nextInput.setSelectionRange(...caret); }
+    else detail.querySelector('[data-note-act="menu"]')?.focus({ preventScroll: true });
+  }
 
   function noteHeader(row, withMenu) {
     return `<div class="am-note-head">
@@ -533,6 +563,8 @@
         ${withMenu ? `<span class="am-note-more">
           <button type="button" class="pill pill-icon" data-note-act="menu" aria-haspopup="menu" aria-expanded="${!!noteState.menu}" aria-label="과제 내용 메뉴">⋯</button>
           ${noteState.menu === 'menu' ? `<div class="am-note-menu" role="menu">
+              <button type="button" class="cm-item" role="menuitem" data-note-act="expand">${detail.classList.contains('is-expanded') ? '작게 보기' : '전체보기'}</button>
+              <div class="cm-sep" role="separator"></div>
               <button type="button" class="cm-item" role="menuitem" data-note-act="edit">수정하기</button>
               <button type="button" class="cm-item" role="menuitem" data-note-act="delete">삭제하기</button></div>`
             : noteState.menu === 'confirm' ? `<div class="am-note-menu" role="menu">
@@ -628,6 +660,7 @@
     if (act === 'close') closeDetail();
     else if (act === 'menu') { st.menu = st.menu ? false : 'menu'; renderNote(); detail.querySelector('.am-note-menu .cm-item')?.focus(); }
     else if (act === 'cancel-menu') { st.menu = false; renderNote(); }
+    else if (act === 'expand') setNoteExpanded(!detail.classList.contains('is-expanded'));
     else if (act === 'edit') { startDraft(); renderNote(); placeDetail(); detail.querySelector('.am-note-input')?.focus(); }
     else if (act === 'cancel-edit') { st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
     else if (act === 'delete') { st.menu = 'confirm'; renderNote(); detail.querySelector('[data-note-act="cancel-menu"]')?.focus(); }
@@ -635,6 +668,13 @@
     else if (act === 'save') saveNote(false);
     else if (act === 'force') saveNote(true);
     else if (act === 'theirs') showSavedWeek(st.draft.week);
+  });
+
+  // 보기 상태에서 공지 본문을 더블클릭해도 전체보기 ↔ 작게 보기(링크 더블클릭은 제외)
+  detail.addEventListener('dblclick', e => {
+    if (noteState?.mode !== 'view' || !e.target.closest('.am-note-body') || e.target.closest('a')) return;
+    getSelection()?.removeAllRanges(); // 더블클릭이 고른 단어 선택은 지운다
+    setNoteExpanded(!detail.classList.contains('is-expanded'));
   });
 
   async function saveNote(force) {

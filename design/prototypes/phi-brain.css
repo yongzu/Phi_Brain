@@ -381,7 +381,9 @@
 .fi-box-fav:hover{opacity:.75}
 .fi-box-fav.is-fav{background-image:url('assets/star-black.svg')}
 .fi-box-fav.is-fav:hover{opacity:.85}
-.fi-box-more{margin-right:-6px}
+/* Future Item 과목 박스는 별표가 과목명 왼쪽(사용자 지시 2026-09-19) — ⋯ 메뉴가 대신 오른쪽 끝으로 */
+.fi-box-fav-lead{margin-left:0}
+.fi-box-more{margin-left:auto;margin-right:-6px}
 .fi-box-hint,.fi-box-empty{margin:2px 0 6px;color:var(--gray)}
 
 /* the "+ 박스 추가" tile: a button when idle, a name field once clicked */
@@ -561,6 +563,12 @@
 .am-note-weeks{display:flex;flex-wrap:wrap;gap:6px}
 .am-detail{position:fixed;top:0;left:0;width:320px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;padding:18px;box-shadow:var(--shadow-float);z-index:20}
 .am-detail-close{position:absolute;top:10px;right:10px;color:var(--gray)}
+/* 과제 내용 전체보기(사용자 지시 2026-09-19): 칸 옆 팝업 대신 화면 가운데 큰 창. 위치(가운데)는 placeDetail()이 계산한다 —
+   작은 팝업과 같은 좌표 기준을 써야 해서. 글이 길면 창 안에서 스크롤 */
+.am-detail.is-note.is-expanded{width:min(880px,calc(100vw - 64px));max-width:none;max-height:calc(100vh - 64px);padding:28px 32px}
+.am-detail.is-expanded .am-detail-close{top:18px;right:18px}
+.am-detail.is-expanded .am-note-body{line-height:1.7}
+.am-detail.is-expanded .am-note-input{min-height:min(420px,50vh)}
 .am-detail-title{margin:0 18px 8px 0;font-size:1em;color:var(--ink)}
 .am-detail-status{display:flex;align-items:center;gap:6px;margin:0 0 10px;color:var(--ink)}
 .am-conflict{color:var(--ink);background:var(--fill);border-radius:var(--radius-sm);padding:8px 10px;margin:0 0 10px}
@@ -576,6 +584,7 @@
   .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
   .am-table td{border-bottom:none;padding:2px 0}
   .am-detail,.am-detail.is-note{top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none}
+  .am-detail.is-note.is-expanded{inset:16px;width:auto;max-height:none;padding:18px}
   .am-note-cell{flex-wrap:wrap}
 }
 
