@@ -1,11 +1,19 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-19 (Assignment Manage 즐겨찾기 늘 표시) / Claude Code
+최종 갱신: 2026-09-19 (IPS Discover 페이지 추가) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### IPS 과제 페이지: Discover (2026-09-19, 사용자 지시 · Claude Code)
+
+- 프로그램과 별개인 수업(Iterative Problem Solving) 문서 폴더 `ips/`에 정적 페이지를 만들었다: `ips/index.html`·`ips.css`·`ips.js`. 앱 코드(`design/`·`server/`·`worker/`)는 건드리지 않았다.
+- 내용: 직접 겪은 불편(저널링 A1~A3·과제 제출 B1~B3), 논문 5편 정리(카드 호버 미리보기·클릭 시 사이드 패널, ←/→·Esc), 불편 × 조사 근거 4축 비교, Discover 결론. 5 Whys·Why/How/What은 Define 단계라 넣지 않았다.
+- 스타일·인터랙션은 사용자의 BI 저장소(yongzu/BI)에서 가져왔다(토큰, 좌측 목차, 자동으로 펼쳐지는 드롭다운, 스크롤 등장). `?static`을 붙이면 등장 애니메이션 없이 모두 보인다(캡처·인쇄용).
+- 배포: Pages 워크플로 두 곳(`design-pages.yml`, `assignment-sync.yml`의 deploy)이 `design/`만 올리던 것을 `_site`(= `design/` + `ips/`)로 바꿨다. 주소 `https://yongzu.github.io/Phi_Brain/ips/`. `design-pages.yml`은 `ips/**` 변경에도 실행된다.
+- 검증(로컬, `node tools/dev-server.js . 5510`): 1440px·375px 레이아웃, 패널 열기·←/→·Esc·포커스 복귀, 드롭다운 토글, 콘솔 오류 없음.
 
 ### Assignment Manage: 즐겨찾기한 과제는 어느 주차를 보든 늘 표 맨 위에 (2026-09-19, 사용자 지시 · Claude Code)
 

@@ -1,6 +1,7 @@
 name: Deploy design prototype to Pages
 
-# Publishes design/ (the static style-kit + page prototypes) as-is — no
+# Publishes design/ (the static style-kit + page prototypes) plus ips/ (IPS
+# course pages, served at /ips/) as-is — no
 # build step, since it's plain HTML/CSS/JS. Once the real app exists this
 # should be replaced with a workflow that deploys its build output instead.
 
@@ -9,6 +10,7 @@ on:
     branches: [main]
     paths:
       - 'design/**'
+      - 'ips/**'
       - '.github/workflows/design-pages.yml'
   workflow_dispatch:
 
@@ -30,8 +32,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Assemble site (design/ + ips/)
+        run: |
+          mkdir -p _site
+          cp -R design/. _site/
+          cp -R ips _site/ips
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: design
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
