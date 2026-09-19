@@ -496,7 +496,7 @@
 /* 열 사이 간격 80px 통일(사용자 지시 2026-09-14) — 가장 넓은 내용 기준으로 잰 값:
    과목명 끝(IAE ↗) → Assignment ●, "직접 확인 ↗" 끝 → "자세히보기", "지각 마감 9월28일 23:59" 끝 → Self-Feedback ●, 마지막 ↗ 끝 → 표 오른쪽 끝이 모두 80px.
    표 990px에서 286 / 189 / 308 / 207. 창이 좁아 표가 줄면 비율대로 간격만 줄어든다(과목명 열은 고정). 두 자리 월(10월~)은 과제 내용 뒤 간격이 약 7px 줄어듦 */
-.am-table th:first-child,.am-table td:first-child{width:286px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로 */
+.am-table th:first-child,.am-table td:first-child{width:322px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로. 286 → 322(2026-09-19): 별표·WK 박스가 붙어 가장 긴 IAE·TF 줄이 넘치지 않게 — 그 줄의 뒤 간격은 80px보다 좁다 */
 /* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
 .am-table th:nth-child(2),.am-table td:nth-child(2){width:19.09%} /* 990px에서 189px */
 
@@ -522,6 +522,8 @@
 .am-fav{margin-left:0}
 .am-fav+.am-course-name{margin-left:-6px}
 .am-table tr.am-fav-last td{border-bottom-color:var(--gray)}
+/* 과목명 옆 주차 박스 WK03 — 즐겨찾기는 이 주차의 과제에 붙는다(사용자 지시 2026-09-19). 새 색 없이 선·회색 */
+.am-week-tag{flex:0 0 auto;padding:1px 5px;border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--gray);font-size:.78rem;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
 .am-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
 .am-status:hover{background:var(--fill);color:var(--ink)}
 /* read-only (deployed site): not clickable, so no hover box */
@@ -557,6 +559,7 @@
 .am-note-body{color:var(--ink);word-break:break-word}
 .am-note-body p{margin:0 0 6px}
 .am-note-body a{color:var(--ink);text-decoration:underline}
+.am-note-divider{border:0;border-top:1px solid var(--line);margin:12px 0} /* 이어 붙인 내용과 기존 공지 사이 */
 /* 보기 상태 맨 아래 "추가" 입력창(사용자 지시 2026-09-19): 기존 공지 아래에 이어 붙일 내용. 본문과는 선 하나로 가르고,
    입력칸은 붙여넣기 칸(.am-note-input)과 같은 옅은 채움 — 두 줄에서 시작해 쓰는 만큼 끌어 늘린다 */
 .am-note-append{display:flex;align-items:flex-end;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}

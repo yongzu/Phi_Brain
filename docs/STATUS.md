@@ -1,11 +1,32 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-19 (Assignment Manage 과목 즐겨찾기 · 과제 내용 이어 붙이기) / Claude Code
+최종 갱신: 2026-09-19 (Assignment Manage 과제 내용 구분선 · 주차별 즐겨찾기) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 즐겨찾기는 주차별 과제 단위 · 과목명 옆 WK 박스 (2026-09-19, 사용자 지시 · Claude Code)
+
+- 즐겨찾기 단위를 과목 → **과목 × 주차(그 주의 과제)**로 바꿨다. 저장 키 `"AL:3"` 목록(`phi-brain:assignment-favorites`, 이 브라우저에만).
+  3주차 표에서 누른 별표는 3주차 표에서만 그 줄을 위로 올린다. 다른 주차 표는 영향 없음. 묶음 안 순서는 누른 순서.
+- 예전 형식(과목 코드만, `"AL"`)은 처음 보이는 주차의 과제로 옮겨 저장한다(`adoptLegacyFavorites`).
+- 과목명 바로 뒤(↗ 앞)에 주차 박스 `WK01` 형식(`.am-week-tag`: 1px `--line` 테두리, 회색 글씨 .78rem, 두 자리 숫자) — 모든 줄에 보이는 주차 표시.
+- 첫 열 폭 286px → **322px**: 별표와 WK 박스가 붙어 가장 긴 IAE·TF 줄이 칸을 넘쳤다. 이 줄들의 뒤 간격은 80px보다 좁다(IAE 약 30px).
+- `home.html`: `assignment.js?v=20260919-5`, `phi-brain.css?v=20260919-6`.
+- 검증(로컬, 읽기 전용 표): 예전 값 ["VT"] → ["VT:2"]로 옮겨짐, BI 누르면 ["VT:2","BI:2"]·순서 VT, BI, AL…;
+  1주차로 가면 WK01·즐겨찾기 0개·원래 순서, 2주차로 돌아오면 VT, BI가 다시 위. 1280px에서 넘치는 칸 없음. 테스트 저장값은 지움.
+
+### Assignment Manage: 이어 붙인 과제 내용 앞에 구분선 (2026-09-19, 사용자 지시 · Claude Code)
+
+- 이어 붙이기(`appendNote`)가 기존 공지와 추가분 사이에 `---` 줄을 넣는다: `기존\n\n---\n\n추가`.
+- `assignment-notice.js`의 `renderNotice`: 대시(`-`·`—`·`─`)만 3개 이상 있는 줄을 `<hr class="am-note-divider">`로 그린다(열린 목록은 닫고).
+  줄 가운데의 대시는 그대로 글자. 공지 원문에 그런 줄이 있어도 구분선으로 보인다. 수정 화면(textarea)에서는 `---` 글자로 보인다.
+- CSS `.am-note-divider`: 1px `var(--line)` 선, 위아래 12px — 새 색 없이 기존 선 색.
+- 이 변경 전에 이어 붙인 공지(빈 줄로만 붙음)에는 구분선이 없다 — 필요하면 수정하기에서 `---` 줄을 넣으면 된다.
+- 테스트: `worker/test/assignment-notice.test.js`에 구분선 1건 추가, 8/8 통과.
+- `home.html`: `assignment-notice.js?v=20260919-1`, `assignment.js?v=20260919-4`, `phi-brain.css?v=20260919-5`.
 
 ### Assignment Manage: 과제 내용 이어 붙이기 · 팝업 어디든 더블클릭으로 전체보기 (2026-09-19, 사용자 지시 · Claude Code)
 

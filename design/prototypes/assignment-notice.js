@@ -129,6 +129,8 @@
     let html = '', depth = -1;
     const closeLists = to => { while (depth > to) { html += '</ul>'; depth--; } };
     for (const line of normalizeLines(raw)) {
+      // "---"만 있는 줄 = 구분선. 과제 내용 이어 붙이기가 기존 공지와 추가분 사이에 넣는다(사용자 지시 2026-09-19)
+      if (/^\s*[-—─]{3,}\s*$/.test(line)) { closeLists(-1); html += '<hr class="am-note-divider">'; continue; }
       const name = sectionName(line);
       if (name) { closeLists(-1); html += `<h4 class="am-note-section">${esc(name)}</h4>`; continue; }
       const bullet = line.match(/^(\s*)[*•-]\s+(.*)$/);

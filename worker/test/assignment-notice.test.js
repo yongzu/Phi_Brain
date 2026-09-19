@@ -99,3 +99,9 @@ test('labels match Future Item\'s due badge wording', () => {
   assert.equal(dueLabel('2026-09-20T23:59'), '9월20일 23:59');
   assert.equal(dueLabelWithDow('2026-09-15T23:59'), '9월15일(화) 23:59');
 });
+
+test('a line of only dashes (added between a notice and what was appended to it) becomes a divider', () => {
+  const html = renderNotice('- 리서치 정리\n\n---\n\n추가 공지\n- 1분 이내');
+  assert.equal(html, '<ul class="am-note-list"><li>리서치 정리</li></ul><hr class="am-note-divider"><p>추가 공지</p><ul class="am-note-list"><li>1분 이내</li></ul>');
+  assert.ok(!renderNotice('- 항목 -- 설명').includes('<hr'), 'dashes inside a line stay text');
+});

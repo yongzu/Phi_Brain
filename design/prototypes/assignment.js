@@ -216,14 +216,20 @@
       + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0)
       + (lateness(r.selfFeedback, r.note) === 'missed' ? 1 : 0), 0);
     progressEl.textContent = `완료 ${matrix.progress.done - missed} / ${matrix.progress.total}`;
-    // 즐겨찾기한 과목은 표 맨 위로 — 두 묶음 안에서는 원래 과목 순서 그대로
-    const favRows = matrix.rows.filter(r => favorites.includes(r.code)), rest = matrix.rows.filter(r => !favorites.includes(r.code));
+    // 즐겨찾기한 과제(이 주차의 과목)는 표 맨 위로 — 두 묶음 안에서는 원래 과목 순서 그대로
+    const week = matrix.week.week_no;
+    adoptLegacyFavorites(week);
+    const favOrder = r => favorites.indexOf(favKey(r.code, week));
+    const favRows = matrix.rows.filter(r => favOrder(r) >= 0).sort((a, b) => favOrder(a) - favOrder(b));
+    const rest = matrix.rows.filter(r => favOrder(r) < 0);
+    const wk = `WK${String(week).padStart(2, '0')}`;
     tbody.innerHTML = [...favRows, ...rest].map((row, i) => {
       const isFav = i < favRows.length;
       return `<tr data-am-row="${esc(row.code)}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
         <td><span class="am-cell">
-          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)}"></button>
+          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${week}주차 과제"></button>
           <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
+          <span class="am-week-tag" title="${week}주차 과제">${wk}</span>
           ${safeHref(row.boardUrl)
             ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
@@ -235,16 +241,26 @@
     }).join('');
   }
 
-  // ---- 과목 즐겨찾기(사용자 지시 2026-09-19): 당장 할 과제의 과목을 표 맨 위에 둔다 ----
-  // 과목 코드 목록을 이 기기(브라우저)에만 저장한다 — 주차가 바뀌어도, 로그인 전 읽기 전용 표에서도 그대로.
+  // ---- 과제 즐겨찾기(사용자 지시 2026-09-19): 당장 할 과제를 표 맨 위에 둔다 ----
+  // 즐겨찾기는 "과목 × 주차" 하나 — 3주차에 누른 AL은 3주차 표에서만 위로 올라간다. 주차는 과목명 옆 WK03 박스.
+  // "AL:3" 같은 키 목록을 이 기기(브라우저)에만 저장한다(로그인 전 읽기 전용 표에서도 그대로).
   // 새로 누른 것이 즐겨찾기 묶음의 맨 끝으로 간다(누른 순서 유지).
   const FAV_KEY = 'phi-brain:assignment-favorites';
+  const favKey = (code, week) => `${code}:${week}`;
   let favorites = (() => { try { const v = JSON.parse(localStorage.getItem(FAV_KEY)); return Array.isArray(v) ? v.filter(c => typeof c === 'string') : []; } catch { return []; } })();
+  const saveFavorites = () => { try { localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); } catch {} };
+  // 주차 없이 과목만 저장하던 예전 즐겨찾기("AL")는 처음 보이는 주차의 과제로 옮긴다
+  function adoptLegacyFavorites(week) {
+    if (!favorites.some(k => !k.includes(':'))) return;
+    favorites = [...new Set(favorites.map(k => (k.includes(':') ? k : favKey(k, week))))];
+    saveFavorites();
+  }
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   function toggleAmFavorite(code) {
-    const on = !favorites.includes(code);
-    favorites = on ? [...favorites, code] : favorites.filter(c => c !== code);
-    try { localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); } catch {}
+    const key = favKey(code, lastMatrix.week.week_no);
+    const on = !favorites.includes(key);
+    favorites = on ? [...favorites, key] : favorites.filter(k => k !== key);
+    saveFavorites();
     // 줄이 새 자리로 미끄러져 가게(FLIP) — Future Item 박스 순서 바꾸기와 같은 방식
     const before = new Map([...tbody.rows].map(tr => [tr.dataset.amRow, tr.getBoundingClientRect().top]));
     render(lastMatrix);
@@ -729,14 +745,14 @@
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.classList.contains('am-note-append-input')) { e.preventDefault(); appendNote(); }
   });
 
-  // 기존 공지 아래에 한 줄 띄우고 이어 붙여 같은 공지로 저장한다. 마감은 그대로 두되,
+  // 기존 공지 아래에 구분선(---) 줄을 두고 이어 붙여 같은 공지로 저장한다. 마감은 그대로 두되,
   // 직접 입력한 마감이 아니고 아직 비어 있으면 합친 글에서 찾은 마감을 채운다
   let appending = false;
   async function appendNote() {
     const st = noteState, n = st?.note, text = st?.append?.trim();
     if (!n || !text || appending) return;
     appending = true;
-    const week = WEEK_NOW(), raw = `${n.raw.trimEnd()}\n\n${text}`;
+    const week = WEEK_NOW(), raw = `${n.raw.trimEnd()}\n\n---\n\n${text}`; // --- 줄은 보기에서 구분선으로 그려진다
     const parsed = n.dueManual ? {} : notice.parseNotice(raw);
     const res = await api(`/notes/${st.courseId}/${week}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
