@@ -2,43 +2,67 @@
 // scroll reveal, auto-opening dropdown, left TOC with active marker,
 // paper cards with hover preview, and a side panel with ←/→ stepping.
 
+// Paper summaries. `points` items may use <b> for emphasis (trusted, authored here).
+// `flow` is the diagram: each row is a chain of steps; the last step of a row is highlighted.
 const PAPERS = [
   {
     group: 'A',
     title: '대학생의 e-포트폴리오 제작 경험',
     cite: '조성범·한송이 (2023) · 한국교육문제연구 41(3)',
-    stat: '8명',
-    statLabel: '심층 면담',
+    method: '충북 A대 e-포트폴리오 경진대회 참가 학생 8명 1:1 심층 면담 (질적 연구)',
     claim: '정리하지 않으면 깨달음은 흐려진다',
-    method: '충북 A대 e-포트폴리오 경진대회 참가 학생 8명을 1:1 심층 면담한 질적 연구',
-    findings: [
-      '정리해 두지 않은 공모전·동아리 활동은 시간이 지나 기억나지 않았다 (학생3)',
-      '그 순간엔 크게 깨달았는데, 지금은 흐려져 허탈했다 (학생1)',
-      '오랜 기간의 기록을 한곳에 모아 보니 자신의 변화와 장단점이 처음으로 보였다 (학생5)',
-      '옛 기록을 다시 읽으며 놓쳤던 부분을 발견했다 (학생2)',
-      '배움은 경험하는 순간이 아니라 시간이 지난 뒤 성찰할 때 일어난다 (Dewey, 1938 인용)',
+    points: [
+      {
+        title: '모아서 다시 봐야 성찰이 일어난다 (제작 성과)',
+        items: [
+          '오랜 기간의 <b>기록을 한곳에 모아 보니 자신의 변화와 장단점이 처음으로 보였다</b>(학생5).',
+          '<b>옛 기록을 다시 읽으며 놓쳤던 부분을 발견하고 반성</b>할 수 있었다(학생2).',
+          '성과로 도출된 주제는 성찰을 통한 자기 이해, 진로 확신, 소속감이다.',
+        ],
+      },
+      {
+        title: '정리하지 않으면 경험은 흐려진다 (제작 동기)',
+        items: [
+          '공모전·동아리 활동을 따로 <b>정리해 두지 않았더니 시간이 지나 기억나지 않았다</b>(학생3).',
+          '<b>그 순간엔 크게 깨달았는데 지금은 흐릿해져 허탈했다</b>(학생1).',
+        ],
+      },
     ],
-    use: '기록을 남기는 것만으로는 부족하다. 흩어진 기록을 모아서 다시 볼 때 비로소 성찰과 배움이 일어난다.',
-    caution: '우수 참가자 8명의 자발적 사례라 일반화에 한계가 있다 (저자 명시).',
+    insight: '기록을 남기는 것만으로는 부족하다. 흩어진 기록을 모아서 다시 볼 때 비로소 성찰과 배움이 일어난다.',
+    flow: [
+      ['경험', '기록만 남김', '시간이 지나 흐려짐'],
+      ['경험', '기록', '모아서 다시 보기', '성찰 · 배움'],
+    ],
     url: 'https://doi.org/10.22327/kei.2023.41.3.113',
   },
   {
     group: 'A',
     title: '학습성찰도구로서 e-포트폴리오 활성화를 위한 연구',
     cite: '강인애·유승현·강연경 (2011) · 한국콘텐츠학회논문지 11(2)',
-    stat: '52.92%',
-    statLabel: '과목 특성과 도구가 맞지 않음',
-    claim: '과목에 맞지 않는 도구는 쓰기 어렵다',
     method: '경희대 학습 포트폴리오 참여 학생 설문 289명 + 성찰저널 240편 분석',
-    findings: [
-      '도움이 된 점 1위는 "학업에 대한 자기성찰 향상" 66.1%',
-      '성찰저널 분석에서 학습조절능력 향상 54.17%',
-      '성찰저널 작성자의 52.92%가 과목·전공 특성과 기능이 맞지 않아 어려웠다',
-      '설문 응답자의 51.21%가 쉬운 편집(시스템 개선)을 요구했다',
-      'Kolb의 학습 사이클에서 성찰은 학습의 핵심이지만, 현장은 성찰할 환경을 주지 못한다',
+    claim: '과목에 맞지 않는 도구는 쓰기 어렵다',
+    points: [
+      {
+        title: '성찰 도구로서의 효과 (수치 근거)',
+        items: [
+          '도움이 된 점 1위는 <b>학업에 대한 자기성찰 향상 66.1%</b>였다.',
+          '성찰저널 분석에서 <b>학습조절능력 향상 54.17%</b>, 학습과정 강화 27.08%가 나왔다.',
+          '배운 내용을 다시 정리해 쓰는 과정에서 더 잘 이해되고 기억된다.',
+        ],
+      },
+      {
+        title: '좋은 도구여도 과목과 안 맞으면 쓰기 어렵다',
+        items: [
+          '성찰저널 작성자의 <b>52.92%가 과목·전공 특성과 포트폴리오 기능이 맞지 않아 어려웠다</b>고 답했다.',
+          '설문 응답자의 <b>51.21%가 쉬운 편집(시스템 개선)</b>을 요구했다.',
+        ],
+      },
     ],
-    use: '성찰 기록을 모으면 3명 중 2명이 자기성찰이 늘었다고 느낀다. 그러나 과목 특성에 맞지 않는 도구는 쓰기 어렵다.',
-    caution: '2011년 연구이고 자기보고식 응답이다. 논문 1과 함께 쓴다.',
+    insight: '성찰 기록을 모으면 3명 중 2명이 자기성찰이 늘었다고 느낀다. 그러나 과목 특성에 맞지 않는 도구는 쓰기 어렵다.',
+    flow: [
+      ['성찰 기록을 모음', '자기성찰 향상 66.1%'],
+      ['과목과 맞지 않는 도구', '사용이 어려움 52.92%'],
+    ],
     url: 'https://doi.org/10.5392/JKCA.2011.11.2.495',
   },
   {
@@ -46,57 +70,113 @@ const PAPERS = [
     star: true,
     title: 'Information behaviour that keeps found things found',
     cite: 'Bruce · Jones · Dumais (2004) · Information Research 10(1)',
-    stat: '4.87가지',
-    statLabel: '매주 쓰는 보관 방법',
-    claim: '보관은 흩어지고, 안 보이면 잊는다',
     method: '24명 관찰 · 12명 3~6개월 뒤 재검색 실험 · 214명 설문. 웹페이지를 보관하고 다시 찾는 행동을 다룬 PIM(개인 정보 관리) 연구',
-    findings: [
-      '보관(Keeping)과 내버려 두기(Leaving): 다시 찾기 쉬운 곳에 있다고 믿으면 그 자리에 둔다',
-      '평균 7.16가지 보관 방법을 써 봤고, 매주 쓰는 방법만 4.87가지였다',
-      '맥락·상기 등 10가지 기능을 모두 갖춘 보관 방법은 없었다',
-      '상기하려고 내게 메일(25건), 맥락을 남기려 메모(20건): 도구 대신 사용자가 수고한다',
-      '폴더에 넣은 항목은 쓸모가 지난 뒤에야 떠오른다: out of sight, out of mind (선행연구 인용)',
+    claim: '보관은 흩어지고, 안 보이면 잊는다',
+    points: [
+      {
+        title: '보관 방법은 흩어지고, 완벽한 방법은 없다',
+        items: [
+          '한 사람이 평균 <b>7.16가지</b> 보관 방법을 써 봤고, 매주 쓰는 방법만 <b>4.87가지</b>였다.',
+          '맥락·상기 등 <b>10가지 기능을 모두 갖춘 보관 방법은 없었다</b>.',
+        ],
+      },
+      {
+        title: '상기와 맥락은 사용자가 직접 만든다',
+        items: [
+          '나중에 하려고 스스로 상기시키려고 <b>내게 메일을 보낸 경우 25건</b>.',
+          '메모를 덧붙여 맥락을 남기려고 <b>문서에 URL을 붙인 경우 20건</b>.',
+          '<b>상기와 맥락은 도구가 해주지 않아 사용자가 직접 수고해서 만들고 있었다</b>.',
+        ],
+      },
+      {
+        title: '안 보이면 잊는다',
+        items: [
+          '폴더에 넣어 둔 항목은 <b>쓸모가 지난 뒤에야 다시 떠오른다</b> — out of sight, out of mind (선행연구 인용).',
+          '내버려 두기(Leaving)는 정보가 <b>다시 찾기 쉬운 곳에 있을 때만</b> 통한다. 웹은 검색이 돼서 재검색이 90~100% 성공했다.',
+        ],
+      },
     ],
-    use: '내버려 두기는 정보가 다시 찾기 쉬운 곳에 있을 때만 통한다. 날짜순 채널은 과목·목적으로 다시 찾기 쉬운 곳이 아니다.',
-    caution: '웹 재검색은 90~100% 성공했다. 대상이 검색되는 웹이고 참가자가 주로 40~59세 전문직이라, 학습 저널 적용은 유추로 표현한다.',
+    insight: '내버려 두기는 정보가 다시 찾기 쉬운 곳에 있을 때만 통한다. 날짜순 채널은 과목·목적으로 다시 찾기 쉬운 곳이 아니다.',
+    flow: [
+      ['유용한 정보', '보관 방법 4.87가지로 흩어짐', '안 보이면 잊음'],
+      ['유용한 정보', '내버려 두기', '찾기 쉬운 곳이면 다시 찾음'],
+    ],
     url: 'https://informationr.net/ir/10-1/paper207.html',
   },
   {
     group: 'B',
     title: '대학생들의 개인정보관리 행태에 영향을 미치는 요인에 관한 연구',
     cite: '이수연·이용정 (2020) · 정보관리학회지 37(1)',
-    stat: '41.7%',
-    statLabel: '저장 위치를 기억해서 다시 찾음',
-    claim: '흩어지면 못 찾거나 중복된다',
     method: '서울 소재 한 대학 593명 온라인 설문 (석·박사과정 46.4% 포함)',
-    findings: [
-      '정보량이 늘면 필요한 정보를 찾는 데 많은 시간과 노력이 든다',
-      '여러 도구에 흩어지면 찾지 못하거나 중복이 쌓인다 (Majid 외, 2013 인용)',
-      '정리 체계가 없으면 다시 찾기 어렵다 (Jones의 메타 활동)',
-      '도구: PC 25.2% · 스마트기기 20.4% · 클라우드 14.9% · USB 13.8%',
-      '나중에 쓸 거라는 인식과 빠른 축적은 정리를 늘리고, 도구가 부담스러우면 정리를 줄인다',
+    claim: '흩어지면 못 찾거나 중복된다',
+    points: [
+      {
+        title: '정보가 많아질수록 찾는 데 수고가 든다',
+        items: [
+          '정보량이 늘면서 <b>필요한 정보를 찾는 데 많은 시간과 노력이 든다</b>.',
+          '여러 도구에 흩어지면 <b>찾지 못하거나 중복이 쌓인다</b> (Majid 외, 2013 인용).',
+          '<b>정리 체계가 없으면 다시 찾기 어렵다</b> (Jones의 메타 활동).',
+        ],
+      },
+      {
+        title: '실제 행태 (593명)',
+        items: [
+          '사용 도구가 PC 25.2% · 스마트기기 20.4% · 클라우드 14.9% · USB 13.8%로 흩어져 있다.',
+          '다시 찾는 방법 1위는 <b>저장 위치를 기억해서 41.7%</b>, 검색은 24.8%.',
+        ],
+      },
+      {
+        title: '무엇이 정리를 움직이는가 (회귀분석)',
+        items: [
+          '<b>나중에 쓸 거라는 인식</b>이 정리와 유지를 모두 높였다.',
+          '<b>정보가 빨리 쌓일수록</b> 정리 활동이 늘었다.',
+          '<b>정보기술 사용이 부담스러울수록</b> 정리와 유지가 줄었다.',
+        ],
+      },
     ],
-    use: '대학생은 정보를 여러 도구에 흩어 두고 기억에 의존해 다시 찾는다. 매일 12과목 기록이 쌓이는 Phi 학습자는 정리 욕구가 큰 집단이다.',
-    caution: '회귀 설명력이 1.8~7.9%로 낮다. "정보 분산"은 이 논문의 검증 결과가 아니라 선행연구 인용이다.',
+    insight: '대학생은 정보를 여러 도구에 흩어 두고 기억에 의존해 다시 찾는다. 매일 12과목 기록이 쌓이는 Phi 학습자는 정리 욕구가 큰 집단이다.',
+    flow: [
+      ['정보가 빠르게 쌓임', '여러 도구에 분산', '못 찾거나 중복'],
+      ['나중에 쓸 거라는 인식', '정리 ↑'],
+      ['도구 사용 부담', '정리 ↓'],
+    ],
     url: 'https://doi.org/10.3743/KOSIM.2020.37.1.107',
   },
   {
     group: 'B',
     title: '디지털 객체 생애주기에 따른 대학생의 파일관리 행태 연구',
     cite: '지윤재·이혜은 (2022) · 한국비블리아학회지 33(1)',
-    stat: '20% 미만',
-    statLabel: '파일명에 날짜를 적는 비율',
-    claim: '학생은 날짜가 아니라 과목으로 정리한다',
     method: '두 대학 학부생 154명 설문 + 8명 심층 면담 (화면 공유·과제 수행 녹화)',
-    findings: [
-      '면담자 8명 중 7명이 저장 매체를 2개 이상 쓴다',
-      '지난 학기 첫 과제를 찾는 데 18초~2분 (평균 약 1분)',
-      '가장 빨리 찾은 학생은 "지난학기" 폴더를 만들어 둔 경우였다',
-      '학기 → 과목 폴더, 파일명에는 과목명·교수명. 날짜를 적는 경우는 모든 유형에서 20% 이내',
-      '폐기를 미룬 채 쌓아 두고, 골라내는 일 자체에 피로를 느낀다',
+    claim: '학생은 날짜가 아니라 과목으로 정리한다',
+    points: [
+      {
+        title: '저장 장소가 흩어져 있다',
+        items: [
+          '면담자 <b>8명 중 7명</b>이 저장 매체를 2개 이상 썼다.',
+          '지난 학기 첫 과제를 찾는 데 <b>18초~2분</b>(평균 약 1분)이 걸렸다.',
+        ],
+      },
+      {
+        title: '과목 기준으로 정리하면 빨리 찾는다',
+        items: [
+          '가장 빨리 찾은 학생은 바탕화면에 <b>"지난학기" 폴더</b>를 만들어 둔 경우였다.',
+          '학생들은 대체로 <b>학기 → 과목 폴더</b>를 만들고, 파일명에는 과목명·교수명을 적었다.',
+          '파일명에 날짜를 적는 경우는 <b>모든 파일 유형에서 20% 이내</b>였다.',
+        ],
+      },
+      {
+        title: '쌓기만 하고 돌아보지 않는다',
+        items: [
+          '보관할지 평가하는 단계가 거의 없고, <b>폐기를 미룬 채 모두 쌓아 두는 모습</b>이 확인됐다.',
+          '백업을 하지 않는 경우가 30.5%였고, <b>골라내는 일 자체에 피로감</b>을 느꼈다.',
+        ],
+      },
     ],
-    use: '학생들은 과제 파일을 과목 기준으로 정리하고, 그렇게 정리했을 때 가장 빨리 찾는다. 디스코드 저널에는 이 과목별 정리가 없다.',
-    caution: '면담자는 모두 결국 파일을 찾았다. 과목별로 정리해 두었기 때문이다.',
+    insight: '학생들은 과제 파일을 과목 기준으로 정리하고, 그렇게 정리했을 때 가장 빨리 찾는다. 디스코드 저널에는 이 과목별 정리가 없다.',
+    flow: [
+      ['학기 폴더', '과목 폴더', '과목명 파일', '가장 빨리 찾음'],
+      ['날짜로 이름 붙이기', '20% 미만'],
+    ],
     url: 'https://doi.org/10.14699/kbiblia.2022.33.1.321',
   },
 ];
@@ -104,7 +184,7 @@ const PAPERS = [
 const pad = (n) => String(n).padStart(2, '0');
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// ---------- Paper cards ----------
+// ---------- Paper cards: number · claim · paper title; hover lists the key-content headings ----------
 document.querySelectorAll('[data-papers]').forEach((grid) => {
   PAPERS.forEach((p, i) => {
     if (p.group !== grid.dataset.papers) return;
@@ -112,23 +192,18 @@ document.querySelectorAll('[data-papers]').forEach((grid) => {
     card.className = 'paper-card';
     card.dataset.r = '';
     card.innerHTML = `
-      <button type="button" class="paper-card__hit" data-open="${i}" aria-haspopup="dialog" aria-label="논문 ${i + 1} 정리 열기">
+      <button type="button" class="paper-card__hit" data-open="${i}" aria-haspopup="dialog" aria-label="논문 ${i + 1} 전체 보기">
         <span class="paper-card__face">
-          <span class="typo-label color-tertiary">논문 ${pad(i + 1)}${p.star ? ' · 핵심' : ''}</span>
-          <span class="paper-card__stat">${esc(p.stat)}</span>
-          <span class="typo-label color-tertiary">${esc(p.statLabel)}</span>
-          <span class="paper-card__claim typo-title">${esc(p.claim)}</span>
-          <span class="paper-card__cite typo-body color-secondary">${esc(p.cite)}</span>
+          <span class="paper-card__num">${pad(i + 1)}</span>
+          <span class="paper-card__claim typo-subheading">${esc(p.claim)}</span>
+          <span class="paper-card__title typo-body color-secondary">${esc(p.title)}</span>
         </span>
         <span class="paper-card__preview" aria-hidden="true">
           <span class="paper-card__preview-inner">
-            <span class="typo-label color-tertiary">논문 ${pad(i + 1)} · ${esc(p.cite)}</span>
+            <span class="typo-label color-tertiary">${pad(i + 1)} · 핵심 내용</span>
             <span class="typo-title">${esc(p.claim)}</span>
-            <span class="typo-body color-secondary">${esc(p.method)}</span>
-            <span class="paper-card__points">
-              ${p.findings.slice(0, 2).map((f) => `<span class="typo-body color-secondary dash">${esc(f)}</span>`).join('')}
-            </span>
-            <span class="paper-card__more typo-label">전체 정리 보기 →</span>
+            ${p.points.map((g) => `<span class="typo-body color-secondary dash">${esc(g.title)}</span>`).join('')}
+            <span class="paper-card__more typo-label">전체 보기 →</span>
           </span>
         </span>
       </button>`;
@@ -141,7 +216,7 @@ document.getElementById('sources').innerHTML = PAPERS.map(
   (p, i) => `<li>${pad(i + 1)} · ${esc(p.cite)} — <a class="link" href="${p.url}" target="_blank" rel="noreferrer">${esc(p.title)}</a></li>`,
 ).join('');
 
-// ---------- Side panel ----------
+// ---------- Side panel: title · 핵심 내용 · Insight · 도식화 · 원문 링크 ----------
 const panel = document.querySelector('.panel');
 const panelBody = panel.querySelector('.panel__body');
 const panelScroll = panel.querySelector('.panel__scroll');
@@ -149,38 +224,31 @@ const panelCount = panel.querySelector('[data-panel-count]');
 let current = null;
 let lastTrigger = null;
 
+const renderFlow = (rows) => rows.map((row) => `
+  <div class="flow__row">${row.map((step, k) => `${k ? '<span class="flow__arrow" aria-hidden="true">→</span>' : ''}<span class="flow__step${k === row.length - 1 ? ' is-end' : ''}">${esc(step)}</span>`).join('')}</div>`).join('');
+
 function renderPanel(i) {
   const p = PAPERS[i];
   panelCount.textContent = `Research · ${pad(i + 1)} / ${pad(PAPERS.length)}`;
   panelBody.innerHTML = `
-    <div class="panel__grid">
-      <aside class="panel__identity">
-        <span class="panel__number">${pad(i + 1)}</span>
-        <h2 id="panel-title" class="typo-subheading">${esc(p.claim)}</h2>
-        <p class="typo-body color-secondary">${esc(p.title)}</p>
-        <span class="panel__stat">${esc(p.stat)}</span>
-        <span class="typo-label color-tertiary">${esc(p.statLabel)}</span>
-        <dl class="panel__facts">
-          <div><dt class="typo-label color-tertiary">출처</dt><dd class="typo-body">${esc(p.cite)}</dd></div>
-          <div><dt class="typo-label color-tertiary">대상·방법</dt><dd class="typo-body">${esc(p.method)}</dd></div>
-          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'A' ? 'A · 다시 봐야 하는 이유' : 'B · 다시 보기 어려운 이유'}</dd></div>
-        </dl>
-      </aside>
-      <div class="panel__content">
-        <section class="panel__section">
-          <h3 class="typo-title">핵심 발견</h3>
-          <ul class="panel__findings">${p.findings.map((f) => `<li class="typo-body color-secondary dash">${esc(f)}</li>`).join('')}</ul>
-        </section>
-        <section class="panel__section">
-          <h3 class="typo-title">Discover 활용</h3>
-          <p class="panel__quote typo-lead">${esc(p.use)}</p>
-        </section>
-        <section class="panel__section">
-          <h3 class="typo-title">주의</h3>
-          <p class="typo-body color-secondary">${esc(p.caution)}</p>
-        </section>
-        <a class="link typo-label" href="${p.url}" target="_blank" rel="noreferrer">원문 보기 →</a>
-      </div>
+    <div class="paper-doc">
+      <h2 id="panel-title" class="chip chip--title">${i + 1}. ${esc(p.title)}</h2>
+      <p class="paper-doc__meta typo-body color-secondary">${esc(p.cite)} · ${esc(p.method)}</p>
+
+      <h3 class="chip">핵심 내용</h3>
+      ${p.points.map((g) => `
+        <section class="paper-doc__box">
+          <h4 class="typo-title">${esc(g.title)}</h4>
+          <ol class="paper-doc__list">${g.items.map((t) => `<li>${t}</li>`).join('')}</ol>
+        </section>`).join('')}
+
+      <h3 class="chip">Insight</h3>
+      <p class="paper-doc__box paper-doc__insight">${esc(p.insight)}</p>
+
+      <h3 class="chip">도식화</h3>
+      <div class="paper-doc__box flow" role="img" aria-label="${esc(p.claim)} 도식">${renderFlow(p.flow)}</div>
+
+      <a class="paper-doc__link link typo-label" href="${p.url}" target="_blank" rel="noreferrer">논문 원문 보기 →</a>
     </div>`;
   panelScroll.scrollTo({ top: 0 });
 }
@@ -211,6 +279,10 @@ document.addEventListener('click', (e) => {
   const stepper = e.target.closest('[data-step]');
   if (stepper) step(Number(stepper.dataset.step));
 });
+// Deep link: #paper-03 opens that paper's panel
+const deepLink = location.hash.match(/^#paper-(\d+)$/);
+if (deepLink && PAPERS[Number(deepLink[1]) - 1]) openPanel(Number(deepLink[1]) - 1);
+
 document.addEventListener('keydown', (e) => {
   if (current === null) return;
   if (e.key === 'Escape') closePanel();
