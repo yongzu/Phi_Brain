@@ -58,10 +58,9 @@ const PAPERS = [
         ],
       },
     ],
-    insight: '성찰 기록을 모으면 3명 중 2명이 자기성찰이 늘었다고 느낀다. 그러나 과목 특성에 맞지 않는 도구는 쓰기 어렵다.',
+    insight: '설문 응답자의 51.21%가 시스템 개선(쉬운 편집)을 요구했습니다.',
     flow: [
-      ['성찰 기록을 모음', '자기성찰 향상 66.1%'],
-      ['과목과 맞지 않는 도구', '사용이 어려움 52.92%'],
+      ['과목과 맞지 않는 기능', '편집이 어려움', '51.21%가 쉬운 편집 요구'],
     ],
     url: 'https://doi.org/10.5392/JKCA.2011.11.2.495',
   },
@@ -216,7 +215,7 @@ document.getElementById('sources').innerHTML = PAPERS.map(
   (p, i) => `<li>${pad(i + 1)} · ${esc(p.cite)} — <a class="link" href="${p.url}" target="_blank" rel="noreferrer">${esc(p.title)}</a></li>`,
 ).join('');
 
-// ---------- Side panel: title · 핵심 내용 · Insight · 도식화 · 원문 링크 ----------
+// ---------- Side panel: identity column · 핵심 내용 · Insight · 도식화 · 원문 링크 ----------
 const panel = document.querySelector('.panel');
 const panelBody = panel.querySelector('.panel__body');
 const panelScroll = panel.querySelector('.panel__scroll');
@@ -231,24 +230,36 @@ function renderPanel(i) {
   const p = PAPERS[i];
   panelCount.textContent = `Research · ${pad(i + 1)} / ${pad(PAPERS.length)}`;
   panelBody.innerHTML = `
-    <div class="paper-doc">
-      <h2 id="panel-title" class="chip chip--title">${i + 1}. ${esc(p.title)}</h2>
-      <p class="paper-doc__meta typo-body color-secondary">${esc(p.cite)} · ${esc(p.method)}</p>
-
-      <h3 class="chip">핵심 내용</h3>
-      ${p.points.map((g) => `
-        <section class="paper-doc__box">
-          <h4 class="typo-title">${esc(g.title)}</h4>
-          <ol class="paper-doc__list">${g.items.map((t) => `<li>${t}</li>`).join('')}</ol>
-        </section>`).join('')}
-
-      <h3 class="chip">Insight</h3>
-      <p class="paper-doc__box paper-doc__insight">${esc(p.insight)}</p>
-
-      <h3 class="chip">도식화</h3>
-      <div class="paper-doc__box flow" role="img" aria-label="${esc(p.claim)} 도식">${renderFlow(p.flow)}</div>
-
-      <a class="paper-doc__link link typo-label" href="${p.url}" target="_blank" rel="noreferrer">논문 원문 보기 →</a>
+    <div class="panel__grid">
+      <aside class="panel__identity">
+        <span class="panel__number">${pad(i + 1)}</span>
+        <h2 id="panel-title" class="typo-subheading">${esc(p.claim)}</h2>
+        <p class="typo-body color-secondary">${esc(p.title)}</p>
+        <dl class="panel__facts">
+          <div><dt class="typo-label color-tertiary">출처</dt><dd class="typo-body">${esc(p.cite)}</dd></div>
+          <div><dt class="typo-label color-tertiary">대상·방법</dt><dd class="typo-body">${esc(p.method)}</dd></div>
+          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'A' ? 'A · 다시 봐야 하는 이유' : 'B · 다시 보기 어려운 이유'}</dd></div>
+        </dl>
+      </aside>
+      <div class="panel__content">
+        <section class="panel__section">
+          <h3 class="typo-title">핵심 내용</h3>
+          ${p.points.map((g) => `
+            <div class="panel__group">
+              <h4 class="typo-label">${esc(g.title)}</h4>
+              <ol class="panel__list typo-body color-secondary">${g.items.map((t) => `<li>${t}</li>`).join('')}</ol>
+            </div>`).join('')}
+        </section>
+        <section class="panel__section">
+          <h3 class="typo-title">Insight</h3>
+          <p class="panel__quote typo-lead">${esc(p.insight)}</p>
+        </section>
+        <section class="panel__section">
+          <h3 class="typo-title">도식화</h3>
+          <div class="flow" role="img" aria-label="${esc(p.claim)} 도식">${renderFlow(p.flow)}</div>
+        </section>
+        <a class="link typo-label" href="${p.url}" target="_blank" rel="noreferrer">논문 원문 보기 →</a>
+      </div>
     </div>`;
   panelScroll.scrollTo({ top: 0 });
 }
