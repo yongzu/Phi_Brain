@@ -274,16 +274,6 @@ if (dd) {
   show(0);
 }
 
-// ---------- Blueprint: hovering a stage column dims the others ----------
-const bp = document.querySelector('.bp');
-if (bp) {
-  bp.addEventListener('mouseover', (e) => {
-    const col = e.target.closest('[data-col]');
-    if (col) bp.dataset.active = col.dataset.col;
-  });
-  bp.addEventListener('mouseleave', () => delete bp.dataset.active);
-}
-
 // ---------- Qualitative research: fill these after the interviews ----------
 // INTERVIEWS: { who: '학습자 1 · 2학기', quote: '한 줄 인용', points: ['발견 1', '발견 2'] }
 // INTERVIEW_STATS: { num: '3/5명', title: '지난주 저널을 다시 보지 않았다', body: '설명' }
