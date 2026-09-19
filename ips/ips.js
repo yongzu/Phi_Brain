@@ -4,7 +4,7 @@
 
 const PAPERS = [
   {
-    group: 'D',
+    group: 'A',
     title: '대학생의 e-포트폴리오 제작 경험',
     cite: '조성범·한송이 (2023) · 한국교육문제연구 41(3)',
     stat: '8명',
@@ -23,7 +23,7 @@ const PAPERS = [
     url: 'https://doi.org/10.22327/kei.2023.41.3.113',
   },
   {
-    group: 'D',
+    group: 'A',
     title: '학습성찰도구로서 e-포트폴리오 활성화를 위한 연구',
     cite: '강인애·유승현·강연경 (2011) · 한국콘텐츠학회논문지 11(2)',
     stat: '52.92%',
@@ -42,7 +42,7 @@ const PAPERS = [
     url: 'https://doi.org/10.5392/JKCA.2011.11.2.495',
   },
   {
-    group: 'A',
+    group: 'B',
     star: true,
     title: 'Information behaviour that keeps found things found',
     cite: 'Bruce · Jones · Dumais (2004) · Information Research 10(1)',
@@ -62,7 +62,7 @@ const PAPERS = [
     url: 'https://informationr.net/ir/10-1/paper207.html',
   },
   {
-    group: 'A',
+    group: 'B',
     title: '대학생들의 개인정보관리 행태에 영향을 미치는 요인에 관한 연구',
     cite: '이수연·이용정 (2020) · 정보관리학회지 37(1)',
     stat: '41.7%',
@@ -81,7 +81,7 @@ const PAPERS = [
     url: 'https://doi.org/10.3743/KOSIM.2020.37.1.107',
   },
   {
-    group: 'A',
+    group: 'B',
     title: '디지털 객체 생애주기에 따른 대학생의 파일관리 행태 연구',
     cite: '지윤재·이혜은 (2022) · 한국비블리아학회지 33(1)',
     stat: '20% 미만',
@@ -163,7 +163,7 @@ function renderPanel(i) {
         <dl class="panel__facts">
           <div><dt class="typo-label color-tertiary">출처</dt><dd class="typo-body">${esc(p.cite)}</dd></div>
           <div><dt class="typo-label color-tertiary">대상·방법</dt><dd class="typo-body">${esc(p.method)}</dd></div>
-          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'D' ? 'D · 다시 봐야 하는 이유' : 'A · 다시 보기 어려운 이유'}</dd></div>
+          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'A' ? 'A · 다시 봐야 하는 이유' : 'B · 다시 보기 어려운 이유'}</dd></div>
         </dl>
       </aside>
       <div class="panel__content">
