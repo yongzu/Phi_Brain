@@ -59,6 +59,9 @@
   let currentWeekNo = null;
   let snapshot = null; // the loaded status file — set only while in read-only mode
   let lastMatrix = null; // what the table is showing (notes are read from here)
+  // 다른 주차에서 즐겨찾기한 과제 줄들(그 주차 표에서 가져옴, 각 줄에 week) — 어느 주차를 보든 표 맨 위에 늘 보인다
+  let pinnedRows = [];
+  let tableRows = []; // 지금 표에 있는 줄 전부(이번 주 + 다른 주차 즐겨찾기) — 과제 내용·상세 팝업이 여기서 줄을 찾는다
   let pendingConnectResult = null;
 
   // ---- read-only mode: the weekly sync's status file (server/snapshot.js) ----
@@ -203,7 +206,7 @@
     }
     const label = row.note ? `${row.code} 과제 내용 보기` : `${row.code} 과제 공지 붙여넣기`;
     return `<td><span class="am-note-cell">
-      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" aria-label="${esc(label)}">자세히보기</button>
+      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" data-note-wk="${row.week}" aria-label="${esc(label)}">자세히보기</button>
       ${dueBadge(row.note, row.assignment.status)}
     </span></td>`;
   }
@@ -216,20 +219,22 @@
       + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0)
       + (lateness(r.selfFeedback, r.note) === 'missed' ? 1 : 0), 0);
     progressEl.textContent = `완료 ${matrix.progress.done - missed} / ${matrix.progress.total}`;
-    // 즐겨찾기한 과제(이 주차의 과목)는 표 맨 위로 — 두 묶음 안에서는 원래 과목 순서 그대로
+    // 즐겨찾기한 과제는 표 맨 위로, 누른 순서대로 — 다른 주차 것도 늘 함께(사용자 지시 2026-09-19).
+    // 나머지는 이번 주 과목들, 원래 과목 순서. 같은 과목이 다른 주차 즐겨찾기로 위에도 한 줄 더 있을 수 있다(WK 박스로 구분)
     const week = matrix.week.week_no;
     adoptLegacyFavorites(week);
-    const favOrder = r => favorites.indexOf(favKey(r.code, week));
-    const favRows = matrix.rows.filter(r => favOrder(r) >= 0).sort((a, b) => favOrder(a) - favOrder(b));
-    const rest = matrix.rows.filter(r => favOrder(r) < 0);
-    const wk = `WK${String(week).padStart(2, '0')}`;
+    const current = matrix.rows.map(r => ({ ...r, week }));
+    tableRows = [...current, ...pinnedRows.filter(r => r.week !== week)];
+    const byKey = new Map(tableRows.map(r => [favKey(r.code, r.week), r]));
+    const favRows = favorites.map(k => byKey.get(k)).filter(Boolean);
+    const rest = current.filter(r => !favorites.includes(favKey(r.code, week)));
     tbody.innerHTML = [...favRows, ...rest].map((row, i) => {
-      const isFav = i < favRows.length;
-      return `<tr data-am-row="${esc(row.code)}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
+      const isFav = i < favRows.length, other = row.week !== week;
+      return `<tr data-am-row="${esc(favKey(row.code, row.week))}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
         <td><span class="am-cell">
-          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${week}주차 과제"></button>
+          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" data-am-week="${row.week}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
           <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
-          <span class="am-week-tag" title="${week}주차 과제">${wk}</span>
+          <span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>
           ${safeHref(row.boardUrl)
             ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
@@ -256,8 +261,17 @@
     saveFavorites();
   }
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  function toggleAmFavorite(code) {
-    const key = favKey(code, lastMatrix.week.week_no);
+  // 다른 주차 즐겨찾기 줄을 그 주차 표에서 가져온다(주차마다 한 번). 읽기 전용이면 상태 파일에서
+  async function loadPinnedRows(week) {
+    const weeksNeeded = [...new Set(favorites.map(k => Number(k.split(':')[1])).filter(w => Number.isInteger(w) && w !== week))];
+    const lists = await Promise.all(weeksNeeded.map(async w => {
+      const m = snapshot ? (snapshot.weeks ? snapshotMatrix(w) : null) : await apiJson(`/weeks/${w}/matrix`);
+      return m ? m.rows.filter(r => favorites.includes(favKey(r.code, w))).map(r => ({ ...r, week: w })) : [];
+    }));
+    return lists.flat();
+  }
+  function toggleAmFavorite(code, week) {
+    const key = favKey(code, week);
     const on = !favorites.includes(key);
     favorites = on ? [...favorites, key] : favorites.filter(k => k !== key);
     saveFavorites();
@@ -270,15 +284,17 @@
         if (dy) tr.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
       });
     }
-    tbody.querySelector(`[data-am-fav="${CSS.escape(code)}"]`)?.focus({ preventScroll: true });
+    tbody.querySelector(`[data-am-row="${CSS.escape(key)}"] .am-fav`)?.focus({ preventScroll: true }); // 다른 주차 줄을 풀면 줄이 사라져 포커스할 곳이 없다
     placeDetail(); // 열린 팝업이 있으면 옮겨 간 칸을 따라간다
   }
 
   async function loadWeek(weekNo) {
-    if (snapshot) { currentWeekNo = weekNo; render(snapshotMatrix(weekNo)); return; }
-    const matrix = await apiJson(`/weeks/${weekNo}/matrix`);
+    adoptLegacyFavorites(weekNo);
+    if (snapshot) { currentWeekNo = weekNo; pinnedRows = await loadPinnedRows(weekNo); render(snapshotMatrix(weekNo)); return; }
+    const [matrix, pinned] = await Promise.all([apiJson(`/weeks/${weekNo}/matrix`), loadPinnedRows(weekNo)]);
     if (!matrix || snapshot) return; // switched to read-only while waiting
     currentWeekNo = weekNo;
+    pinnedRows = pinned;
     render(matrix);
   }
 
@@ -392,10 +408,10 @@
   function closeDetail() {
     // a paste that wasn't saved yet is kept for this course/week, so closing by accident doesn't lose it
     if (noteState?.mode === 'edit' && noteState.draft?.raw.trim() && noteState.draft.raw !== (noteState.note?.raw || '')) {
-      unsavedDrafts.set(`${noteState.courseId}:${currentWeekNo}`, { ...noteState.draft });
+      unsavedDrafts.set(`${noteState.courseId}:${noteState.week}`, { ...noteState.draft });
     }
     // 아래 "추가" 입력창에 쓰다 만 것도 같은 과목·주차에 남겨 둔다
-    if (noteState?.append?.trim()) unsavedAppends.set(`${noteState.courseId}:${currentWeekNo}`, noteState.append);
+    if (noteState?.append?.trim()) unsavedAppends.set(`${noteState.courseId}:${noteState.week}`, noteState.append);
     detailAnchor = null; noteState = null;
     if (!detail.hidden && detail.dataset.open) popOut(detail);
   }
@@ -426,7 +442,7 @@
     const kindLabel = d.kind === 'assignment' ? '과제' : '셀프피드백';
     const latest = d.evidence[d.evidence.length - 1];
     // 표와 같은 기준으로 "지각 제출" — 첫 확인메일(evidence[0], 수신 시각 오름차순)과 그 주 과제 내용의 마감을 견준다
-    const note = lastMatrix?.rows.find(r => r.courseId === d.courseId)?.note;
+    const note = rowOf(d.courseId, d.weekNo)?.note;
     const asCell = { status: d.status, confirmedAt: d.evidence[0]?.received_at || null };
     const statusLabel = cellLabel(asCell, note);
     const statusKey = cellStatusKey(asCell, note);
@@ -536,7 +552,7 @@
 
   tbody.addEventListener('click', e => {
     const favBtn = e.target.closest('[data-am-fav]');
-    if (favBtn) { toggleAmFavorite(favBtn.dataset.amFav); return; }
+    if (favBtn) { toggleAmFavorite(favBtn.dataset.amFav, Number(favBtn.dataset.amWeek)); return; }
     const linkBtn = e.target.closest('[data-link-target]');
     if (linkBtn) { linkMenuAnchor === linkBtn ? closeLinkMenu() : (closeLinkMenu(), openLinkMenu(linkBtn)); return; }
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
@@ -550,16 +566,16 @@
     if (e.target.closest('[data-note-login]')) { toast('로그인하면 과제 공지를 붙여넣고 마감을 볼 수 있어요'); return; }
     const noteBtn = e.target.closest('[data-note-course]');
     if (noteBtn) {
-      if (detailAnchor === `[data-note-course="${noteBtn.dataset.noteCourse}"]` && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
-      openNote(noteBtn.dataset.noteCourse);
+      if (detailAnchor === noteAnchor(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk)) && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
+      openNote(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk));
     }
   });
   // "자세히보기"를 더블클릭하면 바로 크게(전체보기) 연다(사용자 지시 2026-09-19)
   tbody.addEventListener('dblclick', e => {
     const noteBtn = e.target.closest('[data-note-course]');
     if (!noteBtn) return;
-    const courseId = noteBtn.dataset.noteCourse;
-    if (noteState?.courseId !== courseId || detail.hidden || !detail.dataset.open) openNote(courseId);
+    const courseId = noteBtn.dataset.noteCourse, week = Number(noteBtn.dataset.noteWk);
+    if (noteState?.courseId !== courseId || noteState.week !== week || detail.hidden || !detail.dataset.open) openNote(courseId, week);
     setNoteExpanded(true);
   });
 
@@ -567,17 +583,19 @@
   // noteState = { courseId, mode: 'view'|'edit', note (saved one for this week or null), menu: false|'menu'|'confirm',
   //               draft: { raw, dueAt, lateDueAt, dueTouched, week }, conflict: null|{ note } }
   let noteState = null;
-  const rowOf = courseId => lastMatrix?.rows.find(r => r.courseId === courseId);
-  const WEEK_NOW = () => currentWeekNo;
+  // 과제 내용은 그 줄의 주차 것 — 다른 주차 즐겨찾기 줄이면 그 주차 공지를 열고 저장한다
+  const rowOf = (courseId, week) => tableRows.find(r => r.courseId === courseId && r.week === week);
+  const noteAnchor = (courseId, week) => `[data-note-course="${courseId}"][data-note-wk="${week}"]`;
+  const WEEK_NOW = () => noteState.week;
 
-  function openNote(courseId, { mode } = {}) {
-    const row = rowOf(courseId);
+  function openNote(courseId, week = currentWeekNo, { mode } = {}) {
+    const row = rowOf(courseId, week);
     if (!row) return;
-    noteState = { courseId, note: row.note, mode: mode || (row.note ? 'view' : 'edit'), menu: false, conflict: null, draft: null };
-    const appendKey = `${courseId}:${currentWeekNo}`;
+    noteState = { courseId, week, note: row.note, mode: mode || (row.note ? 'view' : 'edit'), menu: false, conflict: null, draft: null };
+    const appendKey = `${courseId}:${week}`;
     if (unsavedAppends.has(appendKey)) { noteState.append = unsavedAppends.get(appendKey); unsavedAppends.delete(appendKey); }
     if (noteState.mode === 'edit') startDraft();
-    detailAnchor = `[data-note-course="${courseId}"]`;
+    detailAnchor = noteAnchor(courseId, week);
     detail.classList.add('is-note');
     detail.classList.remove('is-expanded'); // 새로 열 때는 늘 칸 옆 작은 팝업부터
     renderNote();
@@ -591,8 +609,8 @@
     noteState.menu = false;
     // editing a saved notice stays in its week unless the user picks another; a new paste defaults to the week it names
     noteState.draft = { raw: n?.raw || '', dueAt: n?.dueAt || null, lateDueAt: n?.lateDueAt || null, dueTouched: !!n?.dueManual, week: WEEK_NOW(), weekChosen: !!n };
-    const kept = unsavedDrafts.get(`${noteState.courseId}:${currentWeekNo}`);
-    if (kept) { noteState.draft = kept; unsavedDrafts.delete(`${noteState.courseId}:${currentWeekNo}`); } // what was pasted before closing
+    const kept = unsavedDrafts.get(`${noteState.courseId}:${noteState.week}`);
+    if (kept) { noteState.draft = kept; unsavedDrafts.delete(`${noteState.courseId}:${noteState.week}`); } // what was pasted before closing
   }
   // 전체보기: 칸 옆 작은 팝업 ↔ 화면 가운데 큰 창(사용자 지시 2026-09-19 — 팝업이 답답하다).
   // 여는 길은 셋 — "자세히보기" 더블클릭, 공지 본문 더블클릭, ⋯ 메뉴의 "전체보기". 닫으면 다음엔 다시 작게 열린다.
@@ -628,7 +646,7 @@
   }
 
   function renderNote() {
-    const st = noteState, row = rowOf(st.courseId);
+    const st = noteState, row = rowOf(st.courseId, st.week);
     if (!row) { closeDetail(); return; }
     const close = '<button type="button" class="am-detail-close" data-note-act="close" aria-label="닫기">✕</button>';
     if (st.mode === 'view' && st.note) {
@@ -668,7 +686,7 @@
       ? `<p class="am-note-warn">공지는 ${parsed.week}주차예요 — 어느 주차에 저장할까요?</p>
          <div class="am-note-weeks" role="group" aria-label="저장할 주차">
            <button type="button" class="pill" data-note-week="${parsed.week}" aria-pressed="${d.week === parsed.week}">${parsed.week}주차 (공지)</button>
-           <button type="button" class="pill" data-note-week="${WEEK_NOW()}" aria-pressed="${d.week === WEEK_NOW()}">${WEEK_NOW()}주차 (보고 있는 주)</button>
+           <button type="button" class="pill" data-note-week="${WEEK_NOW()}" aria-pressed="${d.week === WEEK_NOW()}">${WEEK_NOW()}주차 (이 칸)</button>
          </div>` : '';
     const courseWarn = d.raw.trim() && parsed.course && parsed.course !== row.code
       ? `<p class="am-note-warn">${esc(parsed.course)} 과목 공지 같아요 — 지금 칸은 ${esc(row.code)}예요.</p>` : '';
@@ -692,7 +710,7 @@
       </div>`;
   }
   const refreshNoteLive = () => {
-    const live = detail.querySelector('.am-note-live'), row = rowOf(noteState.courseId);
+    const live = detail.querySelector('.am-note-live'), row = rowOf(noteState.courseId, noteState.week);
     if (live && row) live.innerHTML = noteLiveHTML(row);
     placeDetail();
   };
@@ -762,16 +780,16 @@
     const body = res && await res.json().catch(() => ({}));
     if (res?.status === 409) {
       // 다른 기기에서 먼저 바뀌었다 — 최신 공지를 불러와 보여주고, 쓴 내용은 입력창에 남겨 다시 누르게 한다
-      await loadWeek(week);
-      if (noteState === st) { st.note = rowOf(st.courseId)?.note || null; st.note ? renderNote() : closeDetail(); placeDetail(); }
+      await loadWeek(currentWeekNo);
+      if (noteState === st) { st.note = rowOf(st.courseId, st.week)?.note || null; st.note ? renderNote() : closeDetail(); placeDetail(); }
       toast('다른 기기에서 먼저 수정됐어요 — 최신 내용을 확인하고 다시 추가해 주세요', null, 'error');
       return;
     }
     if (!res?.ok) { toast(body?.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : '추가하지 못했어요', null, 'error'); return; }
     st.append = '';
-    await loadWeek(week);
+    await loadWeek(currentWeekNo);
     if (noteState === st) {
-      st.note = rowOf(st.courseId)?.note || body.note;
+      st.note = rowOf(st.courseId, st.week)?.note || body.note;
       renderNote(); placeDetail();
       detail.querySelector('.am-note-body')?.lastElementChild?.scrollIntoView({ block: 'nearest' }); // 방금 붙인 곳이 보이게
       detail.querySelector('.am-note-append-input')?.focus({ preventScroll: true });
@@ -785,14 +803,14 @@
           body: JSON.stringify({ raw: n.raw, dueAt: n.dueAt, lateDueAt: n.lateDueAt, dueManual: n.dueManual, baseVersion: added?.version ?? null }),
         });
         if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
-        if (currentWeekNo === week) await loadWeek(week);
-        if (noteState?.courseId === st.courseId && noteState.mode === 'view') { noteState.note = rowOf(st.courseId)?.note || noteState.note; renderNote(); placeDetail(); }
+        await loadWeek(currentWeekNo); // 그 줄은 이번 주 줄이거나 위의 즐겨찾기 줄
+        if (noteState?.courseId === st.courseId && noteState.mode === 'view') { noteState.note = rowOf(st.courseId, st.week)?.note || noteState.note; renderNote(); placeDetail(); }
       },
     });
   }
 
   async function saveNote(force) {
-    const st = noteState, d = st.draft, row = rowOf(st.courseId);
+    const st = noteState, d = st.draft, row = rowOf(st.courseId, st.week);
     if (!d.raw.trim()) return;
     const sameWeek = d.week === WEEK_NOW();
     const base = st.conflict?.note?.version ?? (sameWeek && st.note ? st.note.version : null);
@@ -806,24 +824,25 @@
     if (!res.ok) { toast(body.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : '저장하지 못했어요', null, 'error'); return; }
     toast(sameWeek ? '과제 내용을 저장했어요' : `${d.week}주차에 저장했어요`);
     st.mode = 'view'; // saved — nothing to keep as an unsaved paste
-    if (!sameWeek) { closeDetail(); await loadWeek(d.week); openNote(st.courseId); return; }
-    await loadWeek(WEEK_NOW());
-    if (noteState === st) { st.note = rowOf(st.courseId)?.note || body.note; st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
+    if (!sameWeek) { closeDetail(); await loadWeek(d.week); openNote(st.courseId, d.week); return; }
+    await loadWeek(currentWeekNo);
+    if (noteState === st) { st.note = rowOf(st.courseId, st.week)?.note || body.note; st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
   }
   async function showSavedWeek(week) {
-    const courseId = noteState.courseId;
+    const courseId = noteState.courseId, noteWeek = noteState.week;
     closeDetail();
-    if (week !== WEEK_NOW()) await loadWeek(week); else await loadWeek(WEEK_NOW());
-    openNote(courseId, { mode: 'view' });
+    // 이 칸의 주차면 표는 그대로(다른 주차 즐겨찾기 줄일 수 있다), 다른 주차면 그 주차 표로 간다
+    await loadWeek(week === noteWeek ? currentWeekNo : week);
+    openNote(courseId, week, { mode: 'view' });
   }
   async function deleteNote() {
     const st = noteState, week = WEEK_NOW(), saved = st.note;
     const res = await api(`/notes/${st.courseId}/${week}?baseVersion=${saved.version}`, { method: 'DELETE' });
     const body = res && await res.json().catch(() => ({}));
     if (!res || (!res.ok && res.status !== 409)) { toast('삭제하지 못했어요', null, 'error'); return; }
-    if (res.status === 409) { toast('다른 기기에서 먼저 수정돼서 삭제하지 않았어요', null, 'error'); closeDetail(); loadWeek(week); return; }
+    if (res.status === 409) { toast('다른 기기에서 먼저 수정돼서 삭제하지 않았어요', null, 'error'); closeDetail(); loadWeek(currentWeekNo); return; }
     closeDetail();
-    await loadWeek(week);
+    await loadWeek(currentWeekNo);
     toast('과제 내용을 삭제했어요', {
       label: '되돌리기',
       run: async () => {
@@ -832,7 +851,7 @@
           body: JSON.stringify({ raw: saved.raw, dueAt: saved.dueAt, lateDueAt: saved.lateDueAt, dueManual: saved.dueManual, baseVersion: null }),
         });
         if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
-        if (currentWeekNo === week) loadWeek(week);
+        loadWeek(currentWeekNo);
       },
     });
   }

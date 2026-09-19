@@ -524,6 +524,7 @@
 .am-table tr.am-fav-last td{border-bottom-color:var(--gray)}
 /* 과목명 옆 주차 박스 WK03 — 즐겨찾기는 이 주차의 과제에 붙는다(사용자 지시 2026-09-19). 새 색 없이 선·회색 */
 .am-week-tag{flex:0 0 auto;padding:1px 5px;border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--gray);font-size:.78rem;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+.am-week-tag.is-other{color:var(--ink);border-color:var(--gray)} /* 다른 주차에서 즐겨찾기해 위에 붙은 줄 — 지금 보는 주차가 아님을 한눈에 */
 .am-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--gray);border-radius:var(--radius);corner-shape:squircle;padding:4px var(--tab-pad-x);transition:background 140ms,color 140ms}
 .am-status:hover{background:var(--fill);color:var(--ink)}
 /* read-only (deployed site): not clickable, so no hover box */
