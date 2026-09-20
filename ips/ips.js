@@ -212,7 +212,7 @@ document.querySelectorAll('[data-papers]').forEach((grid) => {
 
 // Footer sources
 document.getElementById('sources').innerHTML = PAPERS.map(
-  (p, i) => `<li>${pad(i + 1)} · ${esc(p.cite)} — <a class="link" href="${p.url}" target="_blank" rel="noreferrer">${esc(p.title)}</a></li>`,
+  (p, i) => `<li data-r>${pad(i + 1)} · ${esc(p.cite)} — <a class="link" href="${p.url}" target="_blank" rel="noreferrer">${esc(p.title)}</a></li>`,
 ).join('');
 
 // ---------- Side panel: identity column · 핵심 내용 · Insight · 도식화 · 원문 링크 ----------
@@ -307,7 +307,7 @@ const PHASES = [
     label: '01 · 발산 · 지금 단계',
     name: 'Discover',
     lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
-    items: ['문제상황: 저널 활용 A · 저널링 B · 과제 제출 C', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편과 서비스 사례', '정성 조사: 동료 학습자 심층 인터뷰', '근거를 숫자로: 내 기록 · 연구 · 인터뷰 수치'],
+    items: ['문제상황: 저널 활용 A · 저널링 B · 과제 제출 C', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편', '정성 조사: 동료 학습자 6명 인터뷰', '제출 데이터: 과제 93.9% · 셀프 피드백 56.0%'],
   },
   {
     label: '02 · 수렴 · 다음 단계',
@@ -399,41 +399,57 @@ document.addEventListener('click', () => { if (tipPinned) hideTip(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tip.hidden) hideTip(); });
 window.addEventListener('scroll', () => { if (!tip.hidden) hideTip(); }, { passive: true });
 
-// ---------- Qualitative research: fill these after the interviews ----------
-// INTERVIEWS: { who: '학습자 1 · 2학기', quote: '한 줄 인용', points: ['발견 1', '발견 2'] }
-// INTERVIEW_STATS: { num: '3/5명', title: '지난주 저널을 다시 보지 않았다', body: '설명' }
-const INTERVIEW_DATE = '9월 21일';
-const INTERVIEWS = [];
-const INTERVIEW_STATS = [];
-
-document.querySelector('[data-interview-status]').textContent = INTERVIEWS.length
-  ? `${INTERVIEWS.length}명 완료`
-  : `${INTERVIEW_DATE} 진행 예정`;
-
-const interviewGrid = document.querySelector('[data-interviews]');
-interviewGrid.innerHTML = (INTERVIEWS.length ? INTERVIEWS : [null, null, null])
-  .map((iv, i) => iv
-    ? `<article class="note-card" data-r>
-        <span class="typo-label color-tertiary">${esc(iv.who)}</span>
-        <p class="note-card__quote typo-title">${esc(iv.quote)}</p>
-        <ul class="typo-body color-secondary">${iv.points.map((t) => `<li class="dash">${esc(t)}</li>`).join('')}</ul>
-      </article>`
-    : `<article class="note-card note-card--empty" data-r>
-        <span class="typo-label color-tertiary">인터뷰 ${pad(i + 1)}</span>
-        <p class="typo-title color-tertiary">결과 추가 예정</p>
-        <p class="typo-body color-tertiary">${INTERVIEW_DATE} 인터뷰 후 핵심 인용과 발견을 채웁니다.</p>
-      </article>`)
-  .join('');
-
-const STAT_SLOTS = [
-  { num: 'N/5명', title: '지난주 저널을 다시 보지 않았다', body: '저널을 다시 보는 빈도 · 질문 1' },
-  { num: 'N/5명', title: '셀프 피드백을 놓친 적이 있다', body: '놓친 경험과 알게 된 시점 · 질문 4' },
-  { num: 'N/5명', title: '할 일을 다른 곳에 다시 적는다', body: '할 일을 챙기는 방법 · 질문 3' },
+// ---------- Qualitative research: 동료 학습자 인터뷰 6명 ----------
+// INTERVIEW_QA: { q: '질문', a: '정리한 답변(**굵게**)', quote: '인용(선택)' }
+const INTERVIEW_COUNT = 6;
+const INTERVIEW_QA = [
+  {
+    "q": "저널링을 매일 작성하시나요? 작성 시간은?",
+    "a": "**매일 쓰려 하지만 미루거나 건너뛰게 되는 경우도 있다.** 작성 내용에 대한 고민, 공개된 공간에 기록하는 부담, 세션 직후의 시간 부족이 이유였다. 작성 시간은 응답자에 따라 10~30분이었다.",
+    "quote": "안 한 지 일주일이 넘었다"
+  },
+  {
+    "q": "지난 저널을 얼마나 자주 보시나요?",
+    "a": "일반적으로 주 1회 정도 다시 보는 것으로 파악됐으나, 일주일 이상 보지 않거나 과제 전 한 번 확인한 뒤 다시 보지 않는 사례도 있었다. **매일 다시 보는 응답자는 없었다.**",
+    "quote": ""
+  },
+  {
+    "q": "다시 볼 때 무엇을 찾으려고 하나요?",
+    "a": "저널을 심심풀이로 훑거나 아카이빙 기록으로만 남기는 경우가 있었고, 일부는 주간 회고·인사이트 복기·내용 추가를 위해 다시 봤다. 다만 **디스코드의 날짜별 수직 구조와 하이라이트 부재 때문에 특정 내용을 찾아보는 용도로는 활용하기 어려웠다.**",
+    "quote": "부분적으로 읽기 어렵다"
+  },
+  {
+    "q": "Findings는 어디에 정리하나요?",
+    "a": "**Findings와 수업 기록은 노션·옵시디언·피그마·맥북 메모 등에 정리했다.** 학습적으로 다시 볼 내용은 옵시디언 페이지에 하이라이트해 두는 등, 각자의 방식이 이미 자리 잡고 있었다.",
+    "quote": ""
+  },
+  {
+    "q": "Future Item은 어떻게 관리하나요?",
+    "a": "**Future Item은 다이어리·메모 앱·문서·일정 관리 도구에서 별도로 관리했다.** 저널에는 진행도만 적거나, 아예 기록하지 않는 사례도 있었다.",
+    "quote": ""
+  },
+  {
+    "q": "과제나 셀프 피드백을 놓친 적이 있나요?",
+    "a": "**과제를 놓친 경험은 드물었지만, 셀프 피드백을 놓친 사례는 반복해서 나타났다.** 세션 직후 바로 작성하지 못하고 다음 날로 밀렸을 때, 접근 링크를 다시 찾는 과정이 불편해 잊는 경우가 있었다.",
+    "quote": "0주차 이후 한 번도 못 했다"
+  },
+  {
+    "q": "제출한 걸 어떻게 확인하시나요?",
+    "a": "해야 할 과제는 LMS·캘린더·문서 등에서 확인했다. 제출 직후에는 기억에 의존하고 완료 여부를 따로 확인하지 않는 사례가 반복해서 나타났다. **과목과 제출물이 쌓이면 제출 여부가 헷갈려 제출 스프레드시트를 다시 확인했다.**",
+    "quote": ""
+  }
 ];
-document.querySelector('[data-interview-stats]').innerHTML = (INTERVIEW_STATS.length ? INTERVIEW_STATS : STAT_SLOTS)
-  .map((s) => `<div class="stat${INTERVIEW_STATS.length ? '' : ' stat--todo'}" data-r>
-      <span class="stat__num">${esc(s.num)}</span><span class="typo-title">${esc(s.title)}</span><span class="typo-body color-secondary">${esc(s.body)}</span>
-    </div>`)
+
+document.querySelector('[data-interview-status]').textContent = `${INTERVIEW_COUNT}명 완료`;
+
+const strong = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+document.querySelector('[data-interview-qa]').innerHTML = INTERVIEW_QA
+  .map((item, i) => `<article class="qa" data-r>
+      <span class="typo-label color-tertiary">질문 ${pad(i + 1)}</span>
+      <h3 class="qa__q typo-title">${esc(item.q)}</h3>
+      <p class="qa__body typo-body color-secondary">${strong(item.a)}</p>
+      ${item.quote ? `<p class="qa__quote typo-body color-tertiary">&ldquo;${esc(item.quote)}&rdquo;</p>` : ''}
+    </article>`)
   .join('');
 
 // ---------- Dropdown (auto-open on scroll, click toggles) ----------
@@ -485,6 +501,26 @@ function updateToc() {
     else a.removeAttribute('aria-current');
   });
 }
+// 목차 클릭: 해당 섹션을 화면 정중앙에 놓는다
+tocLinks.forEach((link) => {
+  link.addEventListener('click', (e) => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    e.preventDefault();
+    const header = document.querySelector('.site-header');
+    const headerH = header ? header.getBoundingClientRect().height : 0;
+    const padTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+    const rect = el.getBoundingClientRect();
+    const contentTop = window.scrollY + rect.top + padTop;
+    const contentH = rect.height - padTop;
+    const slack = Math.max(headerH + 24, (window.innerHeight - contentH) / 2);
+    const target = Math.max(0, Math.round(contentTop - slack));
+    window.scrollTo({ top: target, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + id);
+  });
+});
+
 window.addEventListener('scroll', updateToc, { passive: true });
 window.addEventListener('resize', updateToc);
 updateToc();
@@ -502,7 +538,7 @@ if (!still && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && 
         io.unobserve(entry.target);
       }
     },
-    { rootMargin: '0px 0px -12% 0px', threshold: 0.1 },
+    { rootMargin: '0px 0px -6% 0px', threshold: 0.05 },
   );
   els.forEach((el) => {
     const siblings = [...el.parentElement.children].filter((c) => c.hasAttribute('data-r'));

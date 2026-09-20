@@ -30,9 +30,9 @@
           <li class="toc__lv1"><a href="#process">진행 방식</a></li>
           <li class="toc__lv1"><a href="#pain">문제상황</a>
             <ul>
-              <li class="toc__lv2"><a href="#pain-burden">기록 부담</a></li>
+              <li class="toc__lv2"><a href="#pain-burden">저널 활용</a></li>
               <li class="toc__lv2"><a href="#pain-journal">저널링</a></li>
-              <li class="toc__lv2"><a href="#pain-assign">과제 제출</a></li>
+              <li class="toc__lv2"><a href="#pain-assign">과제 관리</a></li>
             </ul>
           </li>
           <li class="toc__lv1"><a href="#blueprint">서비스 블루프린트</a></li>
@@ -40,12 +40,10 @@
             <ul>
               <li class="toc__lv2"><a href="#research-a">다시 봐야 하는 이유</a></li>
               <li class="toc__lv2"><a href="#research-b">다시 보기 어려운 이유</a></li>
-              <li class="toc__lv2"><a href="#research-c">서비스 사례</a></li>
             </ul>
           </li>
           <li class="toc__lv1"><a href="#interview">정성 조사</a></li>
-          <li class="toc__lv1"><a href="#numbers">근거를 숫자로</a></li>
-          <li class="toc__lv1"><a href="#compare">불편 × 조사 근거</a></li>
+          <li class="toc__lv1"><a href="#numbers">제출 데이터</a></li>
           <li class="toc__lv1"><a href="#conclusion">Discover 결론</a></li>
         </ul>
       </nav>
@@ -55,26 +53,16 @@
       <!-- ---------- Hero ---------- -->
       <section class="hero">
         <p class="hero__eyebrow typo-label color-tertiary" data-r>Iterative Problem Solving · 문제해결 월드컵 3라운드</p>
-        <h1 class="hero__title typo-display" data-r>열심히 기록하는데,<br />왜 필요할 땐 찾을 수 없을까</h1>
-        <p class="hero__intro typo-lead color-secondary" data-r>매일 쓰는 저널링, 흩어진 과제 링크. 쓰면 쓸수록 내 학습 현황을 잃어버리는 이유를, 문제상황과 조사로 확인합니다.</p>
-
-        <div class="dropdown overview" data-auto-open>
-          <button type="button" class="dropdown__trigger" aria-expanded="false" aria-controls="overview-panel">
-            <span class="typo-title">과제 개요</span>
-            <span class="dropdown__summary typo-label color-tertiary">Discover · 5편의 연구 · 12과목</span>
-            <span class="dropdown__chevron" aria-hidden="true"></span>
-          </button>
-          <div id="overview-panel" class="dropdown__panel" role="region">
-            <div class="dropdown__inner">
-              <dl class="overview__list">
-                <div class="overview__row"><dt class="typo-label color-tertiary">과목</dt><dd class="typo-body color-secondary">Iterative Problem Solving · 서비스의 불편함을 반복해서 풀어 가는 과목</dd></div>
-                <div class="overview__row"><dt class="typo-label color-tertiary">프로덕트</dt><dd class="typo-body color-secondary">Phi Brain · 저널링과 과제 제출을 과목별로 정리하는 학습 도구</dd></div>
-                <div class="overview__row"><dt class="typo-label color-tertiary">사용자</dt><dd class="typo-body color-secondary">Phi Design Institute 학습자 · 12과목을 매일 저널로 기록</dd></div>
-                <div class="overview__row"><dt class="typo-label color-tertiary">이번 범위</dt><dd class="typo-body color-secondary">더블 다이아몬드의 Discover · 문제상황, 블루프린트, 정량·정성 조사, 수치</dd></div>
-              </dl>
-            </div>
-          </div>
+        <h1 class="hero__title typo-display" data-r>Phi Journaling,<br />제대로 활용하고 계신가요?</h1>
+        <div class="hero__intro typo-lead color-secondary" data-r>
+          <p>Phi의 학습 성찰 기록, 저널링.</p>
+          <p>성찰저널 240편을 분석한 연구에서 저널링의 가장 큰 효과는<br /><strong>학습조절능력 향상 54.17%</strong>, 다음은 <strong>학습과정 강화 27.08%</strong>였습니다.</p>
+          <p class="hero__source typo-label color-tertiary">논문 02 · 성찰저널 240편 내용분석</p>
+          <p class="hero__problem"><strong>그러나 Phi 학습자는 디스코드에 쓴 저널을 잘 되돌아보지 않습니다.</strong><br />
+            <strong>Findings(중요 내용과 인사이트)</strong>는 체화되지 못한 채 휘발되고,<br />
+            <strong>Future Item(할 일·액션 아이템)</strong>은 잊히거나 외부 앱에서 다시 작성하고 관리하게 됩니다.</p>
         </div>
+
       </section>
 
       <!-- ---------- 01 Process ---------- -->
@@ -84,7 +72,7 @@
             <span class="section-header__num typo-label color-tertiary" data-r>01</span>
             <h2 class="typo-heading" data-r>진행 방식</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>더블 다이아몬드로 문제를 넓게 보고 좁힌 뒤, 해법을 넓게 시도하고 좁힙니다. 이번 라운드는 첫 다이아몬드의 Discover에 집중합니다. 각 단계에 마우스를 올리면 안에서 하는 일이 보입니다.</p>
+          <p class="typo-lead color-secondary" data-r><strong>이런 문제상황이 발생하는 원인을 찾고, 해결하기 위해</strong> 더블 다이아몬드 프로세스를 활용합니다.<br />문제를 넓게 보고 좁힌 뒤, 해법을 넓게 시도하고 좁힙니다.</p>
         </div>
 
         <div class="dd" data-r>
@@ -121,7 +109,7 @@
             <span class="section-header__num typo-label color-tertiary" data-r>02</span>
             <h2 class="typo-heading" data-r>문제상황</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>직접 겪은 불편과 동료 인터뷰로 확인한 문제상황입니다. 기록은 두 번 써야 하는 부담에서 시작해, 날짜순으로 쌓이고, 다시 꺼내기 어려워집니다.</p>
+          <p class="typo-lead color-secondary" data-r>직접 겪은 불편과 동료 인터뷰로 확인한 문제상황입니다.<br />기록은 두 번 써야 하는 부담에서 시작해, 날짜순으로 쌓이고, 다시 꺼내기 어려워집니다.</p>
         </div>
 
         <div class="pain-grid">
@@ -129,7 +117,7 @@
             <div class="pain-card__top">
               <span class="pain-card__key">A</span>
               <div>
-                <span class="typo-label color-tertiary">저널 활용 · 동료 인터뷰 2명</span>
+                <span class="typo-label color-tertiary">저널 활용 · 동료 인터뷰 6명</span>
                 <h3 class="pain-card__head">디스코드 저널의 활용성이 낮다</h3>
               </div>
             </div>
@@ -167,6 +155,7 @@
             </ol>
           </article>
         </div>
+        <p class="section-insight" data-r>기록의 중심은 외부 앱에 있고, 디스코드 저널은 같은 내용을 한 번 더 쓰는 사본이 된다.</p>
       </section>
 
       <!-- ---------- 03 Blueprint ---------- -->
@@ -176,7 +165,7 @@
             <span class="section-header__num typo-label color-tertiary" data-r>03</span>
             <h2 class="typo-heading" data-r>서비스 블루프린트</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>세션에서 생긴 기록이 어디에 쌓이고 어디서 흩어지는지, 디스코드 저널 채널·Phi LMS TO-DO·동료 인터뷰를 기준으로 그렸습니다. 검은 배지가 있는 칸에 마우스를 올리거나 누르면 해당 문제가 보입니다.</p>
+          <p class="typo-lead color-secondary" data-r>세션에서 생긴 기록이 어디에 쌓이고 어디서 흩어지는지, 디스코드 저널 채널·Phi LMS TO-DO·동료 인터뷰를 기준으로 그렸습니다.</p>
         </div>
 
         <div class="bp-scroll" data-r>
@@ -221,8 +210,7 @@
             </div>
           </div>
         </div>
-        <p class="bp-note typo-body color-secondary" data-r>기록은 개인 노트 앱(1번), 디스코드(2번), LMS(5번) 세 곳에 나뉘어 쌓입니다. 저널은 개인 노트를 한 번 더 옮겨 쓰는 사본이라, 쓰는 부담은 크고 다시 쓰일 일은 적습니다.</p>
-        <p class="bp-insight" data-r>진짜 기록은 개인 앱에 있고, 저널은 두 번 쓰는 사본이 되어 다시 사용되지 않는다.</p>
+        <p class="section-insight" data-r>문제는 한 지점이 아니라, 세션에서 다시 보기까지 여섯 단계 전체에 흩어져 있다.</p>
       </section>
 
       <!-- ---------- 04 Research ---------- -->
@@ -232,7 +220,7 @@
             <span class="section-header__num typo-label color-tertiary" data-r>04</span>
             <h2 class="typo-heading" data-r>정량 조사</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>불편이 나만의 것인지 확인하려고 국내외 연구 다섯 편과 서비스 사례를 살폈습니다. 논문 카드에 마우스를 올리면 핵심 내용이, 누르면 전체 정리가 열립니다.</p>
+          <p class="typo-lead color-secondary" data-r>불편이 나만의 것인지 확인하려고 국내외 연구 다섯 편을 살폈습니다.</p>
         </div>
 
         <div class="papers-row">
@@ -247,15 +235,7 @@
           </div>
         </div>
 
-        <div class="group" id="research-c">
-          <h3 class="group-label" data-r><span class="typo-title">C. 서비스들도 같은 문제를 풀고 있다</span><span class="typo-label color-tertiary">서비스 사례</span></h3>
-          <p class="group__lead typo-body color-secondary" data-r>채팅처럼 날짜순으로 쌓이는 기록을 목적별로 다시 묶는 기능이 이미 여러 서비스에 들어가 있습니다.</p>
-          <div class="grid-3">
-            <article class="item" data-r><span class="item__num typo-label color-tertiary">C1 · 카카오톡 · 2025</span><h4 class="typo-title">나와의 채팅 태그</h4><p class="item__body typo-body color-secondary">메모장처럼 쓰는 나와의 채팅에 할 일·아이디어 등 약 20종 태그를 최대 3개까지 달고, 태그별로 모아 본다. 사용자가 직접 붙여야 한다.</p></article>
-            <article class="item" data-r><span class="item__num typo-label color-tertiary">C2 · Google Classroom</span><h4 class="typo-title">할 일(To-do) 페이지</h4><p class="item__body typo-body color-secondary">모든 수업의 과제를 한 화면에 모아 할당됨·누락·완료로 나눠 보여준다. 수업을 가로지르는 제출 현황이 기본 기능이다.</p></article>
-            <article class="item" data-r><span class="item__num typo-label color-tertiary">C3 · 카카오톡</span><h4 class="typo-title">톡서랍</h4><p class="item__body typo-body color-secondary">대화에 흘러간 사진·파일·링크를 대화와 따로 모아 본다. 흘러가는 대화와 남겨 둘 자료를 분리하는 구조다.</p></article>
-          </div>
-        </div>
+        <p class="section-insight" data-r>기록은 다시 볼 때 배움이 되지만, 날짜순으로 쌓인 기록은 다시 찾을 수 없다.</p>
       </section>
 
       <!-- ---------- 05 Interview ---------- -->
@@ -265,27 +245,23 @@
             <span class="section-header__num typo-label color-tertiary" data-r>05</span>
             <h2 class="typo-heading" data-r>정성 조사</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>동료 학습자 심층 인터뷰로 저널을 얼마나 다시 보는지, 셀프 피드백을 놓친 경험이 있는지 확인합니다.</p>
+          <p class="typo-lead color-secondary" data-r>동료 학습자 6명에게 저널을 얼마나 다시 보는지, 기록과 할 일을 어디에 두는지, 셀프 피드백을 놓친 경험이 있는지 물었습니다.</p>
         </div>
 
         <div class="interview">
           <dl class="interview__plan" data-r>
             <div><dt class="typo-label color-tertiary">상태</dt><dd class="typo-title" data-interview-status></dd></div>
-            <div><dt class="typo-label color-tertiary">대상</dt><dd class="typo-body color-secondary">Phi 동료 학습자 3~5명</dd></div>
-            <div><dt class="typo-label color-tertiary">방식</dt><dd class="typo-body color-secondary">1:1 심층 인터뷰 · 20분 내외</dd></div>
+            <div><dt class="typo-label color-tertiary">대상</dt><dd class="typo-body color-secondary">Phi 동료 학습자 6명</dd></div>
+            <div><dt class="typo-label color-tertiary">방식</dt><dd class="typo-body color-secondary">질문지 기반 인터뷰 · 보드 기록</dd></div>
           </dl>
           <div class="interview__questions" data-r>
-            <span class="typo-label color-tertiary">질문</span>
-            <ol class="typo-body color-secondary">
-              <li>지난 저널을 마지막으로 다시 본 건 언제인가요? 얼마나 자주 보나요?</li>
-              <li>다시 볼 때 무엇을 찾으려고 하나요? 어떻게 찾나요?</li>
-              <li>저널에 쓴 할 일은 어디서 다시 챙기나요?</li>
-              <li>셀프 피드백이나 과제를 놓친 적이 있나요? 언제 알았나요?</li>
-              <li>무엇을 냈는지 확인할 때 어디를 보나요?</li>
-            </ol>
+            <span class="typo-label color-tertiary">종합</span>
+            <p class="typo-title">디스코드 저널은 학습 기록과 할 일을 관리하는 중심 도구로 사용되지 않았다.</p>
+            <p class="typo-body color-primary">저널은 부담과 시간 때문에 밀리고, 기록과 할 일은 각자의 외부 앱에 쌓인다. 날짜별 수직 구조와 하이라이트 부재로 특정 내용을 찾기 어려워 저널은 주 1회 남짓 훑는 기록으로 남는다. 과제는 마감일에 맞춰 내지만 셀프 피드백은 미루다 놓치고, 제출 여부는 기억에 의존하다 결국 따로 확인한다.</p>
           </div>
         </div>
-        <div class="grid-cards grid-cards--3 interview__results" data-interviews></div>
+        <div class="qa-grid interview__results" data-interview-qa></div>
+        <p class="section-insight" data-r>문제는 저널을 쓰는 방식이 아니라, 저널이 기록의 중심이 아니라는 데 있다.</p>
       </section>
 
       <!-- ---------- 06 Numbers ---------- -->
@@ -293,130 +269,72 @@
         <div class="section-header">
           <div>
             <span class="section-header__num typo-label color-tertiary" data-r>06</span>
-            <h2 class="typo-heading" data-r>근거를 숫자로</h2>
+            <h2 class="typo-heading" data-r>제출 데이터</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r>느낌이 아니라 수치로 봅니다. 내 기록에서 직접 센 숫자, 연구의 숫자, 인터뷰로 채울 숫자를 한 곳에 모았습니다.</p>
+          <p class="typo-lead color-secondary" data-r>수료조건 확인 대시보드에서 학습자 28명의 과제·셀프 피드백 제출 현황을 분석했습니다.</p>
         </div>
 
-        <div class="group" id="numbers-mine">
-          <h3 class="group-label" data-r><span class="typo-title">내 기록에서 센 숫자</span><span class="typo-label color-tertiary">디스코드 저널 · Phi LMS</span></h3>
-          <div class="stats">
-            <div class="stat" data-r><span class="stat__num">130</span><span class="typo-title">개가 한 목록에</span><span class="typo-body color-secondary">Phi LMS TO-DO 전체 항목. 할 일 88 · 완료 42가 과목 구분 없이 날짜순으로 섞여 있다</span></div>
-            <div class="stat" data-r><span class="stat__num">5<small>과목</small></span><span class="typo-title">3일치 저널 3편에</span><span class="typo-body color-secondary">9월 15~17일 저널에 AL·IPS·BI·AOR·VT가 섞여 있다. 과목별로 모아 볼 방법이 없다</span></div>
-            <div class="stat" data-r><span class="stat__num">9<small>개</small></span><span class="typo-title">Findings가 하루 저널 한 편에</span><span class="typo-body color-secondary">9월 16일 BI 한 과목에서만 나온 인사이트. 다음 날 저널에 밀려 내려간다</span></div>
-            <div class="stat stat--todo" data-r><span class="stat__num">—</span><span class="typo-title">셀프 피드백 미확인 칸</span><span class="typo-body color-secondary">12과목 × 주차 중 제출이 확인되지 않은 칸. Assignment Manage 데이터로 집계 예정</span></div>
+        <div class="compare2">
+          <article class="compare2__card" data-r>
+            <span class="compare2__name">과제</span>
+            <span class="compare2__pct">제때 제출 93.9%</span>
+            <p class="typo-body color-secondary">마감이 지난 509건 중 478건을 기한 안에 냈습니다. 지각 22건(4.3%), 미제출은 9건(1.8%)뿐입니다.</p>
+          </article>
+          <article class="compare2__card" data-r>
+            <span class="compare2__name">셀프 피드백</span>
+            <span class="compare2__pct">제출 56.0%</span>
+            <p class="typo-body color-secondary">대상 728칸 중 408칸을 냈고, 320칸(44.0%)은 내지 않았습니다. 0주차를 빼면 제출률은 37.3%입니다.</p>
+          </article>
+        </div>
+
+        <div class="numbers-grid">
+          <div class="group" id="numbers-assign">
+            <div class="dtable-wrap" data-r>
+              <table class="dtable">
+                <thead>
+                  <tr><th scope="col">분반</th><th scope="col">건수</th><th scope="col">제때 제출</th><th scope="col">지각</th><th scope="col">미제출</th></tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row">A반 13명</th><td>221</td><td>216<small>97.7%</small></td><td>3<small>1.4%</small></td><td>2<small>0.9%</small></td></tr>
+                  <tr><th scope="row">B반 15명</th><td>288</td><td>262<small>91.0%</small></td><td>19<small>6.6%</small></td><td>7<small>2.4%</small></td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><th scope="row">합계</th><td>509</td><td class="is-key">478<small>93.9%</small></td><td>22<small>4.3%</small></td><td>9<small>1.8%</small></td></tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="dtable-note typo-body color-secondary" data-r>지각·미제출을 한 번이라도 한 사람은 13명/28명입니다.</p>
+          </div>
+
+          <div class="group" id="numbers-trend">
+            <div class="dtable-wrap" data-r>
+              <table class="dtable">
+                <thead>
+                  <tr><th scope="col">주차</th><th scope="col">제출</th><th scope="col">미제출</th><th scope="col">분모</th><th scope="col">제출률</th></tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row">0주차</th><td>241</td><td>39</td><td>280</td><td class="is-key">86.1%</td></tr>
+                  <tr><th scope="row">1주차</th><td>120</td><td>90<small>160 − 70</small></td><td>210</td><td class="is-key">57.1%</td></tr>
+                  <tr><th scope="row">2주차</th><td>40</td><td>170<small>240 − 70</small></td><td>210</td><td class="is-key">19.0%</td></tr>
+                  <tr><th scope="row">3주차</th><td>7</td><td>21</td><td>28</td><td class="is-key">25.0%</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><th scope="row">합계</th><td>408</td><td>320</td><td>728</td><td class="is-key">56.0%</td></tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="dtable-note typo-body color-secondary" data-r>1·2주차 미제출에서 각각 70칸을 뺐습니다(A·B 분반 차이, SI 세션 없음).<br />3주차는 Engaging with AI 한 과목만 마감이 지났습니다.</p>
           </div>
         </div>
 
-        <div class="group" id="numbers-research">
-          <h3 class="group-label" data-r><span class="typo-title">연구의 숫자</span><span class="typo-label color-tertiary">정량 조사</span></h3>
-          <div class="stats">
-            <div class="stat" data-r><span class="stat__num">66.1%</span><span class="typo-title">자기성찰이 늘었다</span><span class="typo-body color-secondary">성찰 기록을 모은 학생의 응답 · 논문 02</span></div>
-            <div class="stat" data-r><span class="stat__num">52.92%</span><span class="typo-title">과목과 도구가 안 맞는다</span><span class="typo-body color-secondary">성찰저널 작성자 중 · 논문 02</span></div>
-            <div class="stat" data-r><span class="stat__num">4.87<small>가지</small></span><span class="typo-title">매주 쓰는 보관 방법</span><span class="typo-body color-secondary">한 사람이 섞어 쓰는 방법 수 · 논문 03</span></div>
-            <div class="stat" data-r><span class="stat__num">41.7%</span><span class="typo-title">기억에 의존해 찾는다</span><span class="typo-body color-secondary">저장 위치를 기억해서 다시 찾음 · 논문 04</span></div>
-            <div class="stat" data-r><span class="stat__num">7<small>/8명</small></span><span class="typo-title">저장 매체 2개 이상</span><span class="typo-body color-secondary">심층 면담 대상 중 · 논문 05</span></div>
-            <div class="stat" data-r><span class="stat__num">20%<small>미만</small></span><span class="typo-title">날짜로 이름 붙인다</span><span class="typo-body color-secondary">학생은 과목·내용으로 정리한다 · 논문 05</span></div>
-          </div>
-        </div>
-
-        <div class="group" id="numbers-interview">
-          <h3 class="group-label" data-r><span class="typo-title">인터뷰의 숫자</span><span class="typo-label color-tertiary">정성 조사</span></h3>
-          <div class="stats" data-interview-stats></div>
-        </div>
+        <p class="section-insight" data-r>마감은 과제와 똑같이 있지만 한눈에 확인할 수 없어, 우선순위에서 밀리는 셀프 피드백부터 빠진다.</p>
       </section>
 
-      <!-- ---------- 07 Compare ---------- -->
-      <section class="section" id="compare">
-        <div class="section-header">
-          <div>
-            <span class="section-header__num typo-label color-tertiary" data-r>07</span>
-            <h2 class="typo-heading" data-r>불편 × 조사 근거</h2>
-          </div>
-          <p class="typo-lead color-secondary" data-r>문제상황을 연구와 같은 층위의 네 가지 축에 놓았습니다. 막대는 근거의 세기입니다.</p>
-        </div>
-
-        <div class="matrix" role="table" aria-label="나의 불편과 조사 근거 비교">
-          <div class="matrix__head" role="row">
-            <span class="typo-label color-tertiary" role="columnheader">나의 불편</span>
-            <span class="typo-label color-tertiary" role="columnheader">공통 축</span>
-            <span class="typo-label color-tertiary" role="columnheader">조사 근거</span>
-          </div>
-
-          <div class="matrix__row" role="row" id="axis-1" data-r>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">Findings를 써도 체화되지 않고 금방 잊혀, 실제로 적용되지 못한다 <span class="src">B1</span></li>
-              <li class="dash">과제의 우선순위와 마감을 인지하고 계획을 세우기 힘들다 <span class="src">C2</span></li>
-            </ul>
-            <div class="matrix__axis" role="cell"><span class="typo-title">① 안 보이면 잊는다</span><span class="matrix__strength" aria-label="근거 세기 3단계 중 2, 질적"><i class="on"></i><i class="on"></i><i></i></span><span class="typo-label color-tertiary">질적 근거</span></div>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">정리 안 한 활동은 기억나지 않고, 깨달음이 흐려진다 <span class="src">논문 1</span></li>
-              <li class="dash">폴더에 넣은 항목은 쓸모가 지나서야 떠오른다 <span class="src">논문 3</span></li>
-              <li class="dash">폐기를 미룬 채 쌓아 두기만 한다 <span class="src">논문 5</span></li>
-            </ul>
-          </div>
-
-          <div class="matrix__row" role="row" id="axis-2" data-r>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">외부 앱(노션·옵시디언)에 개인만의 정리 체계가 따로 있다 <span class="src">A1</span></li>
-              <li class="dash">과목별 피그마·제출 폼·셀프 피드백 링크가 흩어져 있다 <span class="src">C3</span></li>
-              <li class="dash">할 일을 외부 일정관리 앱으로 따로 관리한다 <span class="src">B2</span></li>
-            </ul>
-            <div class="matrix__axis" role="cell"><span class="typo-title">② 섞이고 흩어진다</span><span class="matrix__strength" aria-label="근거 세기 3단계 중 3, 정량"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="typo-label color-tertiary">정량 근거</span></div>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">매주 쓰는 보관 방법이 평균 <b>4.87가지</b> <span class="src">논문 3</span></li>
-              <li class="dash">PC 25.2% · 스마트기기 20.4% · 클라우드 14.9%로 흩어지고, 흩어지면 못 찾거나 중복된다 <span class="src">논문 4</span></li>
-              <li class="dash">면담자 <b>8명 중 7명</b>이 저장 매체를 2개 이상 쓴다 <span class="src">논문 5</span></li>
-            </ul>
-          </div>
-
-          <div class="matrix__row" role="row" id="axis-3" data-r>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">외부 앱의 노트를 다시 정리해 디스코드로 옮긴다 <span class="src">A2</span></li>
-              <li class="dash">Future Item을 저널에 매일 누적해서 다시 쓴다 <span class="src">B2</span></li>
-              <li class="dash">LMS 완료 탭에서 제출 현황을 파악하는 수고가 크다 <span class="src">C1</span></li>
-            </ul>
-            <div class="matrix__axis" role="cell"><span class="typo-title">③ 정리·확인은 사용자 몫</span><span class="matrix__strength" aria-label="근거 세기 3단계 중 1, 보조"><i class="on"></i><i></i><i></i></span><span class="typo-label color-tertiary">보조 근거</span></div>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">상기하려고 내게 메일 <b>25건</b>, 맥락 메모 <b>20건</b>: 도구 대신 사용자가 수고한다 <span class="src">논문 3</span></li>
-              <li class="dash">도구가 부담스러울수록 정리를 덜 한다 (설명력 낮음) <span class="src">논문 4</span></li>
-              <li class="dash">골라내는 일 자체가 피곤하다 <span class="src">논문 5</span></li>
-            </ul>
-          </div>
-
-          <div class="matrix__row" role="row" id="axis-4" data-r>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash">디스코드 저널은 일자별이라 과목별로 확인할 수 없다 <span class="src">A3</span></li>
-              <li class="dash">과목별 정리는 각자 외부 앱에서 한다 <span class="src">A3</span></li>
-            </ul>
-            <div class="matrix__axis" role="cell"><span class="typo-title">④ 과목 기준이 없다</span><span class="matrix__strength" aria-label="근거 세기 3단계 중 3, 정량"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="typo-label color-tertiary">정량 근거</span></div>
-            <ul class="matrix__list typo-body color-secondary" role="cell">
-              <li class="dash"><b>52.92%</b>가 과목 특성과 도구가 맞지 않아 어려워했다 <span class="src">논문 2</span></li>
-              <li class="dash">과목 폴더로 정리한 학생이 가장 빨리 찾았다 <span class="src">논문 5</span></li>
-              <li class="dash">파일명에 날짜를 적는 경우는 <b>20% 미만</b> <span class="src">논문 5</span></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="callouts">
-          <div class="callout" data-r>
-            <span class="typo-label color-tertiary">차이점</span>
-            <p class="typo-title">연구에서는 다시 찾기가 잘 됐다</p>
-            <p class="typo-body color-secondary">웹은 90~100%, 과제 파일은 8명 모두 다시 찾았습니다. 대상이 검색되는 웹이거나 과목별로 정리된 파일이었기 때문입니다. 날짜순 채팅에 쌓이는 저널에는 이 조건이 없고, 그 차이가 곧 ④의 근거가 됩니다.</p>
-          </div>
-          <div class="callout callout--gap" data-r>
-            <span class="typo-label color-tertiary">공백</span>
-            <p class="typo-title">제출 누락을 다룬 연구는 없었다</p>
-            <p class="typo-body color-secondary">셀프 피드백 누락을 직접 다룬 정량 연구는 찾지 못했습니다. Phi Brain Assignment Manage의 실제 제출 데이터로 채울 예정입니다.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ---------- 08 Conclusion ---------- -->
+      <!-- ---------- 07 Conclusion ---------- -->
       <section class="section" id="conclusion">
         <div class="section-header">
           <div>
-            <span class="section-header__num typo-label color-tertiary" data-r>08</span>
+            <span class="section-header__num typo-label color-tertiary" data-r>07</span>
             <h2 class="typo-heading" data-r>Discover 결론</h2>
           </div>
           <p class="typo-lead color-secondary" data-r>불편은 나만의 것이 아니었습니다. 연구가 말하는 네 가지 축이 Phi 학습자의 하루에 그대로 나타납니다.</p>
@@ -448,8 +366,8 @@
       </section>
 
       <footer class="footer">
-        <p class="typo-label">Phi Brain · Iterative Problem Solving</p>
-        <p class="typo-body color-secondary">조용주 · Phi Design Institute · 2026</p>
+        <p class="typo-label" data-r>Phi Brain · Iterative Problem Solving</p>
+        <p class="typo-body color-secondary" data-r>조용주 · Phi Design Institute · 2026</p>
         <ul class="footer__sources typo-body color-secondary" id="sources"></ul>
       </footer>
     </main>
