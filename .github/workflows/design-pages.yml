@@ -11,6 +11,7 @@ on:
     paths:
       - 'design/**'
       - 'ips/**'
+      - 'EWA/**'
       - '.github/workflows/design-pages.yml'
   workflow_dispatch:
 
@@ -32,11 +33,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Assemble site (design/ + ips/)
+      - name: Assemble site (design/ + ips/ + EWA/)
         run: |
           mkdir -p _site
           cp -R design/. _site/
           cp -R ips _site/ips
+          mkdir -p _site/EWA
+          cp EWA/index.html EWA/ewa.css EWA/ewa.js _site/EWA/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
