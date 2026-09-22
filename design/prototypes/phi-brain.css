@@ -16,8 +16,11 @@
   --line:#ededed; /* borders, text selection */
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
   /* the one exception to the 4 tones: text the user highlighted (<mark>, 하이라이터 — 2026-09-22).
-     It has to read as "marked" at a glance, which no gray can do next to --fill code chips. */
+     It has to read as "marked" at a glance, which no gray can do next to --fill code chips.
+     Three pens, in menu order 노랑 · 파랑 · 빨강 — all pale enough that --ink text stays readable on them. */
   --mark:#fff1a6;
+  --mark-blue:#cfe4ff;
+  --mark-red:#ffd4d4;
   /* ?v= busts the OS/browser's cursor-bitmap cache, which can keep showing an old
      image after this file's content changes even with the page cache cleared —
      bump this number whenever cursor-arrow.svg, cursor-pointer.svg or cursor-text.svg changes. */
@@ -221,7 +224,19 @@
 
 .ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
 .ico-code{letter-spacing:-.5px}
-.ico-mark{padding:0 3px;border-radius:2px;background:var(--mark);color:var(--ink);font-weight:700;line-height:1.3}
+/* 하이라이트 버튼 = 지금 펜 색의 사각 칩(글자 없음), ▾로 색 메뉴. 마지막에 고른 색은 html[data-hl]로 칩에 반영 */
+.ico-mark,.hl-dot{display:block;width:14px;height:14px;border-radius:3px;background:var(--mark);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+html[data-hl="blue"] .ico-mark,.hl-dot[data-hl="blue"]{background:var(--mark-blue)}
+html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
+.hl-group{position:relative;display:inline-flex;align-items:center}
+.hl-caret{width:16px;height:28px;justify-content:center;padding:0;color:var(--gray);font-size:.7rem}
+.hl-caret:hover,.hl-caret[aria-expanded="true"]{color:var(--ink)}
+.hl-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;display:flex;gap:2px;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.hl-menu[hidden]{display:none}
+.hl-swatch{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-sm);transition:background 140ms}
+.hl-swatch:hover,.hl-swatch:focus-visible{background:var(--fill);outline:0}
+.hl-swatch[aria-checked="true"]{background:var(--fill)}
+.hl-swatch[aria-checked="true"] .hl-dot{box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 0 0 1.5px var(--bg),0 0 0 2.5px var(--ink)}
 
 /* course menu — same floating card as the date picker */
 .journal{position:relative}
@@ -268,6 +283,8 @@
 .editor blockquote{margin:6px 0;padding:0 0 0 12px;border-left:2px solid var(--gray)}
 .editor code{background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
 .editor mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.editor mark[data-hl="blue"]{background:var(--mark-blue)}
+.editor mark[data-hl="red"]{background:var(--mark-red)}
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}

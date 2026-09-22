@@ -1512,3 +1512,11 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - CSS: `--mark:#fff1a6` 토큰(4톤 예외, 주석 명시), `.editor mark`, `.ico-mark`, `.findings-edit*`. 캐시 `phi-brain.css`·`journal.js` → `20260922-1`. 데스크톱 앱은 배포 주소를 띄우므로 따로 빌드할 필요 없음.
 - 검증(로컬, 로그아웃 저장소, 가짜 저널 1개 = BI 조각 2 + EWA 1): 박스 3개 모두 수정하기 표시. 실제 클릭으로 BI 첫 조각 수정 → 한 줄 하이라이트, 여러 줄 하이라이트(굵게 유지), 캐럿으로 해제, 타이핑 후 저장하기 → 저장본에서 그 조각만 바뀌고 EWA·BI 두 번째 조각·Fact·Future Item 그대로, 토스트 "변경 사항이 저장되었어요." 두 번째 BI 조각 수정 → 취소 정상. 저널링 에디터 하이라이트 → `<mark>` 저장. 콘솔 오류는 Google 로그인 관련뿐. 테스트 데이터 삭제.
 - 알려진 한계: 여러 줄 하이라이트와 해제는 Ctrl+Z로 되돌려지지 않음(다시 누르면 해제). 한 줄 하이라이트 때 바로 앞 공백이 &nbsp;로 바뀌는 브라우저 동작(보이는 차이 없음). 로그인 상태(서버 저장)는 확인 못 함.
+
+## 2026-09-22 · Claude Code · 하이라이트 3색 · Ctrl+H · Ctrl+Z
+- 사용자: (1) 하이라이트 아이콘의 H 제거, 색 3가지(노랑·파랑·빨강 순), 마지막에 쓴 색 자동 저장, 단축키 Ctrl+H(이미 쓰이면 알려주기). (2) Ctrl+Z 되게.
+- Ctrl+H 충돌 조사: 앱(`design/prototypes/*.js`)과 데스크톱 셸(`desktop/shell.js` 메뉴·before-input-event)에는 없음. 브라우저 기본 Ctrl+H(방문 기록)와 겹치지만 에디터에 포커스가 있을 때만 가로채므로 그 밖에서는 방문 기록이 그대로 열림. macOS는 ⌘+H가 시스템 "가리기"라 Control+H로 둠(원래 mac 입력칸에서 Control+H = 한 글자 지우기).
+- `journal.js`: 툴바의 하이라이트 버튼을 `hlGroup()`(색 칩 + ▾ 메뉴)으로 교체, Findings 툴바도 같은 것. 색은 localStorage `phibrain.highlightColor` + `html[data-hl]`. 칠하기는 전부 hiliteColor → `<mark>` 변환 한 경로로 통일.
+- 실행 취소: 에디터별 자체 기록(`editorHistory`/`findingsHistory`: 본문 + 글자 수 기준 캐럿). keydown에서 Ctrl/⌘+Z·Ctrl+Y·Ctrl/⌘+Shift+Z를 가로채고, 메뉴 경로(beforeinput historyUndo/Redo)도 같은 기록으로. 서식 명령이 input을 여러 번 쏘는 동안은 기록을 멈춰(`applyingFormat`) 한 칸만 남김. 타이핑 0.8초 묶음. `load()`·수정 시작 때 기록 초기화.
+- 발견해서 고친 것: 크롬이 지운 하이라이트 자리에 글자를 치면 배경을 `<span style="background-color">`로 되살림 → 타이핑 입력마다 걷어냄(`scrubTypingStyles`).
+- 검증(로컬, 실제 키/클릭): 저널 — Ctrl+H 노랑, 메뉴 파랑 → 저장·새로고침 후에도 파랑 유지, Ctrl+H가 파랑으로 칠함, B 버튼 → Ctrl+Z가 굵게만 되돌리고 선택도 복원, 타이핑 → Ctrl+Z, Ctrl+Y·Ctrl+Shift+Z 다시 실행. Findings 수정 — 색 그룹 표시(현재 색 체크), Ctrl+H 파랑, 메뉴 빨강 = 색 바꾸기, Ctrl+Z 두 번에 빨강→파랑→없음. 미리보기 브라우저는 가짜 키로 Ctrl+B 같은 브라우저 기본 편집 단축키를 실행하지 않아 그건 버튼으로 확인. 테스트 데이터·색 설정 지움. 캐시 `20260922-2`.

@@ -125,6 +125,7 @@
     $('#fi-register').checked = false;
     dirty = false;
     renderDate(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
+    editorHistory = newHistory(editor); // 다른 날짜로 가면 실행 취소 기록도 새로
     if (saved || store.syncState(date) === 'conflict') showSaveState(saved?.savedAt);
     else setStatus(example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
@@ -430,32 +431,36 @@
     document.execCommand('insertHTML', false, `<code>${esc(s.toString().replace(/\s*\n\s*/g, ' '))}</code>`);
   }
   // 하이라이터(사용자 지시 2026-09-22 — Findings가 줄글이라 중요한 지점이 안 보여서).
-  // 저장 형태는 <mark>. 드래그한 곳에 하이라이트가 하나라도 걸려 있으면(캐럿만 올려도) 걸린
-  // 하이라이트를 통째로 걷어내고, 없으면 드래그한 글자에 새로 칠한다. 한 줄 안이면
-  // insertHTML이라 Ctrl+Z로 되돌릴 수 있고, 여러 줄에 걸치면 브라우저 배경색 명령으로
-  // 칠한 뒤 그 표시를 <mark>로 바꾼다(굵게·기울임 같은 안쪽 서식은 그대로 남는다).
+  // 저장 형태는 <mark>, 색은 노랑·파랑·빨강 3가지(같은 날 추가 지시). 노랑은 속성 없는 <mark>
+  // (처음 만든 하이라이트와 호환), 파랑·빨강은 data-hl. 마지막에 고른 색을 기억해(이 브라우저)
+  // H 버튼과 Ctrl+H가 그 색으로 칠한다. 칠할 곳에 하이라이트가 이미 걸려 있으면:
+  // H/Ctrl+H는 걷어내고(토글), 색 메뉴에서 고른 경우는 그 색으로 바꾼다.
+  // DOM을 직접 고치므로 브라우저 실행 취소 대신 아래 editHistory가 Ctrl+Z를 맡는다.
+  const HL_COLORS = [['yellow', '노랑'], ['blue', '파랑'], ['red', '빨강']];
+  const HL_KEY = 'phibrain.highlightColor';
+  let hlColor = (() => { try { const c = localStorage.getItem(HL_KEY); return HL_COLORS.some(x => x[0] === c) ? c : 'yellow'; } catch { return 'yellow'; } })();
+  function setHlColor(c) {
+    hlColor = c;
+    try { localStorage.setItem(HL_KEY, c); } catch { /* 저장 못 해도 이번 화면에서는 유지 */ }
+    document.documentElement.dataset.hl = c;
+    document.querySelectorAll('[data-hl-pick]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.hlPick === c)));
+  }
+  const paintMark = (m, c) => (c === 'yellow' ? m.removeAttribute('data-hl') : (m.dataset.hl = c));
   const MARK_PROBE = 'rgb(255, 238, 0)';
-  function toggleHighlight() {
+  function toggleHighlight(pick) {
     const s = getSelection();
     if (!s.rangeCount) return;
     const r = s.getRangeAt(0);
     const hit = [...fmtRoot.querySelectorAll('mark')].filter(m => r.intersectsNode(m));
     if (hit.length) {
+      if (pick) { hit.forEach(m => paintMark(m, hlColor)); return; }
       const root = fmtRoot;
       hit.forEach(m => m.replaceWith(...m.childNodes));
       root.normalize();
       return;
     }
     if (s.isCollapsed) return;
-    const startBlock = closestIn(r.startContainer, 'p, li, h3, blockquote, div');
-    const endBlock = closestIn(r.endContainer, 'p, li, h3, blockquote, div');
-    if (startBlock && startBlock === endBlock && startBlock !== fmtRoot) {
-      const box = document.createElement('div');
-      box.append(r.cloneContents());
-      box.querySelectorAll('mark').forEach(m => m.replaceWith(...m.childNodes));
-      document.execCommand('insertHTML', false, `<mark>${box.innerHTML}</mark>`);
-      return;
-    }
+    // 브라우저 배경색 명령으로 칠한 뒤(여러 줄·굵게 안쪽까지 알아서 나눠 준다) 그 표시를 <mark>로 바꾼다
     document.execCommand('styleWithCSS', false, true);
     document.execCommand('hiliteColor', false, MARK_PROBE);
     document.execCommand('styleWithCSS', false, false);
@@ -464,26 +469,131 @@
       if (el.style.backgroundColor !== MARK_PROBE) return;
       el.style.removeProperty('background-color');
       const mark = document.createElement('mark');
+      paintMark(mark, hlColor);
       if (el.tagName === 'SPAN' && !el.getAttribute('style')) { el.replaceWith(mark); mark.append(...el.childNodes); }
       else { mark.append(...el.childNodes); el.append(mark); if (!el.getAttribute('style')) el.removeAttribute('style'); }
       made.push(mark);
     });
-    if (made.length) {
+    fmtRoot.querySelectorAll('mark mark').forEach(m => m.replaceWith(...m.childNodes));
+    fmtRoot.normalize();
+    if (made.length && made[0].isConnected) {
       const nr = document.createRange();
       nr.setStartBefore(made[0]);
-      nr.setEndAfter(made[made.length - 1]);
+      nr.setEndAfter(made[made.length - 1].isConnected ? made[made.length - 1] : made[0]);
       s.removeAllRanges();
       s.addRange(nr);
     }
   }
-  function applyFormat(f) {
+
+  // ---- 실행 취소(Ctrl+Z) / 다시 실행(Ctrl+Y, Ctrl+Shift+Z) — 사용자 지시 2026-09-22 ----
+  // 하이라이트·인용·코드 해제는 DOM을 직접 고쳐 브라우저 실행 취소 목록에 안 남는다. 그래서 두
+  // 에디터(저널, Findings 수정 칸)는 브라우저 것을 끄고 자체 기록을 쓴다: 바뀔 때마다 본문과 캐럿
+  // 위치(글자 수 기준)를 쌓고, 연달아 치는 글자는 한 칸으로 묶는다(0.8초 이내).
+  function caretOffset(root, node, off) {
+    const r = document.createRange();
+    r.selectNodeContents(root);
+    try { r.setEnd(node, off); } catch { return 0; }
+    return r.toString().length;
+  }
+  function pointAt(root, n) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let t, last = null;
+    while ((t = w.nextNode())) {
+      if (n <= t.length) return [t, n];
+      n -= t.length;
+      last = t;
+    }
+    return last ? [last, last.length] : [root, 0];
+  }
+  function snapshot(root) {
+    const s = getSelection();
+    let a = 0, b = 0;
+    if (s.rangeCount && root.contains(s.anchorNode)) {
+      const r = s.getRangeAt(0);
+      a = caretOffset(root, r.startContainer, r.startOffset);
+      b = caretOffset(root, r.endContainer, r.endOffset);
+    }
+    return { html: root.innerHTML, a, b };
+  }
+  const newHistory = root => ({ stack: [snapshot(root)], i: 0, typing: false, t: 0 });
+  let editorHistory = null, findingsHistory = null;
+  const historyOf = root => (root === editor ? (editorHistory ||= newHistory(editor)) : root ? (findingsHistory ||= newHistory(root)) : null);
+  // 바뀌기 직전 캐럿을 지금 칸에 적어 둔다 — 되돌리면 그 자리로 돌아가게
+  function noteCaret(root) {
+    const h = historyOf(root);
+    const cur = snapshot(root);
+    if (cur.html === h.stack[h.i].html) { h.stack[h.i].a = cur.a; h.stack[h.i].b = cur.b; }
+  }
+  // 서식 하나를 거는 동안 브라우저 명령이 input을 여러 번 쏘아도(하이라이트는 배경색 → <mark> 두 단계)
+  // 끝난 모습 하나만 기록한다
+  let applyingFormat = false;
+  function recordEdit(root, typing = false) {
+    if (applyingFormat) return;
+    const h = historyOf(root);
+    const cur = snapshot(root);
+    if (cur.html === h.stack[h.i].html) return;
+    h.stack.length = h.i + 1;
+    if (typing && h.typing && Date.now() - h.t < 800 && h.i > 0) h.stack[h.i] = cur;
+    else { h.stack.push(cur); h.i++; if (h.stack.length > 200) { h.stack.shift(); h.i--; } }
+    h.typing = typing;
+    h.t = Date.now();
+  }
+  function stepHistory(root, dir) {
+    const h = historyOf(root);
+    const j = h.i + dir;
+    if (j < 0 || j >= h.stack.length) return;
+    h.i = j;
+    h.typing = false;
+    const st = h.stack[j];
+    root.innerHTML = st.html;
+    root.focus({ preventScroll: true });
+    const [sn, so] = pointAt(root, st.a), [en, eo] = pointAt(root, st.b);
+    const r = document.createRange();
+    r.setStart(sn, so);
+    r.setEnd(en, eo);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    if (root === editor) { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
+    else findingsDraft = root.innerHTML;
+    refreshFormatState();
+  }
+  // 크롬은 하이라이트를 지운 자리에 다시 글자를 치면 그 배경을 <span style="background-color">로
+  // 되살린다 — <mark>가 아니라 색만 남은 가짜 하이라이트라 H로 걷어낼 수도 없다. 입력마다 걷어낸다.
+  function scrubTypingStyles(root) {
+    root.querySelectorAll('span[style*="background"]').forEach(sp => {
+      sp.style.removeProperty('background-color');
+      sp.style.removeProperty('background');
+      if (!sp.getAttribute('style')) sp.replaceWith(...sp.childNodes);
+    });
+  }
+  const isTypingInput = t => /^(insertText|insertCompositionText|deleteContentBackward|deleteContentForward)$/.test(t || '');
+  // 두 에디터 공통 키: Ctrl/⌘+Z, Ctrl+Y / Ctrl/⌘+Shift+Z, Ctrl+H(하이라이트)
+  function richKeydown(e, root) {
+    const mod = e.ctrlKey || e.metaKey;
+    const k = e.key.toLowerCase();
+    if (mod && !e.altKey && k === 'z') { e.preventDefault(); stepHistory(root, e.shiftKey ? 1 : -1); return; }
+    if (mod && !e.altKey && !e.shiftKey && k === 'y') { e.preventDefault(); stepHistory(root, 1); return; }
+    if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && k === 'h') { e.preventDefault(); fmtRoot = root; applyFormat('highlight'); }
+  }
+  // 메뉴(데스크톱 앱의 편집 → 실행 취소)처럼 키가 아닌 경로로 온 실행 취소도 자체 기록으로
+  function richBeforeInput(e, root) {
+    if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') { e.preventDefault(); stepHistory(root, e.inputType === 'historyUndo' ? -1 : 1); return; }
+    noteCaret(root);
+  }
+
+  function applyFormat(f, pick = false) {
     if (fmtRoot === editor) ensureCaret();
     else if (rootOfSelection() !== fmtRoot) { fmtRoot.focus(); return; }
-    if (f === 'quote') toggleQuote();
-    else if (f === 'code') toggleCode();
-    else if (f === 'highlight') toggleHighlight();
-    else document.execCommand(f);
+    noteCaret(fmtRoot);
+    applyingFormat = true;
+    try {
+      if (f === 'quote') toggleQuote();
+      else if (f === 'code') toggleCode();
+      else if (f === 'highlight') toggleHighlight(pick);
+      else document.execCommand(f);
+    } finally { applyingFormat = false; }
     if (fmtRoot === editor) afterEdit();
+    else { findingsDraft = fmtRoot.innerHTML; recordEdit(fmtRoot); }
     refreshFormatState();
   }
   function refreshFormatState() {
@@ -507,18 +617,54 @@
   }
   document.addEventListener('selectionchange', refreshFormatState);
 
+  // 하이라이트 색 메뉴: H 버튼 오른쪽 ▾. 고르면 그 색을 기억하고 드래그한 곳에 바로 칠한다
+  const hlGroup = () => `<span class="hl-group">`
+    + `<button type="button" class="pill pill-icon" data-fmt="highlight" aria-pressed="false" aria-label="하이라이트 (Ctrl+H)" title="하이라이트 (Ctrl+H)"><span class="ico-mark" aria-hidden="true"></span></button>`
+    + `<button type="button" class="pill hl-caret" data-hl-menu aria-haspopup="menu" aria-expanded="false" aria-label="하이라이트 색" title="하이라이트 색"><span class="caret" aria-hidden="true">▾</span></button>`
+    + `<span class="hl-menu" role="menu" hidden>${HL_COLORS.map(([c, name]) =>
+      `<button type="button" class="hl-swatch" role="menuitemradio" data-hl-pick="${c}" aria-checked="${c === hlColor}" aria-label="${name}" title="${name}"><span class="hl-dot" data-hl="${c}"></span></button>`).join('')}</span>`
+    + `</span>`;
+  document.querySelectorAll('.editor-tools [data-fmt="highlight"]').forEach(b => b.outerHTML = hlGroup());
+  setHlColor(hlColor);
+  function closeHlMenus(except) {
+    document.querySelectorAll('.hl-menu:not([hidden])').forEach(m => {
+      if (m === except) return;
+      m.hidden = true;
+      m.parentElement.querySelector('[data-hl-menu]')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   const COMMANDS = { template: toggleTemplate };
   // 위임 — Findings 박스의 툴바는 수정하기를 누를 때 새로 그려지므로 버튼마다 달 수 없다
-  document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd], [data-fmt]')) e.preventDefault(); }); // keep the editor's selection
+  document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd], [data-fmt], [data-hl-menu], [data-hl-pick]')) e.preventDefault(); }); // keep the editor's selection
   document.addEventListener('click', e => {
+    const caret = e.target.closest('[data-hl-menu]');
+    if (caret) {
+      const menu = caret.parentElement.querySelector('.hl-menu');
+      closeHlMenus(menu);
+      menu.hidden = !menu.hidden;
+      caret.setAttribute('aria-expanded', String(!menu.hidden));
+      return;
+    }
+    const pick = e.target.closest('[data-hl-pick]');
+    if (pick) {
+      setHlColor(pick.dataset.hlPick);
+      closeHlMenus();
+      fmtRoot = rootForButton(pick);
+      applyFormat('highlight', true);
+      return;
+    }
+    if (!e.target.closest('.hl-menu')) closeHlMenus();
     const btn = e.target.closest('[data-cmd], [data-fmt]');
     if (!btn) return;
     if (btn.dataset.cmd) { COMMANDS[btn.dataset.cmd]?.(); return; }
     fmtRoot = rootForButton(btn);
     applyFormat(btn.dataset.fmt);
   });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHlMenus(); });
 
-  function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
+  // e = 에디터의 input 이벤트(있으면) — 글자 치기는 실행 취소 한 칸으로 묶는다
+  function afterEdit(e) { if (isTypingInput(e?.inputType)) scrubTypingStyles(editor); syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); recordEdit(editor, isTypingInput(e?.inputType)); }
 
   // ---- Future Item에 등록하기 (feeds the temporary Future Item tab) ----
   const fiBtn = $('#fi-register');
@@ -591,6 +737,8 @@
   }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
+  editor.addEventListener('keydown', e => richKeydown(e, editor));
+  editor.addEventListener('beforeinput', e => richBeforeInput(e, editor));
   // paste as plain text so Discord/Notion styling doesn't leak in. Findings 수정 에디터는
   // 한 과목의 Finding 조각이라 4F 소제목·과목 박스를 새로 만들지 않고 줄과 **굵게**만 살린다
   // (거기서 과목 박스가 생기면 그 조각이 다른 과목으로 쪼개진다).
@@ -1072,9 +1220,9 @@
   // 한 번에 박스 하나만 — 편집 중인 내용은 findingsDraft에 들고 있어 별표·필터로 다시 그려져도 남는다.
   const FINDINGS_TOOLS = [
     ['bold', '굵게', '<b>B</b>'], ['italic', '기울임', '<i>I</i>'], ['underline', '밑줄', '<u>U</u>'],
-    ['strikeThrough', '취소선', '<s>S</s>'], ['highlight', '하이라이트', '<span class="ico-mark" aria-hidden="true">H</span>'], null,
+    ['strikeThrough', '취소선', '<s>S</s>'], 'hl', null,
     ['quote', '인용', '<span class="ico-quote" aria-hidden="true"></span>'], ['code', '코드', '<span class="ico-code" aria-hidden="true">&lt;/&gt;</span>'],
-  ].map(t => (t ? `<button type="button" class="pill pill-icon" data-fmt="${t[0]}" aria-pressed="false" aria-label="${t[1]}" title="${t[1]}">${t[2]}</button>`
+  ].map(t => (t === 'hl' ? '<!--hl-->' : t ? `<button type="button" class="pill pill-icon" data-fmt="${t[0]}" aria-pressed="false" aria-label="${t[1]}" title="${t[1]}">${t[2]}</button>`
     : '<span class="tool-sep" aria-hidden="true"></span>')).join('');
   let findingsEditKey = null, findingsDraft = '';
   function findingsCardHTML(key, e) {
@@ -1090,7 +1238,7 @@
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${esc(e.key)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
       ${editing
-        ? `<div class="editor-tools findings-tools" role="toolbar" aria-label="서식">${FINDINGS_TOOLS}</div>
+        ? `<div class="editor-tools findings-tools" role="toolbar" aria-label="서식">${FINDINGS_TOOLS.replace('<!--hl-->', hlGroup())}</div>
       <div class="editor findings-edit" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Finding 수정">${findingsDraft}</div>
       <div class="findings-edit-foot">
         <button type="button" class="pill" data-findings-cancel>취소</button>
@@ -1154,6 +1302,7 @@
     renderFindings();
     const ed = findingsEditEl();
     if (!ed) return;
+    findingsHistory = newHistory(ed);
     ed.focus();
     const r = document.createRange();
     r.selectNodeContents(ed);
@@ -1164,6 +1313,7 @@
   function endFindingEdit() {
     findingsEditKey = null;
     findingsDraft = '';
+    findingsHistory = null;
     renderFindings();
   }
   function saveFindingEdit() {
@@ -1180,12 +1330,21 @@
     window.PhiBrain.ui.toast('변경 사항이 저장되었어요.');
     findingsListEl.querySelector(`[data-findings-edit="${key}"]`)?.focus({ preventScroll: true });
   }
-  findingsListEl.addEventListener('input', e => { const ed = e.target.closest('.findings-edit'); if (ed) findingsDraft = ed.innerHTML; });
+  findingsListEl.addEventListener('input', e => {
+    const ed = e.target.closest('.findings-edit');
+    if (!ed) return;
+    if (isTypingInput(e.inputType)) scrubTypingStyles(ed);
+    findingsDraft = ed.innerHTML;
+    recordEdit(ed, isTypingInput(e.inputType));
+  });
+  findingsListEl.addEventListener('beforeinput', e => { const ed = e.target.closest('.findings-edit'); if (ed) richBeforeInput(e, ed); });
   findingsListEl.addEventListener('focusin', e => { if (e.target.closest('.findings-edit')) document.execCommand('defaultParagraphSeparator', false, 'p'); });
   findingsListEl.addEventListener('paste', e => { if (e.target.closest('.findings-edit')) pastePlain(e, false); });
   findingsListEl.addEventListener('keydown', e => {
-    if (!e.target.closest('.findings-edit')) return;
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveFindingEdit(); }
+    const ed = e.target.closest('.findings-edit');
+    if (!ed) return;
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveFindingEdit(); return; }
+    richKeydown(e, ed);
   });
   findingsListEl.addEventListener('click', e => {
     if (e.target.closest('[data-findings-edit]')) { startFindingEdit(e.target.closest('[data-findings-edit]').dataset.findingsEdit); return; }
