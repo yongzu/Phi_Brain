@@ -57,6 +57,10 @@
    --radius-sm is only for inline code, which should read as code, not a tag. */
 :root{--radius:20px;--radius-sm:4px}
 
+/* 한글 줄바꿈(사용자 지시 2026-09-22): 단어 중간에서 끊지 않고 띄어쓰기에서 넘긴다 — BI·IPS 페이지와 같은 규칙.
+   한 줄보다 긴 단어(URL 등)만 칸 안에서 끊는다. 개별 규칙(닉네임 break-all 등)은 그대로 우선한다 */
+body{word-break:keep-all;overflow-wrap:break-word}
+
 /* ---------- 2. Header: logo + wordmark, search, profile ---------- */
 /* 스크롤해도 프로필(닉네임) 버튼이 늘 같은 자리에 있도록 머리줄째 위에 붙인다(사용자 지시 2026-09-16).
    본문이 비쳐 보이지 않게 배경색을 깔고, 팝업(z-index 20~30)보다는 아래에 둔다 */

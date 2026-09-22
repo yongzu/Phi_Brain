@@ -1583,3 +1583,9 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 사용자: 드래그 → Ctrl+B 뒤 바로 Ctrl+H를 하려는데 선택이 풀려 다시 드래그해야 함.
 - `journal.js` `quickFormat`: 서식 전 선택을 본문 기준 글자 수(시작·끝)로 기억 → 다시 그린 뒤 `reselectFinding`이 같은 카드(키)에서 같은 글자를 다시 선택(시작은 다음 조각 맨 앞, 끝은 앞 조각 맨 끝). 색 버튼 팝업도 그 자리에 다시 뜸. 굵게 해제 때 크롬이 남기는 빈 `style=""` 제거.
 - 검증(로컬, 실제 키): "beta gamma" 드래그 → Ctrl+B → 선택 유지(팝업 표시) → Ctrl+H → `<b><mark>beta gamma</mark></b>` → Ctrl+B → `<mark>beta gamma</mark>`(빈 style 없음), 매번 선택 유지. 테스트 데이터 삭제. 캐시 journal.js 20260922-12.
+
+## 2026-09-22 · Claude Code · 한글 단어 단위 줄바꿈(앱 전체)
+- 사용자: 워드브레이크 코드 찾아서 적용 → 적용 위치 질문에 "Phi Brain 앱 전체" 선택.
+- BI(`src/index.css`)·IPS(`ips.css`)의 `word-break: keep-all; overflow-wrap: break-word;`를 `phi-brain.css` 공통 영역에 `body`로 추가. 이전엔 에디터·작성칸 등 일부에만 있었다. 개별 규칙(닉네임 `break-all`, 과제 메모 `break-word` 등)은 그대로 우선.
+- 검증(로컬): Future Item·Assignment Manage·Findings·Journal Archive·Journaling 모두 계산값 keep-all, 가로 넘침 0. 캐시 css 20260922-11.
+- 참고(BI 저장소, 이 저장소 밖): 같은 날 BI 페이지(`yongzu/BI`, 로컬 `C:\Users\yongz\BI`)에 Lenis 부드러운 스크롤을 IPS와 같은 값으로 넣고 `main` 46d334c 푸시 + `npm run deploy`. Codex의 BI 개편 사본(구글 드라이브 `Phi/02_BI_Beautiful-Interface/Source/BI-ALT`, git 아님·미배포)과는 겹치지 않음을 확인 — 이전 gh-pages(9/15, 1fd4e89 빌드)와 비교해 CSS 차이는 Lenis 6줄뿐. 개편안을 배포하면 Lenis가 빠지므로 그때 옮겨 넣어야 함.
