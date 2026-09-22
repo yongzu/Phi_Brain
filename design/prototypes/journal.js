@@ -1520,6 +1520,27 @@
   document.addEventListener('selectionchange', () => { clearTimeout(hlPopTimer); hlPopTimer = setTimeout(placeHlPop, 60); });
   addEventListener('scroll', () => { if (!hlPop.hidden) placeHlPop(); }, { passive: true });
   hlPop.addEventListener('mousedown', e => e.preventDefault()); // 드래그한 글자 선택을 지킨다
+  // 박스(카드 키)의 본문에서 글자 a~b를 다시 선택한다. 시작은 경계에서 다음 조각 맨 앞, 끝은 앞 조각 맨 끝으로
+  // 잡아 서식 태그 경계가 선택에 끼어들지 않게
+  function reselectFinding(cardKey, a, b) {
+    const body = findingsListEl.querySelector(`.findings-card[data-key="${CSS.escape(cardKey)}"] .findings-body`);
+    if (!body || a === b) return;
+    const at = (n, preferNext) => {
+      const w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+      let t, last = null;
+      while ((t = w.nextNode())) {
+        if (preferNext ? n < t.length : n <= t.length) return [t, n];
+        n -= t.length;
+        last = t;
+      }
+      return last ? [last, last.length] : [body, 0];
+    };
+    const r = document.createRange();
+    r.setStart(...at(a, true));
+    r.setEnd(...at(b, false));
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+  }
   const quickHighlight = color => quickFormat(color === 'clear' ? 'clear' : 'highlight', color);
   // 박스 본문에서 바로 서식 걸기 — 하이라이트(색·지우기)와 Ctrl+B 굵게(사용자 지시 2026-09-22)가 같은 길을 쓴다
   function quickFormat(kind, color) {
@@ -1531,6 +1552,11 @@
     if (!d) return;
     if (current === date) save(); // 저널링 탭에 같은 날짜가 열려 있으면 자동 저장 대기분부터
     const range = getSelection().getRangeAt(0).cloneRange();
+    // 다시 그린 뒤에도 같은 글자가 선택돼 있게(사용자 지시 2026-09-22 — Ctrl+B 뒤 바로 Ctrl+H를 하려면 다시 드래그해야 했다).
+    // 서식만 바뀌고 글자는 그대로라, 글자 수 위치로 기억했다가 새 박스에서 같은 자리를 다시 고른다
+    const cardKey = card.dataset.key;
+    const selA = caretOffset(body, range.startContainer, range.startOffset), selB = caretOffset(body, range.endContainer, range.endOffset);
+    const redraw = () => { renderFindings(); reselectFinding(cardKey, selA, selB); };
     const prevRoot = fmtRoot;
     body.contentEditable = 'true'; // 브라우저 배경색 명령은 편집 가능한 곳에서만 돈다
     body.focus({ preventScroll: true });
@@ -1542,6 +1568,7 @@
       if (kind === 'clear') [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m)).forEach(m => m.replaceWith(...m.childNodes));
       else if (kind === 'bold') document.execCommand('bold');
       else { setHlColor(color); toggleHighlight(true); }
+      body.querySelectorAll('[style=""]').forEach(el => el.removeAttribute('style')); // 굵게를 풀면 크롬이 빈 style을 남긴다
       body.normalize();
     } finally {
       applyingFormat = false;
@@ -1551,10 +1578,10 @@
     getSelection().removeAllRanges();
     hlPop.hidden = true;
     const html = replaceFindingSlice(d.html, course, Number(nStr), withLeadNumber(body.innerHTML, body.dataset.lead || ''));
-    if (html == null || html === d.html) { renderFindings(); return; }
-    if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요', null, 'error'); renderFindings(); return; }
+    if (html == null || html === d.html) { redraw(); return; }
+    if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요', null, 'error'); redraw(); return; }
     if (current === date) load(date);
-    renderFindings();
+    redraw();
     const step = { date, before: d.html, after: html };
     quickUndo.push(step);
     if (quickUndo.length > 50) quickUndo.shift();

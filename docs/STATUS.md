@@ -1578,3 +1578,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 사용자 제보: Findings에서 하이라이트 뒤 토스트의 되돌리기 클릭은 되는데 Ctrl+Z는 안 됨.
 - `journal.js`: 바로 서식(하이라이트·지우기·굵게)마다 {날짜, 전, 후} 본문을 `quickUndo`에 쌓고, Findings 화면에서 글자 칸 밖이면 Ctrl/⌘+Z → `stepQuick(-1)`, Ctrl+Y · Ctrl/⌘+Shift+Z → 다시 실행. 저널이 그 사이 바뀌었으면 건너뛰고 알림. 토스트 되돌리기도 같은 스택을 씀. 수정하기 칸 안에서는 그 칸의 자체 실행 취소 그대로.
 - 검증(로컬, 실제 키): Ctrl+H(alpha) → Ctrl+B(beta) → Ctrl+Z → 굵게만 풀림 → Ctrl+Y → 다시 굵게, 박스 화면도 같이 갱신. 첫 시도에서 테스트 창이 한 번 새로 고쳐져(원인은 테스트 도구 쪽으로 보임, 재현 안 됨) 메모리의 되돌리기 목록이 비었던 것 확인 — 새로고침하면 되돌리기 목록은 비는 게 정상. 테스트 데이터 삭제. 캐시 journal.js 20260922-11.
+
+## 2026-09-22 · Claude Code · Findings 바로 서식 뒤 선택 유지
+- 사용자: 드래그 → Ctrl+B 뒤 바로 Ctrl+H를 하려는데 선택이 풀려 다시 드래그해야 함.
+- `journal.js` `quickFormat`: 서식 전 선택을 본문 기준 글자 수(시작·끝)로 기억 → 다시 그린 뒤 `reselectFinding`이 같은 카드(키)에서 같은 글자를 다시 선택(시작은 다음 조각 맨 앞, 끝은 앞 조각 맨 끝). 색 버튼 팝업도 그 자리에 다시 뜸. 굵게 해제 때 크롬이 남기는 빈 `style=""` 제거.
+- 검증(로컬, 실제 키): "beta gamma" 드래그 → Ctrl+B → 선택 유지(팝업 표시) → Ctrl+H → `<b><mark>beta gamma</mark></b>` → Ctrl+B → `<mark>beta gamma</mark>`(빈 style 없음), 매번 선택 유지. 테스트 데이터 삭제. 캐시 journal.js 20260922-12.
