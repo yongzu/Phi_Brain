@@ -1520,3 +1520,9 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 실행 취소: 에디터별 자체 기록(`editorHistory`/`findingsHistory`: 본문 + 글자 수 기준 캐럿). keydown에서 Ctrl/⌘+Z·Ctrl+Y·Ctrl/⌘+Shift+Z를 가로채고, 메뉴 경로(beforeinput historyUndo/Redo)도 같은 기록으로. 서식 명령이 input을 여러 번 쏘는 동안은 기록을 멈춰(`applyingFormat`) 한 칸만 남김. 타이핑 0.8초 묶음. `load()`·수정 시작 때 기록 초기화.
 - 발견해서 고친 것: 크롬이 지운 하이라이트 자리에 글자를 치면 배경을 `<span style="background-color">`로 되살림 → 타이핑 입력마다 걷어냄(`scrubTypingStyles`).
 - 검증(로컬, 실제 키/클릭): 저널 — Ctrl+H 노랑, 메뉴 파랑 → 저장·새로고침 후에도 파랑 유지, Ctrl+H가 파랑으로 칠함, B 버튼 → Ctrl+Z가 굵게만 되돌리고 선택도 복원, 타이핑 → Ctrl+Z, Ctrl+Y·Ctrl+Shift+Z 다시 실행. Findings 수정 — 색 그룹 표시(현재 색 체크), Ctrl+H 파랑, 메뉴 빨강 = 색 바꾸기, Ctrl+Z 두 번에 빨강→파랑→없음. 미리보기 브라우저는 가짜 키로 Ctrl+B 같은 브라우저 기본 편집 단축키를 실행하지 않아 그건 버튼으로 확인. 테스트 데이터·색 설정 지움. 캐시 `20260922-2`.
+
+## 2026-09-22 · Claude Code · Findings 넘버링 분할 + Future Item 작성칸 툴바
+- 사용자: (1) Findings를 넘버링해서 올릴 것 — 번호마다 박스 하나, 기존 저널도 번호 달면 나뉘게. (2) Future Item 작성칸에도 툴바.
+- (1) `journal.js` `findingSliceNodes`: 과목 조각을 번호 줄(`/^\s*\d{1,3}\s*[.)](?!\d)\s*\S/`) 기준으로 다시 나눔. 첫 번호 앞 내용은 별도 박스, 번호 없으면 기존과 같음. `<br>`로 이어 쓴 번호 줄은 `splitNumberedBreaks`가 문단으로 쪼갬(수정 저장 시 저널 본문도 그 모양으로 저장). 저장 형식 변환 없음. Findings 안내 문구에 번호 설명 추가.
+- (2) `home.html` 작성칸 textarea → contenteditable `#fi-input` + `.fi-tools` 툴바. `future.js`: `cleanRich`(허용 태그만)·`richToText`·`hasFormatting`, `add(..., html)`, 항목 렌더 `.fi-text.fi-rich`, 행 수정 시 문구가 바뀌면 `html` 삭제, 붙여넣기 글자만, 빈칸 placeholder, 등록 후 `phibrain:composer-reset`. `journal.js`: 서식 루트·실행 취소 기록에 `#fi-input` 추가. 서버(`worker/src/future.js`)는 항목 객체를 그대로 보관해 변경 없음.
+- 검증(로컬): 가짜 저널(BI: 서두+번호 2개+소수 줄, EWA: <br>로 이은 번호 2개, AL: 번호 없음) → 박스 6개로 기대대로 분할, EWA 두 번째 박스 수정·저장 → 저널에서 그 줄만 바뀜. Future Item: 툴바 7버튼+색 그룹, 타이핑 → Ctrl+H → Ctrl+Z/Ctrl+Y, 굵게 버튼, 실제 Enter로 등록 → `html` 저장·목록에 굵게/하이라이트 표시, 서식 없는 항목은 `html` 없음, 등록 후 칸 비움. 테스트 데이터 삭제. 캐시 `phi-brain.css`·`journal.js` 20260922-3, `future.js` 20260922-1.

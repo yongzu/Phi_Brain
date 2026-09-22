@@ -402,14 +402,16 @@
   };
   const unwrap = el => { const root = fmtRoot; el.replaceWith(...el.childNodes); root.normalize(); };
   // 툴바 버튼 → 그 툴바가 서식을 거는 에디터
-  const rootForButton = btn => btn.closest('.findings-card')?.querySelector('.findings-edit') || editor;
+  // Future Item 작성칸(#fi-input)도 같은 툴바·단축키·실행 취소를 쓴다(사용자 지시 2026-09-22)
+  const fiInput = document.getElementById('fi-input');
+  const rootForButton = btn => btn.closest('.findings-card')?.querySelector('.findings-edit') || (btn.closest('.fi-composer') && fiInput) || editor;
   // 선택(캐럿)이 들어있는 에디터 — 둘 다 아니면 null
   const rootOfSelection = () => {
     const s = getSelection();
     if (!s.rangeCount) return null;
     const el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
     if (editor.contains(el)) return editor;
-    return el?.closest('.findings-edit') || null;
+    return el?.closest('.findings-edit, #fi-input') || null;
   };
 
   function toggleQuote() {
@@ -516,8 +518,12 @@
     return { html: root.innerHTML, a, b };
   }
   const newHistory = root => ({ stack: [snapshot(root)], i: 0, typing: false, t: 0 });
-  let editorHistory = null, findingsHistory = null;
-  const historyOf = root => (root === editor ? (editorHistory ||= newHistory(editor)) : root ? (findingsHistory ||= newHistory(root)) : null);
+  let editorHistory = null, findingsHistory = null, composerHistory = null;
+  const historyOf = root => (root === editor ? (editorHistory ||= newHistory(editor))
+    : root === fiInput ? (composerHistory ||= newHistory(fiInput))
+    : root ? (findingsHistory ||= newHistory(root)) : null);
+  // Findings 수정 칸이면 편집 중 초안도 같이 맞춘다
+  const syncDraft = root => { if (root !== editor && root !== fiInput) findingsDraft = root.innerHTML; };
   // 바뀌기 직전 캐럿을 지금 칸에 적어 둔다 — 되돌리면 그 자리로 돌아가게
   function noteCaret(root) {
     const h = historyOf(root);
@@ -554,7 +560,7 @@
     getSelection().removeAllRanges();
     getSelection().addRange(r);
     if (root === editor) { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
-    else findingsDraft = root.innerHTML;
+    else { syncDraft(root); root.dispatchEvent(new Event('input')); }
     refreshFormatState();
   }
   // 크롬은 하이라이트를 지운 자리에 다시 글자를 치면 그 배경을 <span style="background-color">로
@@ -593,7 +599,7 @@
       else document.execCommand(f);
     } finally { applyingFormat = false; }
     if (fmtRoot === editor) afterEdit();
-    else { findingsDraft = fmtRoot.innerHTML; recordEdit(fmtRoot); }
+    else { syncDraft(fmtRoot); recordEdit(fmtRoot); }
     refreshFormatState();
   }
   function refreshFormatState() {
@@ -739,6 +745,13 @@
   editor.addEventListener('input', afterEdit);
   editor.addEventListener('keydown', e => richKeydown(e, editor));
   editor.addEventListener('beforeinput', e => richBeforeInput(e, editor));
+  if (fiInput) {
+    fiInput.addEventListener('keydown', e => richKeydown(e, fiInput));
+    fiInput.addEventListener('beforeinput', e => richBeforeInput(e, fiInput));
+    fiInput.addEventListener('input', e => { if (isTypingInput(e.inputType)) scrubTypingStyles(fiInput); recordEdit(fiInput, isTypingInput(e.inputType)); });
+    fiInput.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
+    fiInput.addEventListener('phibrain:composer-reset', () => { composerHistory = newHistory(fiInput); });
+  }
   // paste as plain text so Discord/Notion styling doesn't leak in. Findings 수정 에디터는
   // 한 과목의 Finding 조각이라 4F 소제목·과목 박스를 새로 만들지 않고 줄과 **굵게**만 살린다
   // (거기서 과목 박스가 생기면 그 조각이 다른 과목으로 쪼개진다).
@@ -1151,22 +1164,54 @@
   // 과목 박스 자체는 빼고 담는다 — 어느 박스에 들어있는지가 이미 과목을 말해 준다.
   const isBlankBlock = el => el.textContent.trim() === '' && !el.querySelector('img, hr');
   // 조각마다 원문의 요소 목록(els)까지 돌려준다 — Findings에서 고친 내용을 저널의 그 자리에 되돌려 쓰려고
+  // 넘버링 한 줄 = 박스 하나(사용자 지시 2026-09-22). "1. …" / "1) …"로 시작하는 줄에서 새 박스가
+  // 시작되고, 번호 없는 다음 줄들은 그 번호에 붙는다. 첫 번호 앞의 내용은 따로 한 박스. 번호가
+  // 하나도 없으면 예전처럼 과목 태그 하나 = 박스 하나.
+  const NUMBERED = /^\s*\d{1,3}\s*[.)](?!\d)\s*\S/; // 3.5점 같은 소수는 번호가 아니다
+  const isNumberedLine = el => /^(P|DIV)$/.test(el.tagName) && !el.classList.contains('course-box') && NUMBERED.test(el.textContent);
+  // Shift+Enter로 한 문단 안에 이어 쓴 번호 줄(<br>로 나뉜 줄)은 번호 줄마다 문단을 나눈다 —
+  // 그래야 줄 단위로 박스를 가를 수 있다. 번호가 없는 <br> 줄은 그대로 앞 줄에 붙어 있는다.
+  function splitNumberedBreaks(p) {
+    if (p.tagName !== 'P' || !p.querySelector(':scope > br')) return [p];
+    const lines = [[]];
+    [...p.childNodes].forEach(n => (n.nodeName === 'BR' ? lines.push([]) : lines[lines.length - 1].push(n)));
+    const lineText = nodes => nodes.map(n => n.textContent).join('');
+    if (!lines.slice(1).some(l => NUMBERED.test(lineText(l)))) return [p];
+    const paras = [];
+    lines.forEach((nodes, i) => {
+      if (i === 0 || NUMBERED.test(lineText(nodes))) { const np = document.createElement('p'); paras.push(np); }
+      else paras[paras.length - 1].append(document.createElement('br'));
+      paras[paras.length - 1].append(...nodes);
+    });
+    paras.forEach(np => { if (!np.childNodes.length) np.append(document.createElement('br')); });
+    p.replaceWith(...paras);
+    return paras;
+  }
   function findingSliceNodes(frag) {
     const slices = [];
     let capturing = false, cur = null;
+    const trim = els => {
+      // 태그 바로 뒤·다음 태그 직전의 빈 줄(<p><br></p>)은 잘라 박스 위아래 공백을 없앤다
+      while (els.length && isBlankBlock(els[0])) els.shift();
+      while (els.length && isBlankBlock(els[els.length - 1])) els.pop();
+      return els;
+    };
     const flush = () => {
       if (!cur) return;
-      // 태그 바로 뒤·다음 태그 직전의 빈 줄(<p><br></p>)은 잘라 박스 위아래 공백을 없앤다
-      while (cur.els.length && isBlankBlock(cur.els[0])) cur.els.shift();
-      while (cur.els.length && isBlankBlock(cur.els[cur.els.length - 1])) cur.els.pop();
-      if (cur.els.length) slices.push({ course: cur.course, els: cur.els });
+      const els = trim(cur.els);
+      const groups = [];
+      els.forEach(el => {
+        if (!groups.length || isNumberedLine(el)) groups.push([]);
+        groups[groups.length - 1].push(el);
+      });
+      groups.map(trim).filter(g => g.length).forEach(g => slices.push({ course: cur.course, els: g }));
       cur = null;
     };
     [...frag.children].forEach(el => {
       if (el.tagName === 'H3') { flush(); capturing = el.textContent.trim().toLowerCase() === 'finding'; return; }
       if (!capturing) return;
       if (el.classList.contains('course-box')) { flush(); cur = { course: ALIASES[el.dataset.course] || el.dataset.course || '', els: [] }; return; }
-      if (cur) cur.els.push(el); // cur가 없으면 = 첫 태그 앞 내용 → 버린다
+      if (cur) cur.els.push(...splitNumberedBreaks(el)); // cur가 없으면 = 첫 태그 앞 내용 → 버린다
     });
     flush();
     return slices.filter(s => JOURNAL_SCOPES.some(c => c[0] === s.course));

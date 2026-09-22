@@ -100,6 +100,36 @@
   const clone = o => JSON.parse(JSON.stringify(o));
   const newItem = (text, key, source = null, at = Date.now()) =>
     ({ id: uid(), text, ...scopeOf(key), done: false, doneAt: null, dueAt: null, createdAt: at, placedAt: at, updatedAt: at, source });
+  // 서식 있는 행동 문구(작성칸 툴바, 사용자 지시 2026-09-22). 항목에는 늘 글자만 담은 text가 있고
+  // (완료 토스트·접근성 이름·저널 중복 확인은 계속 text를 쓴다), 굵게·하이라이트 같은 서식이 있을
+  // 때만 html을 함께 둔다. html은 저널 에디터가 만드는 태그만 남기고 나머지는 벗긴다 — 서버·다른
+  // 기기에서 온 값도 화면에 넣기 전에 여기를 거친다.
+  const RICH_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'S', 'STRIKE', 'MARK', 'CODE', 'BR', 'P', 'DIV', 'BLOCKQUOTE']);
+  function cleanRich(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html || '';
+    const walk = node => [...node.childNodes].forEach(n => {
+      if (n.nodeType === 3) return;
+      if (n.nodeType !== 1 || /^(SCRIPT|STYLE|TEMPLATE|IFRAME|OBJECT)$/.test(n.tagName)) { n.remove(); return; }
+      walk(n);
+      if (!RICH_TAGS.has(n.tagName)) { n.replaceWith(...n.childNodes); return; }
+      const hl = n.tagName === 'MARK' && ['blue', 'red'].includes(n.getAttribute('data-hl')) ? n.getAttribute('data-hl') : null;
+      [...n.attributes].forEach(a => n.removeAttribute(a.name));
+      if (hl) n.setAttribute('data-hl', hl);
+    });
+    walk(t.content);
+    return t.innerHTML;
+  }
+  // 줄 구분(<br>·문단)을 살린 글자만 — .fi-text가 pre-wrap이라 줄바꿈이 그대로 보인다
+  function richToText(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html || '';
+    t.content.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+    t.content.querySelectorAll('p, div, blockquote').forEach(b => b.append('\n'));
+    return t.content.textContent.replace(/\u00a0/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  // 글자 말고 서식이 하나라도 있으면 html을 남긴다
+  const hasFormatting = html => /<(b|strong|i|em|u|s|strike|mark|code|blockquote)\b/i.test(html);
   const saneDue = v => (typeof v === 'string' && v) ? v : null;
 
   const sane = item => { const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) }; return isKey(keyOf(normalized)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null }; }; // unknown course → 임시, text kept
@@ -288,6 +318,7 @@
         <span class="fi-num" aria-hidden="true"></span>
         ${editing
           ? `<textarea class="fi-edit" rows="1" aria-label="행동 문구 수정 — Enter 저장, Shift+Enter 줄바꿈, Esc 취소">${esc(i.text)}</textarea>`
+          : i.html ? `<span class="fi-text fi-rich" title="더블클릭해서 수정">${cleanRich(i.html)}</span>`
           : `<span class="fi-text" title="더블클릭해서 수정">${esc(i.text)}</span>`}
         ${editing && !i.dueAt ? `<button type="button" class="pill pill-icon fi-due-add" aria-label="마감 추가: ${esc(i.text)}">+</button>` : ''}
         <button type="button" class="pill pill-icon fi-delete" aria-label="삭제: ${esc(i.text)}">✕</button>
@@ -399,11 +430,11 @@
   const toggleFilter = k => setFilters(k === 'all' ? [] : filters.includes(k) ? filters.filter(x => x !== k) : [...filters, k], k);
 
   // ---- actions ----
-  function add(text, key, dueAt = null) {
+  function add(text, key, dueAt = null, html = null) {
     text = text.trim();
     if (!text) return false;
     viewWeek = weekOf(Date.now()); // a new item always belongs to this week — follow it there
-    const r = commit(s => { const it = newItem(text, key); it.dueAt = dueAt; s.items.push(it); });
+    const r = commit(s => { const it = newItem(text, key); it.dueAt = dueAt; if (html) it.html = html; s.items.push(it); });
     if (r.ok && !visibleUnder(key)) toast(`${inPhrase(key)} 추가했어요`, { label: '보기', run: () => setFilters([key]) });
     return r.ok;
   }
@@ -461,7 +492,7 @@
     editingId = null;
     const item = find(id), text = (value || '').trim();
     if (cancel || !item || !text || text === item.text) { render(`[data-id="${id}"] .fi-delete`); return; }
-    commit(s => { const it = s.items.find(i => i.id === id); it.text = text; it.updatedAt = Date.now(); },
+    commit(s => { const it = s.items.find(i => i.id === id); it.text = text; delete it.html; it.updatedAt = Date.now(); },
       { focus: `[data-id="${id}"] .fi-delete` });
   }
 
@@ -682,12 +713,27 @@
     if (e.isComposing || e.keyCode === 229) return;
     form.requestSubmit();
   });
+  // 작성칸은 서식 툴바를 쓰는 contenteditable(사용자 지시 2026-09-22). 붙여넣기는 글자만 —
+  // 다른 앱의 글꼴·색이 따라 들어오지 않게. 비면 placeholder가 보이도록 찌꺼기(<br>)를 치운다.
+  input.addEventListener('paste', e => {
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n'));
+  });
+  const refreshInputEmpty = () => input.classList.toggle('is-empty', input.textContent.trim() === '');
+  input.addEventListener('input', refreshInputEmpty);
+  refreshInputEmpty();
+  function clearComposer() {
+    input.innerHTML = '';
+    refreshInputEmpty();
+    input.dispatchEvent(new CustomEvent('phibrain:composer-reset')); // journal.js가 실행 취소 기록을 새로 시작한다
+  }
   form.addEventListener('submit', e => {
     e.preventDefault();
     // 마감 체크박스가 꺼져 있으면 날짜가 무엇이든 마감 없음 — 체크박스 자체가 신호
     const dueAt = dueEnable.checked ? (dueTimeValue ? `${dueDate}T${dueTimeValue}` : dueDate) : null;
-    if (add(input.value, draftKey, dueAt)) {
-      input.value = '';
+    const html = cleanRich(input.innerHTML);
+    if (add(richToText(html), draftKey, dueAt, hasFormatting(html) ? html : null)) {
+      clearComposer();
       dueEnable.checked = false; dueDateField.hidden = true; dueTimeField.hidden = true;
       dueDate = todayIso(); renderDueDateLabel();
       dueTimeValue = ''; renderTimeLabel();

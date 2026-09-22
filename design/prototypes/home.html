@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260922-2">
+<link rel="stylesheet" href="phi-brain.css?v=20260922-3">
 </head>
 <body>
 
@@ -217,7 +217,18 @@
           </span>
         </div>
 
-        <textarea class="fi-input" id="fi-input" rows="2" placeholder="실행할 행동을 적어주세요" aria-label="실행할 행동" enterkeyhint="done"></textarea>
+        <!-- 저널링과 같은 서식 툴바(사용자 지시 2026-09-22) — 서식 로직은 journal.js가 맡는다 -->
+        <div class="editor-tools fi-tools" role="toolbar" aria-label="서식">
+          <button type="button" class="pill pill-icon" data-fmt="bold" aria-pressed="false" aria-label="굵게" title="굵게"><b>B</b></button>
+          <button type="button" class="pill pill-icon" data-fmt="italic" aria-pressed="false" aria-label="기울임" title="기울임"><i>I</i></button>
+          <button type="button" class="pill pill-icon" data-fmt="underline" aria-pressed="false" aria-label="밑줄" title="밑줄"><u>U</u></button>
+          <button type="button" class="pill pill-icon" data-fmt="strikeThrough" aria-pressed="false" aria-label="취소선" title="취소선"><s>S</s></button>
+          <button type="button" class="pill pill-icon" data-fmt="highlight" aria-pressed="false" aria-label="하이라이트 (Ctrl+H)" title="하이라이트 (Ctrl+H)"><span class="ico-mark" aria-hidden="true"></span></button>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <button type="button" class="pill pill-icon" data-fmt="quote" aria-pressed="false" aria-label="인용" title="인용"><span class="ico-quote" aria-hidden="true"></span></button>
+          <button type="button" class="pill pill-icon" data-fmt="code" aria-pressed="false" aria-label="코드" title="코드"><span class="ico-code" aria-hidden="true">&lt;/&gt;</span></button>
+        </div>
+        <div class="fi-input fi-rich" id="fi-input" contenteditable="true" role="textbox" aria-multiline="true" aria-label="실행할 행동" data-placeholder="실행할 행동을 적어주세요" enterkeyhint="done"></div>
 
         <button type="submit" class="btn-primary fi-submit">추가</button>
       </form>
@@ -357,7 +368,7 @@
       <header class="journal-head">
         <h1 class="journal-heading" id="findings-heading">Findings</h1>
       </header>
-      <p class="field-hint findings-hint">저널의 Finding 중 과목 태그를 단 내용만 과목별로 모아 보여줘요. 별표한 박스는 앞으로 와요.</p>
+      <p class="field-hint findings-hint">저널의 Finding 중 과목 태그를 단 내용만 과목별로 모아 보여줘요. 1. 2. 처럼 번호를 달면 번호마다 박스가 나뉘고, 별표한 박스는 앞으로 와요.</p>
 
       <nav class="fi-filters findings-filters" id="findings-filters" aria-label="과목 필터"></nav>
 
@@ -459,11 +470,11 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260919-1"></script>
+<script src="future.js?v=20260922-1"></script>
 <script src="auth.js?v=20260917-2"></script>
 <script src="future-sync.js?v=3"></script>
 <script src="journal-store.js?v=4"></script>
-<script src="journal.js?v=20260922-2"></script>
+<script src="journal.js?v=20260922-3"></script>
 <script src="assignment-notice.js?v=20260919-1"></script>
 <script src="assignment.js?v=20260919-6"></script>
 </body>
