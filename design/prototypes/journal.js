@@ -1424,8 +1424,10 @@
   // 박스 배치(사용자 지시 2026-09-22): 줄 맞춤 격자 대신 두 세로 줄에 차례로 쌓는다 — 박스마다 그때 더 짧은
   // 줄 아래에 붙여서, 옆 박스가 길다고 아래에 빈 칸이 생기지 않게. 숨긴 박스는 따로 모아 맨 아래에, 간격을 두고.
   const findingsNarrow = matchMedia('(max-width: 560px)');
+  // 한 줄에 박스 하나(사용자 지시 2026-09-22 — 두 줄 쌓기에서 바꿈). 줄 수를 다시 늘리려면 여기만 바꾸면 된다
+  const FINDINGS_COLS = 1;
   function stackInto(group, cards) {
-    const n = findingsNarrow.matches ? 1 : 2;
+    const n = findingsNarrow.matches ? 1 : FINDINGS_COLS;
     group.innerHTML = '<div class="findings-col"></div>'.repeat(n);
     const cols = [...group.children];
     const tmp = document.createElement('div');

@@ -1549,3 +1549,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 사용자: Findings 넘버링을 즐겨찾기순, 그 뒤 시간순으로. 저널의 넘버링과 별개.
 - `journal.js`: 엔트리에 `pos`(그 날 저널 안 박스 순서) 추가, 정렬 = 별표 순위 → 날짜 오름차순 → pos. `layoutFindings`가 보이는 박스에 1부터 `num`, 머리줄 앞 `.findings-num` 검정 알약. `withoutLeadNumber`로 박스 표시에서만 저널의 "1. " 떼기(원문·수정 칸 그대로). 이전엔 최신 날짜가 먼저였는데 시간순(오래된 것 먼저)으로 바뀜.
 - 검증(로컬): 21일(IPS 1·2, BI) + 19일(IPS 1), 21일 BI 별표 → 1 21일 BI, 2 19일 IPS, 3 21일 IPS 첫, 4 21일 IPS 둘. 박스엔 "1." 없음, 수정 칸엔 "1. 21일 IPS 첫". IPS 필터 → 1·2·3으로 다시 매김. 테스트 데이터 삭제. 캐시 css 20260922-6, journal.js 20260922-7.
+
+## 2026-09-22 · Claude Code · Findings 폭 −200px, 한 줄에 박스 하나
+- 사용자: 본문 섹션 너비 200px 줄이고, 박스를 한 줄에 하나로.
+- CSS `.shell:has(.view-findings…)` max-width 1500 → 1300px. `journal.js` `FINDINGS_COLS = 1`(쌓기 로직은 그대로 두고 줄 수만 1 — 되돌리기 쉽게).
+- 검증(로컬 1900px 창): 셸 1300px, 세로 줄 1개, 박스 3개가 같은 x(475)·폭 1236px로 위아래 쌓임. 캐시 css 20260922-7, journal.js 20260922-8.

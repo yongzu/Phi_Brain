@@ -514,7 +514,7 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .shell:has(.view-assignment:not([hidden])){max-width:1054px} /* 920 → 1200 → 1064 → 1054px(표 990px + 좌우 32px, 사용자 지시 2026-09-14) */
 .shell:has(.view-future:not([hidden])){max-width:1500px}
 .shell:has(.view-archive:not([hidden])){max-width:900px}
-.shell:has(.view-findings:not([hidden])){max-width:1500px}
+.shell:has(.view-findings:not([hidden])){max-width:1300px} /* 1500 → 1300px, 박스 한 줄에 하나(사용자 지시 2026-09-22) */
 
 /* ---------- Assignment Manage ---------- */
 /* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
