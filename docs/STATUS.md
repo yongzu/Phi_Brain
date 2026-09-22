@@ -1493,3 +1493,10 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 ## 2026-09-22 · Claude Code · IPS 히어로 근거 문단 축소
 - 사용자: 부드러운 스크롤 확인("이제 부드럽게 된다"). 이어서 히어로의 논문 02 인용 3줄(저널링 소개·54.17%/27.08%·출처)을 작게, 첫 줄 "Phi의 학습 성찰 기록, 저널링."은 볼드.
 - `.hero__evidence` 래퍼로 묶어 `font-size: 0.85em`(데스크톱 약 20→17px), 출처는 13px. 아래 "그러나…" 문제 제기 문단은 그대로. 캐시 버전 `20260922-3`.
+
+## 2026-09-22 · Claude Code · IPS 문제→해결 도식 SVG
+- 사용자: 히어로 수정 확인("오케이 좋아"). 문제 정의부터 해결 솔루션까지 전 과정을 SVG 파일로 저장할 수 있게 도식화.
+- 산출물: `ips/process-map.svg`(1600×1162, 배포 주소 `/ips/process-map.svg`), 생성 스크립트 `tools/process-map.js`(`node tools/process-map.js`로 다시 만든다 — 문구는 스크립트의 `ROWS`에서 수정).
+- 구성: 더블 다이아몬드 4단계 띠(Discover 발견 / Define 정의 / Develop 방향 / Deliver Phi Brain) → 조사 근거 + 핵심 문제(07 결론 문장) + HMW → 4개 행(A 저널 이중 작성→Journaling·Journal Archive, B1 Findings 휘발→Findings, B2 Future Item 중복→Future Item, C 과제 관리→Assignment Manage) → Desktop App. 원인 문구는 페이지 섹션 인사이트에서 가져옴.
+- 주의: Define·Develop은 페이지상 아직 확정 전(HANDOFF "남은 일")이라 HMW 문장과 "해결 방향" 문구는 에이전트 초안. 텍스트는 `<text>` 그대로라 Figma에서 편집 가능, 글꼴은 Pretendard(없으면 맑은 고딕으로 대체).
+- 검증: 브라우저에서 모든 글자가 박스 안(좌우 여백 16px 이상)에 들어가는 것 측정, 핵심 문제와 HMW 문장 겹침 없음(1038 < 1221).
