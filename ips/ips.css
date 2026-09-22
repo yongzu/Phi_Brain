@@ -241,6 +241,9 @@ b, strong { font-weight: 700; color: var(--color-text-primary); }
 .hero__eyebrow { margin-bottom: 28px; }
 .hero__title { font-size: clamp(2.5rem, 4vw, 4.75rem); white-space: nowrap; }
 .hero__intro { display: flex; flex-direction: column; align-items: center; max-width: 800px; margin-top: clamp(180px, 35vh, 380px); }
+/* 히어로 근거 문단(논문 02 인용)은 본 문제 제기보다 한 단계 작게 */
+.hero__evidence { display: flex; flex-direction: column; align-items: center; font-size: 0.85em; }
+.hero__evidence .hero__source { font-size: 0.8125rem; }
 .hero__source { margin-top: 10px; }
 .hero__problem { margin-top: 36px; }
 .overview { width: min(100%, 783px); margin-top: var(--hero-gap); }
