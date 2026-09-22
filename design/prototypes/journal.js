@@ -1300,8 +1300,9 @@
     for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
     return h.toString(36);
   }
-  // hidden: true면 숨긴 박스까지(순번 n은 늘 전부를 기준으로 센다 — 별표·수정 키가 숨김에 흔들리지 않게)
-  function findingsEntries({ hidden = false } = {}) {
+  // 숨긴 박스도 목록에 남긴다(e.hidden) — 지우는 대신 맨 아래로 보낸다(사용자 지시 2026-09-22, "삭제하기"→"숨기기").
+  // 순번 n은 숨김과 상관없이 전부를 기준으로 센다 — 별표·수정 키가 숨김에 흔들리지 않게
+  function findingsEntries() {
     const out = [];
     const gone = new Set(store.findingsHidden.all());
     store.dates().sort((a, b) => b.localeCompare(a)).forEach(date => {
@@ -1312,8 +1313,7 @@
         const n = seen.get(s.course) || 0;
         seen.set(s.course, n + 1);
         const hid = `${date}::${s.course}::${textPrint(s.html)}`;
-        if (!hidden && gone.has(hid)) return;
-        out.push({ date, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}`, hid });
+        out.push({ date, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}`, hid, hidden: gone.has(hid) });
       });
     });
     return out;
@@ -1348,7 +1348,9 @@
         <h2 class="fi-box-title">${label}</h2>
         <span class="findings-date">${esc(monthDay(e.date))}</span>
         ${editing ? '' : `<button type="button" class="findings-edit-btn" data-findings-edit="${esc(e.key)}" aria-label="수정하기: ${esc(plain)}">수정하기</button>`
-          + `<button type="button" class="findings-edit-btn" data-findings-hide="${esc(e.hid)}" aria-label="Findings에서 삭제하기: ${esc(plain)} — 원본 저널은 그대로" title="Findings에서만 지워요. 원본 저널은 그대로예요.">삭제하기</button>`}
+          + (e.hidden
+            ? `<button type="button" class="findings-edit-btn" data-findings-hide="${esc(e.hid)}" data-on="0" aria-label="숨기기 해제: ${esc(plain)}">숨기기 해제</button>`
+            : `<button type="button" class="findings-edit-btn" data-findings-hide="${esc(e.hid)}" data-on="1" aria-label="숨기기: ${esc(plain)} — 맨 아래로 옮겨요. 원본 저널은 그대로" title="맨 아래 숨긴 박스로 옮겨요. 원본 저널은 그대로예요.">숨기기</button>`)}
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${esc(e.key)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
       ${editing
@@ -1393,9 +1395,8 @@
     }
     if (findingsFavOnly) {
       const fav = starredCards(box);
-      findingsListEl.innerHTML = fav.length
-        ? fav.map(([k, e]) => findingsCardHTML(k, e)).join('')
-        : '<p class="fi-box-empty">별표한 Finding이 없어요. 박스의 별표를 누르면 여기에 모여요.</p>';
+      if (fav.length) layoutFindings(fav);
+      else findingsListEl.innerHTML = '<p class="fi-box-empty">별표한 Finding이 없어요. 박스의 별표를 누르면 여기에 모여요.</p>';
       return;
     }
     const cards = (findingsFilters.length ? findingsFilters : keys)
@@ -1403,8 +1404,34 @@
     const starred = store.findingsFavorites.all(); // 별표한 순서 그대로
     const rank = c => { const i = starred.indexOf(c[1].key); return i === -1 ? Infinity : i; };
     cards.sort((a, b) => rank(a) - rank(b)); // 안정 정렬 — 별표 없는 박스끼리는 원래 순서 유지
-    findingsListEl.innerHTML = cards.map(([k, e]) => findingsCardHTML(k, e)).join('');
+    layoutFindings(cards);
   }
+  // 박스 배치(사용자 지시 2026-09-22): 줄 맞춤 격자 대신 두 세로 줄에 차례로 쌓는다 — 박스마다 그때 더 짧은
+  // 줄 아래에 붙여서, 옆 박스가 길다고 아래에 빈 칸이 생기지 않게. 숨긴 박스는 따로 모아 맨 아래에, 간격을 두고.
+  const findingsNarrow = matchMedia('(max-width: 560px)');
+  function stackInto(group, cards) {
+    const n = findingsNarrow.matches ? 1 : 2;
+    group.innerHTML = '<div class="findings-col"></div>'.repeat(n);
+    const cols = [...group.children];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cards.map(([k, e]) => findingsCardHTML(k, e)).join('');
+    [...tmp.children].forEach((card, i) => {
+      // 화면에 안 보일 때(다른 탭)는 높이를 잴 수 없어 번갈아 넣는다 — 이 화면을 열면 다시 그린다
+      const measured = cols.some(c => c.offsetHeight);
+      const target = measured ? cols.reduce((a, b) => (b.offsetHeight < a.offsetHeight ? b : a)) : cols[i % n];
+      target.append(card);
+    });
+  }
+  function layoutFindings(cards) {
+    const shown = cards.filter(([, e]) => !e.hidden), hidden = cards.filter(([, e]) => e.hidden);
+    findingsListEl.innerHTML = '<div class="findings-stack"></div>'
+      + (hidden.length ? `<section class="findings-hidden" aria-label="숨긴 박스"><p class="findings-hidden-label">숨긴 박스 ${hidden.length}</p><div class="findings-stack"></div></section>` : '');
+    const [main, rest] = findingsListEl.querySelectorAll('.findings-stack');
+    stackInto(main, shown);
+    if (rest) stackInto(rest, hidden);
+    if (!shown.length) main.remove();
+  }
+  findingsNarrow.addEventListener('change', () => { if (window.PhiBrain.getCurrentView() === 'findings') renderFindings(); });
   const findingsEditEl = () => findingsListEl.querySelector('.findings-edit');
   function startFindingEdit(key) {
     if (findingsEditKey && findingsEditKey !== key && !confirm('수정 중인 Finding이 있어요. 저장하지 않고 다른 박스를 수정할까요?')) return;
@@ -1466,14 +1493,15 @@
     if (e.target.closest('[data-findings-cancel]')) { endFindingEdit(); return; }
     const hide = e.target.closest('[data-findings-hide]');
     if (hide) {
-      // 확인창 없이 바로 빼고 되돌리기 토스트 — Journal Archive·Future Item 삭제와 같은 방식
-      const hid = hide.dataset.findingsHide;
-      store.findingsHidden.set(hid, true);
+      // 숨기기 = 맨 아래 "숨긴 박스"로, 해제 = 제자리로. 원본 저널은 어느 쪽이든 그대로
+      const hid = hide.dataset.findingsHide, on = hide.dataset.on === '1';
+      store.findingsHidden.set(hid, on);
       renderFindings();
-      window.PhiBrain.ui.toast('Findings에서 지웠어요 · 원본 저널은 그대로예요', {
+      if (on) window.PhiBrain.ui.toast('숨겼어요 · 맨 아래로 옮겼어요', {
         label: '되돌리기',
         run: () => { store.findingsHidden.set(hid, false); renderFindings(); },
       });
+      else findingsListEl.querySelector(`[data-findings-hide="${CSS.escape(hid)}"]`)?.focus({ preventScroll: true });
       return;
     }
     const b = e.target.closest('[data-findings-fav]');

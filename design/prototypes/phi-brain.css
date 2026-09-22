@@ -675,6 +675,13 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .findings-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 .findings-list>.fi-box-empty{grid-column:1/-1}
 @media(max-width:560px){.findings-list{grid-template-columns:1fr}}
+/* 두 세로 줄 쌓기(2026-09-22): 격자 행 맞춤을 끄고, 박스는 journal.js가 더 짧은 줄에 붙인다 — 옆 박스 길이 때문에
+   생기던 빈 칸이 없다. 박스 사이 간격은 가로와 같은 16px. 숨긴 박스는 맨 아래 따로, 위와 넉넉히 띄운다 */
+.findings-list:has(.findings-stack){display:block}
+.findings-stack{display:flex;align-items:flex-start;gap:16px}
+.findings-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:16px}
+.findings-hidden{margin-top:48px}
+.findings-hidden-label{margin:0 0 10px;color:var(--gray);font-size:.78rem}
 /* 박스 머리줄: 과목 이름 · 날짜 · 별표(별표는 .fi-box-fav의 margin-left:auto로 오른쪽 끝) */
 .findings-date{color:var(--gray);font-size:.78rem}
 .findings-body{margin-top:8px;padding-bottom:0}

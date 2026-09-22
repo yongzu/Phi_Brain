@@ -1538,3 +1538,9 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - (2) 원인은 데이터가 아니라 CSS: style-kit `theme.css`의 `body *{font-weight:400}`이 `<b>` 안의 `<mark>`를 다시 400으로. `.editor b *, .fi-rich b *`(strong 포함)에 `font-weight:inherit`.
 - (3) `fourFLabel`: 한 줄이 4F 이름뿐이면 소제목 — 백틱·`**`·`#`·`[]`·끝 콜론을 벗겨 판별, facts/future items 등 복수형도. 문장 속 단어는 건드리지 않음. 이미 붙여넣은 예전 저널의 "Fact" 문단은 자동 변환하지 않음.
 - 검증(로컬): 백틱 없는 `Fact`·`feeling:`·`**Findings**`·`## Future Item` → 소제목 4개, "fact 정리는 문장"은 문단 유지, Findings 박스 3개(번호 분할 포함). 삭제하기 실제 클릭 → 박스 사라짐·저널 원문 유지·새로고침 뒤에도 유지, 되돌리기 클릭 → 복귀. `<b><mark>` 계산 굵기 700(작성칸·저널). 좁은 폭에서 머리줄 버튼 줄바꿈 방지(nowrap). 테스트 데이터 삭제. 로그인 상태 서버 동기화는 미확인(인증 없는 요청이 401로 막히는 것까지만 확인). 캐시 css 20260922-4, journal.js 20260922-5, journal-store.js v5.
+
+## 2026-09-22 · Claude Code · Findings 빈 칸 없이 쌓기 + 삭제→숨기기
+- 사용자(스크린샷): (1) 박스 간 상하 여백 없이 붙여라 — 격자라 옆 박스가 길면 짧은 박스 아래에 큰 빈 칸. (2) "삭제하기"를 "숨기기"로, 숨긴 박스는 여백을 두고 맨 아래로.
+- (1) `journal.js` `layoutFindings`/`stackInto`: 두 세로 줄(`.findings-col`)을 만들고 박스를 그때 더 짧은 줄에 붙임(화면에 안 보일 땐 번갈아, 보이면 다시 그림). 560px 경계를 넘으면 다시 배치. CSS `.findings-stack`/`.findings-col`, `.findings-list:has(.findings-stack){display:block}`.
+- (2) `findingsEntries`가 숨긴 박스도 `hidden` 표시로 돌려줌 → 맨 아래 `.findings-hidden`("숨긴 박스 N", 위와 48px). 버튼 "숨기기"(되돌리기 토스트) / "숨기기 해제". 저장소·서버는 어제 만든 `findings_hidden` 그대로(서버 변경 없음).
+- 검증(로컬 1300px, 길이 다른 IPS 박스 6개): 왼쪽 1·3·4·6 / 오른쪽 2·5로 쌓임, 줄 안 간격 전부 16px. 3번 숨기기 → 맨 아래 "숨긴 박스 1"(48px 띄움), 버튼 "숨기기 해제", 위는 다시 쌓임, IPS 필터 개수 6 유지. 해제 → 숨긴 영역 사라짐. 테스트 데이터 삭제. 캐시 css 20260922-5, journal.js 20260922-6.
