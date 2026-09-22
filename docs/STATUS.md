@@ -1526,3 +1526,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - (1) `journal.js` `findingSliceNodes`: 과목 조각을 번호 줄(`/^\s*\d{1,3}\s*[.)](?!\d)\s*\S/`) 기준으로 다시 나눔. 첫 번호 앞 내용은 별도 박스, 번호 없으면 기존과 같음. `<br>`로 이어 쓴 번호 줄은 `splitNumberedBreaks`가 문단으로 쪼갬(수정 저장 시 저널 본문도 그 모양으로 저장). 저장 형식 변환 없음. Findings 안내 문구에 번호 설명 추가.
 - (2) `home.html` 작성칸 textarea → contenteditable `#fi-input` + `.fi-tools` 툴바. `future.js`: `cleanRich`(허용 태그만)·`richToText`·`hasFormatting`, `add(..., html)`, 항목 렌더 `.fi-text.fi-rich`, 행 수정 시 문구가 바뀌면 `html` 삭제, 붙여넣기 글자만, 빈칸 placeholder, 등록 후 `phibrain:composer-reset`. `journal.js`: 서식 루트·실행 취소 기록에 `#fi-input` 추가. 서버(`worker/src/future.js`)는 항목 객체를 그대로 보관해 변경 없음.
 - 검증(로컬): 가짜 저널(BI: 서두+번호 2개+소수 줄, EWA: <br>로 이은 번호 2개, AL: 번호 없음) → 박스 6개로 기대대로 분할, EWA 두 번째 박스 수정·저장 → 저널에서 그 줄만 바뀜. Future Item: 툴바 7버튼+색 그룹, 타이핑 → Ctrl+H → Ctrl+Z/Ctrl+Y, 굵게 버튼, 실제 Enter로 등록 → `html` 저장·목록에 굵게/하이라이트 표시, 서식 없는 항목은 `html` 없음, 등록 후 칸 비움. 테스트 데이터 삭제. 캐시 `phi-brain.css`·`journal.js` 20260922-3, `future.js` 20260922-1.
+
+## 2026-09-22 · Claude Code · 붙여넣은 저널이 전부 회색 박스로 보이던 문제
+- 사용자 제보(스크린샷): 저널을 붙여넣으니 모든 문단이 회색 박스 안에 들어감. 박스 모양 = 소제목(h3) 알약 스타일 → 본문이 `<h3>` 안에 들어간 것. 크롬은 커서가 소제목 줄에 있을 때 붙여넣으면 내용을 h3 안에 넣고 `<span style="font-family…;background-color…">`까지 남긴다(로컬에서 재현: 소제목 끝에 커서 → 붙여넣기 → 첫 줄이 h3 안 스타일 span으로).
+- `journal.js`: `caretOutOfHeading` — 붙여넣기 전 커서가 소제목 안이면 바로 아래 빈 줄(없으면 새 줄)로 옮김. `repairRich` — 스타일 박힌 span 풀기, 소제목 안의 블록·줄바꿈 뒤 내용은 소제목 뒤로 꺼내고 비면 소제목 삭제. 붙여넣기 직후·저널 열 때(`load`, 고쳐졌으면 바로 저장해 Archive·Findings에도 반영)·Findings 추출 전에 실행.
+- 검증(로컬): 템플릿 소제목 끝에서 여러 줄/한 줄 붙여넣기 → 전부 소제목 아래 문단으로. 스크린샷과 같은 구조(h3 안에 문단·과목 박스·스타일 span)를 저장해 두고 열기 → 풀린 모양으로 표시·저장, Findings에 AL 박스 2개(번호 분할 포함) 정상. 테스트 데이터 삭제. 캐시 `journal.js` 20260922-4.

@@ -120,12 +120,14 @@
     const data = saved || example || { title: '', courses: [], html: '' };
     titleInput.value = data.title || '';
     editor.innerHTML = data.html || '';
+    const repaired = repairRich(editor); // 예전 붙여넣기로 소제목 안에 들어간 본문을 꺼낸다
     chosen = new Set((data.courses || []).map(c => ALIASES[c] || c));
     editor.querySelectorAll('.course-box[data-course="EAI"]').forEach(box => { box.dataset.course = 'EWA'; box.innerHTML = courseBoxInner('EWA'); });
     $('#fi-register').checked = false;
     dirty = false;
     renderDate(); syncGuides(); refreshEmpty(); refreshTemplateState(); resetOrganize();
     editorHistory = newHistory(editor); // 다른 날짜로 가면 실행 취소 기록도 새로
+    if (repaired && saved && store.syncState(date) !== 'conflict') { dirty = true; save(); } // 고친 모양으로 저장해 Archive·Findings에도 반영
     if (saved || store.syncState(date) === 'conflict') showSaveState(saved?.savedAt);
     else setStatus(example ? '예시 초안 · 입력하면 자동 저장돼요' : '');
     renderResume();
@@ -755,15 +757,65 @@
   // paste as plain text so Discord/Notion styling doesn't leak in. Findings 수정 에디터는
   // 한 과목의 Finding 조각이라 4F 소제목·과목 박스를 새로 만들지 않고 줄과 **굵게**만 살린다
   // (거기서 과목 박스가 생기면 그 조각이 다른 과목으로 쪼개진다).
+  // 소제목(h3) 안으로 본문이 들어가는 사고를 막고, 이미 들어간 건 되돌린다(사용자 제보 2026-09-22 —
+  // 붙여넣은 저널이 전부 회색 박스로 보였다). 크롬은 커서가 소제목 줄에 있을 때 붙여넣으면 내용을
+  // <h3> 안에 넣고, 그 자리 글꼴·배경을 박은 <span style>까지 남긴다. 소제목의 회색 알약 모양이
+  // 안에 든 문단 전체로 번져 박스처럼 보인다.
+  const INLINE_TAG = /^(B|STRONG|I|EM|U|S|STRIKE|MARK|CODE|SPAN|A)$/;
+  function repairRich(root) {
+    let changed = false;
+    // 우리가 만드는 서식은 전부 태그(<b>·<mark>…)라, 스타일을 박은 span은 크롬이 남긴 찌꺼기뿐이다
+    root.querySelectorAll('span[style]').forEach(sp => { sp.replaceWith(...sp.childNodes); changed = true; });
+    root.querySelectorAll('h3').forEach(h => {
+      // 소제목은 첫 줄의 글자까지만. 줄바꿈 뒤 글자나 문단·과목 박스 같은 블록은 소제목 뒤로 꺼낸다
+      const nodes = [...h.childNodes];
+      const cut = nodes.findIndex(n => n.nodeType === 1 && !INLINE_TAG.test(n.tagName));
+      if (cut === -1) return;
+      const out = [];
+      let line = null;
+      nodes.slice(cut).forEach(n => {
+        if (n.nodeName === 'BR') { if (!line) out.push(Object.assign(document.createElement('p'), { innerHTML: '<br>' })); line = null; return; }
+        if (n.nodeType === 1 && !INLINE_TAG.test(n.tagName)) { line = null; out.push(n); return; }
+        if (!line) { line = document.createElement('p'); out.push(line); }
+        line.append(n);
+      });
+      // 소제목 바로 뒤 줄바꿈이 만든 빈 줄 하나는 버린다(그 <br>은 소제목을 끝낸 줄바꿈이다)
+      if (out[0] && out[0].tagName === 'P' && out[0].innerHTML === '<br>' && nodes[cut].nodeName === 'BR') out.shift();
+      h.after(...out);
+      if (!h.textContent.trim()) h.remove();
+      changed = true;
+    });
+    if (changed) root.normalize();
+    return changed;
+  }
+  // 커서가 소제목 안이면 붙여넣기 전에 소제목 바로 아래 줄로 옮긴다 — 빈 줄이 있으면 그 줄, 없으면 새 줄
+  function caretOutOfHeading(root) {
+    const s = getSelection();
+    if (!s.rangeCount) return;
+    const el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
+    const h = el?.closest('h3');
+    if (!h || !root.contains(h)) return;
+    let line = h.nextElementSibling;
+    if (!line || line.tagName !== 'P' || line.textContent.trim() !== '') {
+      line = document.createElement('p');
+      line.innerHTML = '<br>';
+      h.after(line);
+    }
+    caretIn(line);
+  }
   function pastePlain(e, structured) {
     e.preventDefault();
+    const at = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+    const root = at?.closest('#editor, .findings-edit') || editor;
     // normalize \r\n/\r first — leaving \r in place makes execCommand('insertText')
     // treat \r and \n as separate breaks, turning one blank line into three
     const text = e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
-    if (!text.includes('\n')) { document.execCommand('insertText', false, text); return; }
     if (structured) ensureCaret();
-    document.execCommand('insertHTML', false, structured ? pastedTextToHtml(text)
+    caretOutOfHeading(root);
+    if (!text.includes('\n')) document.execCommand('insertText', false, text);
+    else document.execCommand('insertHTML', false, structured ? pastedTextToHtml(text)
       : text.split('\n').map(l => (l.trim() ? `<p>${inlineBold(l.trim())}</p>` : '<p><br></p>')).join(''));
+    if (repairRich(root)) { if (root === editor) afterEdit(); else { syncDraft(root); recordEdit(root); } }
   }
   editor.addEventListener('paste', e => pastePlain(e, true));
   editor.addEventListener('click', e => {
@@ -1188,6 +1240,7 @@
     return paras;
   }
   function findingSliceNodes(frag) {
+    repairRich(frag);
     const slices = [];
     let capturing = false, cur = null;
     const trim = els => {
