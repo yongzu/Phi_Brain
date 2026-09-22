@@ -1560,3 +1560,9 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 
 ## 2026-09-22 · Claude Code · Findings 폭 400px 더 줄임
 - 사용자: 400px 줄인다. `.shell:has(.view-findings…)` max-width 1100 → 700px(좌우 여백 32px 빼면 박스 폭 약 636px). 캐시 css 20260922-9.
+
+## 2026-09-22 · Claude Code · Findings 바로 하이라이트
+- 사용자: Findings에서 수정하기를 누르지 않아도 글자를 드래그하면 그 옆에 하이라이트 버튼.
+- `journal.js`: `.findings-hl-pop`(fixed) — selectionchange로 드래그가 박스 본문 하나 안이면 끝 글자 오른쪽(줄 가운데)에 3색 + 지우기(칠한 곳이 걸릴 때만). `quickHighlight`: 그 순간만 본문을 contenteditable로 바꿔 에디터와 같은 `toggleHighlight`로 칠하고, `withLeadNumber`로 뗀 저널 번호를 줄 맨 앞(서식 밖)에 다시 붙여 `replaceFindingSlice` → `store.set`, 되돌리기 토스트(그 사이 저널이 또 바뀌었으면 되돌리지 않음). Ctrl+H 지원. 저널링 탭에 같은 날짜가 열려 있으면 먼저 `save()`, 뒤에 `load()`. `splitLeadNumber`/`data-lead` 추가.
+- 발견해서 고친 것: 처음엔 뗀 번호를 첫 글자에 붙여 "1. "까지 하이라이트 안에 들어감 → 줄 맨 앞에 서식 없이 붙이도록.
+- 검증(로컬): "문제정의" 드래그 → 버튼이 선택 끝 +6px·같은 줄 높이에 뜸, 파랑 클릭 → 저장본 `1. <mark data-hl="blue">문제정의 <b>핵심</b></mark> 문장이다`(굵게 유지, 번호는 밖), 실제 Ctrl+H 동일, 칠한 곳 드래그 → ✕ 표시, 클릭 → 원문으로 복귀 + "하이라이트를 지웠어요 · 되돌리기". 테스트 데이터 삭제. 캐시 css 20260922-10, journal.js 20260922-9.

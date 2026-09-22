@@ -1341,14 +1341,32 @@
   let findingsEditKey = null, findingsDraft = '';
   // 저널에 쓴 "1. "·"2) " 같은 번호는 박스를 나누는 표시일 뿐 — 박스에는 Findings 번호가 따로 붙으므로 보여줄 때만 뗀다.
   // 저널 원문과 수정하기 칸에는 그대로 남는다.
-  function withoutLeadNumber(html) {
-    const t = document.createElement('div');
-    t.innerHTML = html;
-    const w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+  const firstText = root => {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let n;
     while ((n = w.nextNode()) && !n.textContent.trim());
-    if (!n || !NUMBERED.test(n.textContent)) return html;
-    n.textContent = n.textContent.replace(/^\s*\d{1,3}\s*[.)]\s*/, '');
+    return n || null;
+  };
+  // → [뗀 번호("1. ", 없으면 ''), 번호를 뗀 html]
+  function splitLeadNumber(html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    const n = firstText(t);
+    if (!n || !NUMBERED.test(n.textContent)) return ['', html];
+    const lead = n.textContent.match(/^\s*\d{1,3}\s*[.)]\s*/)[0];
+    n.textContent = n.textContent.slice(lead.length);
+    return [lead, t.innerHTML];
+  }
+  const withoutLeadNumber = html => splitLeadNumber(html)[1];
+  // 화면에서 고친 박스(번호 뗀 모양)를 저널에 되돌려 쓸 때 뗐던 번호를 다시 붙인다
+  function withLeadNumber(html, lead) {
+    if (!lead) return html;
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    // 번호는 그 줄(문단) 맨 앞에 서식 없이 — 첫 글자가 하이라이트·굵게 안이어도 번호까지 칠해지지 않게
+    const n = firstText(t);
+    const line = n?.parentElement?.closest('p, div, li, blockquote, h3');
+    (line && t.contains(line) && line !== t ? line : t).prepend(lead);
     return t.innerHTML;
   }
   function findingsCardHTML(key, e) {
@@ -1374,7 +1392,7 @@
         <button type="button" class="pill" data-findings-cancel>취소</button>
         <button type="button" class="btn-primary" data-findings-save>저장하기</button>
       </div>`
-        : `<div class="editor archive-preview findings-body">${withoutLeadNumber(e.html)}</div>`}
+        : (([lead, body]) => `<div class="editor archive-preview findings-body" data-lead="${esc(lead)}">${body}</div>`)(splitLeadNumber(e.html))}
     </section>`;
   }
   // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
@@ -1451,6 +1469,98 @@
     if (!shown.length) main.remove();
   }
   findingsNarrow.addEventListener('change', () => { if (window.PhiBrain.getCurrentView() === 'findings') renderFindings(); });
+  // ---- 바로 하이라이트(사용자 지시 2026-09-22): 수정하기를 누르지 않아도 박스 글자를 드래그하면 그 옆에 색 버튼이
+  // 뜬다. 누르면 그 자리에 칠하고 원래 저널의 그 박스 조각에 바로 저장한다. Ctrl+H도 같다(칠한 곳이면 지운다).
+  // 칠하는 순간만 박스를 편집 가능으로 바꿔 에디터와 같은 toggleHighlight를 쓴다 — <mark> 모양이 어디서나 같게.
+  const hlPop = document.createElement('div');
+  hlPop.className = 'findings-hl-pop';
+  hlPop.setAttribute('role', 'toolbar');
+  hlPop.setAttribute('aria-label', '하이라이트');
+  hlPop.hidden = true;
+  hlPop.innerHTML = HL_COLORS.map(([c, name]) =>
+    `<button type="button" class="hl-swatch" data-quick-hl="${c}" aria-label="${name} 하이라이트" title="${name}"><span class="hl-dot" data-hl="${c}"></span></button>`).join('')
+    + '<button type="button" class="hl-swatch hl-clear" data-quick-hl="clear" aria-label="하이라이트 지우기" title="지우기" hidden>✕</button>';
+  document.body.append(hlPop);
+  const elOf = n => (n && n.nodeType === 1 ? n : n?.parentElement);
+  // 드래그한 곳이 박스 본문 하나 안에 있으면 그 본문(수정 중 칸·여러 박스에 걸친 드래그는 제외)
+  function selectedFindingBody() {
+    const s = getSelection();
+    if (!s.rangeCount || s.isCollapsed) return null;
+    const r = s.getRangeAt(0);
+    const a = elOf(r.startContainer)?.closest('.findings-body'), b = elOf(r.endContainer)?.closest('.findings-body');
+    return a && a === b && findingsListEl.contains(a) ? a : null;
+  }
+  const hitsMark = (body, r) => [...body.querySelectorAll('mark')].some(m => r.intersectsNode(m));
+  function placeHlPop() {
+    const body = selectedFindingBody();
+    if (!body) { hlPop.hidden = true; return; }
+    const r = getSelection().getRangeAt(0);
+    const rects = [...r.getClientRects()].filter(x => x.width || x.height);
+    const last = rects[rects.length - 1] || r.getBoundingClientRect();
+    hlPop.querySelector('.hl-clear').hidden = !hitsMark(body, r);
+    hlPop.hidden = false;
+    const w = hlPop.offsetWidth, h = hlPop.offsetHeight;
+    // 드래그 끝 글자 바로 오른쪽, 그 줄 높이 가운데. 화면 밖이면 안쪽으로
+    let left = last.right + 6, top = last.top + last.height / 2 - h / 2;
+    if (left + w > innerWidth - 8) { left = Math.max(8, last.right - w); top = last.bottom + 6; }
+    hlPop.style.left = `${Math.round(left)}px`;
+    hlPop.style.top = `${Math.round(Math.max(8, Math.min(top, innerHeight - h - 8)))}px`;
+  }
+  let hlPopTimer = 0;
+  document.addEventListener('selectionchange', () => { clearTimeout(hlPopTimer); hlPopTimer = setTimeout(placeHlPop, 60); });
+  addEventListener('scroll', () => { if (!hlPop.hidden) placeHlPop(); }, { passive: true });
+  hlPop.addEventListener('mousedown', e => e.preventDefault()); // 드래그한 글자 선택을 지킨다
+  function quickHighlight(color) {
+    const body = selectedFindingBody();
+    const card = body?.closest('.findings-card');
+    if (!card) return;
+    const [date, course, nStr] = card.dataset.key.split('::');
+    const d = store.get(date);
+    if (!d) return;
+    if (current === date) save(); // 저널링 탭에 같은 날짜가 열려 있으면 자동 저장 대기분부터
+    const range = getSelection().getRangeAt(0).cloneRange();
+    const prevRoot = fmtRoot;
+    body.contentEditable = 'true'; // 브라우저 배경색 명령은 편집 가능한 곳에서만 돈다
+    body.focus({ preventScroll: true });
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    fmtRoot = body;
+    applyingFormat = true;
+    try {
+      if (color === 'clear') [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m)).forEach(m => m.replaceWith(...m.childNodes));
+      else { setHlColor(color); toggleHighlight(true); }
+      body.normalize();
+    } finally {
+      applyingFormat = false;
+      fmtRoot = prevRoot;
+      body.removeAttribute('contenteditable');
+    }
+    getSelection().removeAllRanges();
+    hlPop.hidden = true;
+    const html = replaceFindingSlice(d.html, course, Number(nStr), withLeadNumber(body.innerHTML, body.dataset.lead || ''));
+    if (html == null || html === d.html) { renderFindings(); return; }
+    if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요', null, 'error'); renderFindings(); return; }
+    if (current === date) load(date);
+    renderFindings();
+    window.PhiBrain.ui.toast(color === 'clear' ? '하이라이트를 지웠어요' : '하이라이트했어요', {
+      label: '되돌리기',
+      run: () => {
+        const now = store.get(date);
+        if (!now || now.html !== html) return; // 그 사이 저널이 또 바뀌었으면 건드리지 않는다
+        store.set(date, { ...now, html: d.html, savedAt: Date.now() });
+        if (current === date) load(date);
+        renderFindings();
+      },
+    });
+  }
+  hlPop.addEventListener('click', e => { const b = e.target.closest('[data-quick-hl]'); if (b) quickHighlight(b.dataset.quickHl); });
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h')) return;
+    const body = selectedFindingBody();
+    if (!body) return;
+    e.preventDefault();
+    quickHighlight(hitsMark(body, getSelection().getRangeAt(0)) ? 'clear' : hlColor);
+  });
   const findingsEditEl = () => findingsListEl.querySelector('.findings-edit');
   function startFindingEdit(key) {
     if (findingsEditKey && findingsEditKey !== key && !confirm('수정 중인 Finding이 있어요. 저장하지 않고 다른 박스를 수정할까요?')) return;

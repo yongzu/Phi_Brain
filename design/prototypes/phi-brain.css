@@ -682,6 +682,11 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .findings-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:16px}
 .findings-hidden{margin-top:48px}
 .findings-hidden-label{margin:0 0 10px;color:var(--gray);font-size:.78rem}
+/* 바로 하이라이트(2026-09-22): 박스 글자를 드래그하면 끝 글자 옆에 뜨는 색 버튼 — 색 메뉴(.hl-menu)와 같은 카드 모양 */
+.findings-hl-pop{position:fixed;z-index:60;display:flex;gap:2px;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle;box-shadow:var(--shadow-float)}
+.findings-hl-pop[hidden],.findings-hl-pop [hidden]{display:none}
+.hl-clear{color:var(--gray);font-size:.72rem}
+.hl-clear:hover{color:var(--ink)}
 /* 박스 머리줄: 과목 이름 · 날짜 · 별표(별표는 .fi-box-fav의 margin-left:auto로 오른쪽 끝) */
 .findings-date{color:var(--gray);font-size:.78rem}
 /* Findings 번호(2026-09-22): 저널 번호와 별개로 보이는 순서(별표 → 시간순) 1, 2, 3… — 과목 이름 앞 작은 검정 알약 */
