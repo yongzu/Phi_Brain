@@ -1554,3 +1554,6 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 사용자: 본문 섹션 너비 200px 줄이고, 박스를 한 줄에 하나로.
 - CSS `.shell:has(.view-findings…)` max-width 1500 → 1300px. `journal.js` `FINDINGS_COLS = 1`(쌓기 로직은 그대로 두고 줄 수만 1 — 되돌리기 쉽게).
 - 검증(로컬 1900px 창): 셸 1300px, 세로 줄 1개, 박스 3개가 같은 x(475)·폭 1236px로 위아래 쌓임. 캐시 css 20260922-7, journal.js 20260922-8.
+
+## 2026-09-22 · Claude Code · Findings 폭 200px 더 줄임
+- 사용자: width 200px 더 줄인다. `.shell:has(.view-findings…)` max-width 1300 → 1100px. 캐시 css 20260922-8.
