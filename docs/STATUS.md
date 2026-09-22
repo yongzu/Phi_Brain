@@ -1573,3 +1573,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - Ctrl+B: `quickHighlight`를 `quickFormat(kind)`로 일반화(highlight/clear/bold), 박스 본문 선택 중 Ctrl/⌘+B → `execCommand('bold')` 후 저널에 저장, "굵기를 바꿨어요 · 되돌리기".
 - 발견해서 고친 것: 번호 바로 뒤 글자를 칠하면 첫 글자 조각이 "12. "뿐이라 번호로 인식 못 해 박스에 "12."가 다시 보임 → `splitLeadNumber`가 줄 전체 글자로 번호를 판별.
 - 검증(로컬, 박스 15개로 스크롤 1395px 위치): Ctrl+H → 스크롤 1395 유지, 박스에 번호 안 보임, 저장 `12. <mark>박스 12</mark>…`. Ctrl+B → `<b>내용</b>` 저장·스크롤 유지·토스트, 다시 Ctrl+B → 굵게 해제. 테스트 데이터 삭제. 캐시 journal.js 20260922-10.
+
+## 2026-09-22 · Claude Code · Findings 바로 서식 Ctrl+Z
+- 사용자 제보: Findings에서 하이라이트 뒤 토스트의 되돌리기 클릭은 되는데 Ctrl+Z는 안 됨.
+- `journal.js`: 바로 서식(하이라이트·지우기·굵게)마다 {날짜, 전, 후} 본문을 `quickUndo`에 쌓고, Findings 화면에서 글자 칸 밖이면 Ctrl/⌘+Z → `stepQuick(-1)`, Ctrl+Y · Ctrl/⌘+Shift+Z → 다시 실행. 저널이 그 사이 바뀌었으면 건너뛰고 알림. 토스트 되돌리기도 같은 스택을 씀. 수정하기 칸 안에서는 그 칸의 자체 실행 취소 그대로.
+- 검증(로컬, 실제 키): Ctrl+H(alpha) → Ctrl+B(beta) → Ctrl+Z → 굵게만 풀림 → Ctrl+Y → 다시 굵게, 박스 화면도 같이 갱신. 첫 시도에서 테스트 창이 한 번 새로 고쳐져(원인은 테스트 도구 쪽으로 보임, 재현 안 됨) 메모리의 되돌리기 목록이 비었던 것 확인 — 새로고침하면 되돌리기 목록은 비는 게 정상. 테스트 데이터 삭제. 캐시 journal.js 20260922-11.

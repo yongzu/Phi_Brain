@@ -1555,17 +1555,43 @@
     if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요', null, 'error'); renderFindings(); return; }
     if (current === date) load(date);
     renderFindings();
+    const step = { date, before: d.html, after: html };
+    quickUndo.push(step);
+    if (quickUndo.length > 50) quickUndo.shift();
+    quickRedo.length = 0;
     window.PhiBrain.ui.toast(kind === 'clear' ? '하이라이트를 지웠어요' : kind === 'bold' ? '굵기를 바꿨어요' : '하이라이트했어요', {
       label: '되돌리기',
-      run: () => {
-        const now = store.get(date);
-        if (!now || now.html !== html) return; // 그 사이 저널이 또 바뀌었으면 건드리지 않는다
-        store.set(date, { ...now, html: d.html, savedAt: Date.now() });
-        if (current === date) load(date);
-        renderFindings();
-      },
+      run: () => { if (quickUndo[quickUndo.length - 1] === step) stepQuick(-1); },
     });
   }
+  // 바로 서식의 실행 취소(사용자 제보 2026-09-22 — 토스트의 되돌리기는 되는데 Ctrl+Z는 안 됐다).
+  // Findings 화면에서 글자를 치는 칸 밖이면 Ctrl/⌘+Z = 되돌리기, Ctrl+Y · Ctrl/⌘+Shift+Z = 다시 실행.
+  // 한 칸 = 저널 하나의 바뀌기 전·후 본문. 그 사이 저널이 다른 데서 또 바뀌었으면 덮어쓰지 않고 건너뛴다.
+  const quickUndo = [], quickRedo = [];
+  function stepQuick(dir) {
+    const from = dir < 0 ? quickUndo : quickRedo, to = dir < 0 ? quickRedo : quickUndo;
+    const step = from.pop();
+    if (!step) { window.PhiBrain.ui.toast(dir < 0 ? '되돌릴 게 없어요' : '다시 실행할 게 없어요'); return; }
+    const now = store.get(step.date);
+    const expect = dir < 0 ? step.after : step.before;
+    if (!now || now.html !== expect) { window.PhiBrain.ui.toast('저널이 그 사이 바뀌어서 되돌리지 않았어요'); return; }
+    if (current === step.date) save();
+    store.set(step.date, { ...now, html: dir < 0 ? step.before : step.after, savedAt: Date.now() });
+    to.push(step);
+    if (current === step.date) load(step.date);
+    renderFindings();
+  }
+  document.addEventListener('keydown', e => {
+    if (window.PhiBrain.getCurrentView() !== 'findings' || e.altKey || !(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    const redo = k === 'y' ? !e.shiftKey : k === 'z' && e.shiftKey;
+    if (k !== 'z' && !redo) return;
+    // 글자를 치는 칸(수정하기 칸 등)에서는 그 칸의 실행 취소를 쓴다
+    const a = document.activeElement;
+    if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+    e.preventDefault();
+    stepQuick(redo ? 1 : -1);
+  });
   hlPop.addEventListener('click', e => { const b = e.target.closest('[data-quick-hl]'); if (b) quickHighlight(b.dataset.quickHl); });
   document.addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
