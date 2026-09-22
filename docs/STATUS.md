@@ -1557,3 +1557,6 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 
 ## 2026-09-22 · Claude Code · Findings 폭 200px 더 줄임
 - 사용자: width 200px 더 줄인다. `.shell:has(.view-findings…)` max-width 1300 → 1100px. 캐시 css 20260922-8.
+
+## 2026-09-22 · Claude Code · Findings 폭 400px 더 줄임
+- 사용자: 400px 줄인다. `.shell:has(.view-findings…)` max-width 1100 → 700px(좌우 여백 32px 빼면 박스 폭 약 636px). 캐시 css 20260922-9.
