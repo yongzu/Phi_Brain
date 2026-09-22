@@ -42,16 +42,18 @@ export function cleanJournal(body) {
 }
 
 export async function listJournals(db) {
-  const [journals, favorites, findings] = await db.batch([
+  const [journals, favorites, findings, hidden] = await db.batch([
     db.prepare('SELECT * FROM journals ORDER BY date DESC'),
     // 같은 밀리초에 눌린 별표끼리는 넣은 순서(rowid)로 — settings.js listFindingsFavorites와 같은 이유
     db.prepare('SELECT date, course FROM journal_favorites ORDER BY created_at, rowid'),
     db.prepare('SELECT course FROM findings_favorites ORDER BY created_at, rowid'),
+    db.prepare('SELECT key FROM findings_hidden ORDER BY created_at, rowid'), // Findings에서만 지운 박스
   ]);
   return {
     journals: journals.results.map(toJournal),
     favorites: favorites.results.map(f => `${f.date}::${f.course}`),
     findingsFavorites: findings.results.map(f => f.course),
+    findingsHidden: hidden.results.map(h => h.key),
   };
 }
 

@@ -60,3 +60,21 @@ test('Findings stars: per-box keys are stored in starred order; malformed ones a
     assert.equal((await call('PUT', `/api/findings/favorites/${encodeURIComponent(bad)}`)).status, 400, bad);
   }
 });
+
+// 2026-09-22 사용자 지시: Findings에서만 삭제 — 원본 저널은 그대로, 숨긴 박스 키만 따로 둔다
+test('Findings hidden boxes: hide, idempotent, show again, bad keys refused, listed with journals, journal untouched', async () => {
+  const call = await client();
+  assert.equal((await call('PUT', `/api/findings/hidden/${encodeURIComponent('2026-09-22::BI::abc123')}`, undefined, { auth: false })).status, 401);
+  await call('PUT', '/api/journals/2026-09-22', { title: '', courses: ['BI'], html: '<h3>Finding</h3><p>x</p>', savedAt: 1 });
+  await call('PUT', `/api/findings/hidden/${encodeURIComponent('2026-09-22::BI::abc123')}`);
+  await call('PUT', `/api/findings/hidden/${encodeURIComponent('2026-09-21::general::z9')}`);
+  await call('PUT', `/api/findings/hidden/${encodeURIComponent('2026-09-22::BI::abc123')}`);
+  let list = (await call('GET', '/api/journals')).body;
+  assert.deepEqual(list.findingsHidden, ['2026-09-22::BI::abc123', '2026-09-21::general::z9']);
+  assert.equal(list.journals.find(j => j.date === '2026-09-22').html, '<h3>Finding</h3><p>x</p>');
+  await call('DELETE', `/api/findings/hidden/${encodeURIComponent('2026-09-22::BI::abc123')}`);
+  assert.deepEqual((await call('GET', '/api/journals')).body.findingsHidden, ['2026-09-21::general::z9']);
+  for (const bad of ['2026-09-22::BI', '2026-09-22::bi::abc', '2026-09-22::BI::ABC', '2026-09-22::BI::a-b']) {
+    assert.equal((await call('PUT', `/api/findings/hidden/${encodeURIComponent(bad)}`)).status, 400, bad);
+  }
+});

@@ -279,6 +279,9 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .course-box[data-course=""] .cb-btn{color:var(--gray)}
 /* typing styles from the format bar */
 .editor b,.editor strong{font-weight:700}
+/* theme.css가 모든 요소(body *)를 400으로 되돌려서, 굵은 글자 안의 하이라이트·기울임은 굵기가 풀려 보였다
+   (사용자 제보 2026-09-22 — 굵게 뒤 Ctrl+H). 굵게 안쪽은 굵기를 물려받게 한다 */
+.editor b *,.editor strong *,.fi-rich b *,.fi-rich strong *{font-weight:inherit}
 .editor i,.editor em{font-style:italic;font-synthesis:style}
 .editor blockquote{margin:6px 0;padding:0 0 0 12px;border-left:2px solid var(--gray)}
 .editor code{background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
@@ -677,9 +680,10 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .findings-body{margin-top:8px;padding-bottom:0}
 /* 수정하기(2026-09-22): 머리줄 오른쪽, 별표 바로 앞의 조용한 텍스트 버튼. 편집 중엔 박스 안에 저널링과 같은
    서식 툴바 → 편집 칸 → 취소/저장하기 순서. 편집 칸은 내용 높이만큼, 길면 박스 안에서 스크롤 */
-.findings-edit-btn{margin-left:auto;color:var(--gray);font-size:.78rem;padding:2px 6px;border-radius:var(--radius-sm);transition:color 140ms,background 140ms}
+.findings-edit-btn{margin-left:auto;color:var(--gray);font-size:.78rem;white-space:nowrap;padding:2px 6px;border-radius:var(--radius-sm);transition:color 140ms,background 140ms}
 .findings-edit-btn:hover,.findings-edit-btn:focus-visible{color:var(--ink);background:var(--fill);outline:0}
 .findings-edit-btn+.fi-box-fav{margin-left:4px}
+.findings-edit-btn+.findings-edit-btn{margin-left:0} /* 수정하기 · 삭제하기 나란히 */
 .findings-tools{margin-top:10px;padding:6px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .findings-edit{min-height:120px;max-height:420px;overflow-y:auto;overscroll-behavior:contain;padding:10px 0 12px}
 .findings-edit h3,.findings-edit .course-box{margin-left:0}

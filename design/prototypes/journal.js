@@ -718,7 +718,10 @@
   // 짝이 안 맞는 **는 원문 그대로 둔다. `**굵게 **다음` 처럼 ** 바로 안쪽에 공백이 있어도
   // 굵게로 바꾼다(디스코드에서 흔한 형태 — 사용자 지시 2026-09-16). 그 공백은 <b> 밖에 그대로 남긴다.
   const inlineBold = s => esc(s).replace(/\*\*(\s*)(\S(?:(?:(?!\*\*)[\s\S])*?\S)?)(\s*)\*\*/g, '$1<b>$2</b>$3');
-  const FOUR_F_ALIASES = { fact: 'Fact', feeling: 'Feeling', feelings: 'Feeling', finding: 'Finding', findings: 'Finding', 'future item': 'Future Item', futureitem: 'Future Item' };
+  const FOUR_F_ALIASES = { fact: 'Fact', facts: 'Fact', feeling: 'Feeling', feelings: 'Feeling', finding: 'Finding', findings: 'Finding', 'future item': 'Future Item', 'future items': 'Future Item', futureitem: 'Future Item', futureitems: 'Future Item' };
+  // 한 줄이 4F 이름뿐이면 소제목이다 — 백틱(`fact`)이 없어도(사용자 지시 2026-09-22). **Fact**·# Fact·[Fact]·Fact: 처럼
+  // 감싼 기호나 끝의 콜론도 벗겨서 본다. 문장 속의 "fact"는 줄 전체가 아니라서 건드리지 않는다.
+  const fourFLabel = line => FOUR_F_ALIASES[line.replace(/^[`*_#>\[(\s]+|[`*_\])\s:：]+$/g, '').replace(/\s+/g, ' ').toLowerCase()] || null;
   function resolveCourseWord(word) {
     const w = word.trim();
     if (!w) return null;
@@ -730,11 +733,8 @@
     return text.split('\n').map(raw => {
       const line = raw.trim();
       if (!line) return '<p><br></p>';
-      const f = line.match(/^`\s*(.+?)\s*`$/);
-      if (f) {
-        const label = FOUR_F_ALIASES[f[1].trim().toLowerCase()];
-        if (label) return `<h3 data-guide="${guideFor(label)}">${label}</h3>`;
-      }
+      const label = fourFLabel(line);
+      if (label) return `<h3 data-guide="${guideFor(label)}">${label}</h3>`;
       const b = line.match(/^\*\*\s*(.+?)\s*\*\*$/);
       if (b) {
         const code = resolveCourseWord(b[1]);
@@ -1289,8 +1289,21 @@
   }
   // 별표 하나가 박스 하나 — 같은 과목 안에서도 중요한 Finding만 앞에 세우려고(사용자 지시 2026-09-16).
   // 박스 키는 "날짜::과목::그 날 그 과목의 몇 번째". 저널을 고쳐 Finding 순서가 바뀌면 별표도 그 자리를 따라간다.
-  function findingsEntries() {
+  // Findings에서만 지우기(사용자 지시 2026-09-22): 원본 저널은 그대로 두고 숨긴 박스 목록(store.findingsHidden)만
+  // 둔다. 숨김 키는 순번이 아니라 박스 글자의 지문이라, 저널을 고쳐 박스 순서가 바뀌어도 다른 박스가
+  // 대신 사라지지 않는다. 그 박스의 글자를 고치면 지문이 달라져 다시 보인다.
+  function textPrint(html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    const s = t.textContent.replace(/\s+/g, ' ').trim();
+    let h = 0x811c9dc5; // FNV-1a 32bit
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(36);
+  }
+  // hidden: true면 숨긴 박스까지(순번 n은 늘 전부를 기준으로 센다 — 별표·수정 키가 숨김에 흔들리지 않게)
+  function findingsEntries({ hidden = false } = {}) {
     const out = [];
+    const gone = new Set(store.findingsHidden.all());
     store.dates().sort((a, b) => b.localeCompare(a)).forEach(date => {
       const d = store.get(date);
       if (!d || !d.html) return;
@@ -1298,7 +1311,9 @@
       findingSlices(d.html).forEach(s => {
         const n = seen.get(s.course) || 0;
         seen.set(s.course, n + 1);
-        out.push({ date, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}` });
+        const hid = `${date}::${s.course}::${textPrint(s.html)}`;
+        if (!hidden && gone.has(hid)) return;
+        out.push({ date, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}`, hid });
       });
     });
     return out;
@@ -1332,7 +1347,8 @@
       <header class="fi-box-head">
         <h2 class="fi-box-title">${label}</h2>
         <span class="findings-date">${esc(monthDay(e.date))}</span>
-        ${editing ? '' : `<button type="button" class="findings-edit-btn" data-findings-edit="${esc(e.key)}" aria-label="수정하기: ${esc(plain)}">수정하기</button>`}
+        ${editing ? '' : `<button type="button" class="findings-edit-btn" data-findings-edit="${esc(e.key)}" aria-label="수정하기: ${esc(plain)}">수정하기</button>`
+          + `<button type="button" class="findings-edit-btn" data-findings-hide="${esc(e.hid)}" aria-label="Findings에서 삭제하기: ${esc(plain)} — 원본 저널은 그대로" title="Findings에서만 지워요. 원본 저널은 그대로예요.">삭제하기</button>`}
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${esc(e.key)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
       ${editing
@@ -1448,6 +1464,18 @@
     if (e.target.closest('[data-findings-edit]')) { startFindingEdit(e.target.closest('[data-findings-edit]').dataset.findingsEdit); return; }
     if (e.target.closest('[data-findings-save]')) { saveFindingEdit(); return; }
     if (e.target.closest('[data-findings-cancel]')) { endFindingEdit(); return; }
+    const hide = e.target.closest('[data-findings-hide]');
+    if (hide) {
+      // 확인창 없이 바로 빼고 되돌리기 토스트 — Journal Archive·Future Item 삭제와 같은 방식
+      const hid = hide.dataset.findingsHide;
+      store.findingsHidden.set(hid, true);
+      renderFindings();
+      window.PhiBrain.ui.toast('Findings에서 지웠어요 · 원본 저널은 그대로예요', {
+        label: '되돌리기',
+        run: () => { store.findingsHidden.set(hid, false); renderFindings(); },
+      });
+      return;
+    }
     const b = e.target.closest('[data-findings-fav]');
     if (!b) return;
     const key = b.dataset.findingsFav;
@@ -1510,6 +1538,9 @@
       toast(n.error === 'journal_too_large' ? '저널이 너무 커서 서버에 저장하지 못했어요' : `${monthDay(n.date)} 저널을 서버에 저장하지 못했어요`, null, 'error');
     } else if (n.type === 'favorite-failed') {
       toast('즐겨찾기를 저장하지 못했어요', null, 'error');
+    } else if (n.type === 'hidden-failed') {
+      toast('Findings 삭제를 서버에 저장하지 못했어요', null, 'error');
+      renderFindings();
     }
   });
 

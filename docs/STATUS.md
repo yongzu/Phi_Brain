@@ -1531,3 +1531,10 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 사용자 제보(스크린샷): 저널을 붙여넣으니 모든 문단이 회색 박스 안에 들어감. 박스 모양 = 소제목(h3) 알약 스타일 → 본문이 `<h3>` 안에 들어간 것. 크롬은 커서가 소제목 줄에 있을 때 붙여넣으면 내용을 h3 안에 넣고 `<span style="font-family…;background-color…">`까지 남긴다(로컬에서 재현: 소제목 끝에 커서 → 붙여넣기 → 첫 줄이 h3 안 스타일 span으로).
 - `journal.js`: `caretOutOfHeading` — 붙여넣기 전 커서가 소제목 안이면 바로 아래 빈 줄(없으면 새 줄)로 옮김. `repairRich` — 스타일 박힌 span 풀기, 소제목 안의 블록·줄바꿈 뒤 내용은 소제목 뒤로 꺼내고 비면 소제목 삭제. 붙여넣기 직후·저널 열 때(`load`, 고쳐졌으면 바로 저장해 Archive·Findings에도 반영)·Findings 추출 전에 실행.
 - 검증(로컬): 템플릿 소제목 끝에서 여러 줄/한 줄 붙여넣기 → 전부 소제목 아래 문단으로. 스크린샷과 같은 구조(h3 안에 문단·과목 박스·스타일 span)를 저장해 두고 열기 → 풀린 모양으로 표시·저장, Findings에 AL 박스 2개(번호 분할 포함) 정상. 테스트 데이터 삭제. 캐시 `journal.js` 20260922-4.
+
+## 2026-09-22 · Claude Code · Findings 삭제 · 굵게+하이라이트 · 백틱 없는 4F
+- 사용자: (1) Findings에 삭제하기 — Findings에서만, 원본 저널은 그대로. (2) 작성칸에서 굵은 글자에 Ctrl+H 하면 굵기가 풀림. (3) 4F를 백틱 없이 붙여넣어도 소제목 박스로.
+- (1) 워커: `migrations/0008_findings_hidden.sql`(findings_hidden(key, created_at)), `settings.js` PUT/DELETE `/api/findings/hidden/:key`(키 `날짜::과목::[a-z0-9]{1,16}`), `journals.js` GET 목록에 `findingsHidden`. 테스트 1개 추가(91 통과). **원격 D1 마이그레이션 적용(한 번 7403 뒤 재시도 성공) · 워커 배포 버전 fa6e5845.** 화면: `journal-store.js` `findingsHidden.all/set`(로그아웃 = localStorage `phi-brain:findings:hidden`), `journal.js` `textPrint`(FNV-1a) 지문으로 숨김, 순번 n은 숨김과 무관하게 전체 기준(별표·수정 키 불변), 머리줄 "삭제하기" + 되돌리기 토스트, 서버 실패 시 되돌리고 알림.
+- (2) 원인은 데이터가 아니라 CSS: style-kit `theme.css`의 `body *{font-weight:400}`이 `<b>` 안의 `<mark>`를 다시 400으로. `.editor b *, .fi-rich b *`(strong 포함)에 `font-weight:inherit`.
+- (3) `fourFLabel`: 한 줄이 4F 이름뿐이면 소제목 — 백틱·`**`·`#`·`[]`·끝 콜론을 벗겨 판별, facts/future items 등 복수형도. 문장 속 단어는 건드리지 않음. 이미 붙여넣은 예전 저널의 "Fact" 문단은 자동 변환하지 않음.
+- 검증(로컬): 백틱 없는 `Fact`·`feeling:`·`**Findings**`·`## Future Item` → 소제목 4개, "fact 정리는 문장"은 문단 유지, Findings 박스 3개(번호 분할 포함). 삭제하기 실제 클릭 → 박스 사라짐·저널 원문 유지·새로고침 뒤에도 유지, 되돌리기 클릭 → 복귀. `<b><mark>` 계산 굵기 700(작성칸·저널). 좁은 폭에서 머리줄 버튼 줄바꿈 방지(nowrap). 테스트 데이터 삭제. 로그인 상태 서버 동기화는 미확인(인증 없는 요청이 401로 막히는 것까지만 확인). 캐시 css 20260922-4, journal.js 20260922-5, journal-store.js v5.

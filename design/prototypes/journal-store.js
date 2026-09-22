@@ -19,6 +19,7 @@
   const LOCAL_KEY = 'phi-brain:journal:';
   const LOCAL_FAV_KEY = 'phi-brain:journal-archive:favorites';
   const LOCAL_FINDINGS_FAV_KEY = 'phi-brain:findings:favorites'; // starred Findings boxes (course keys, in starred order)
+  const LOCAL_FINDINGS_HIDDEN_KEY = 'phi-brain:findings:hidden'; // Findings에서만 지운 박스(날짜::과목::내용지문) — 원본 저널은 그대로
   const ls = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
@@ -40,6 +41,8 @@
     saveFavorites: s => ls.set(LOCAL_FAV_KEY, [...s]),
     findingsFavorites: () => (Array.isArray(ls.get(LOCAL_FINDINGS_FAV_KEY)) ? ls.get(LOCAL_FINDINGS_FAV_KEY).filter(k => typeof k === 'string') : []),
     saveFindingsFavorites: list => ls.set(LOCAL_FINDINGS_FAV_KEY, list),
+    findingsHidden: () => (Array.isArray(ls.get(LOCAL_FINDINGS_HIDDEN_KEY)) ? ls.get(LOCAL_FINDINGS_HIDDEN_KEY).filter(k => typeof k === 'string') : []),
+    saveFindingsHidden: list => ls.set(LOCAL_FINDINGS_HIDDEN_KEY, list),
   };
 
   // ---- server (signed in) ----
@@ -49,6 +52,7 @@
   let tombstones = new Map();         // date → version of a delete not yet sent
   let favs = new Set();
   let findingsFavs = [];              // starred Findings boxes, in starred order
+  let findingsHidden = [];            // Findings boxes removed from the Findings view only
   let pending = new Set();            // dates with unsent writes (entries or tombstones)
   const conflicts = new Map();        // date → server copy (null = deleted elsewhere)
   const inflight = new Set();
@@ -63,7 +67,7 @@
     clearTimeout(persistTimer);
     const k = cacheKey();
     if (!k || mode !== 'server') return;
-    ls.set(k, { entries: [...entries], tombstones: [...tombstones], favorites: [...favs], findingsFavorites: findingsFavs, pending: [...pending] });
+    ls.set(k, { entries: [...entries], tombstones: [...tombstones], favorites: [...favs], findingsFavorites: findingsFavs, findingsHidden, pending: [...pending] });
   }
   function persist() {
     clearTimeout(persistTimer);
@@ -76,6 +80,7 @@
     tombstones = new Map(c.tombstones || []);
     favs = new Set(c.favorites || []);
     findingsFavs = Array.isArray(c.findingsFavorites) ? c.findingsFavorites : [];
+    findingsHidden = Array.isArray(c.findingsHidden) ? c.findingsHidden : [];
     pending = new Set(c.pending || []);
   }
 
@@ -162,7 +167,7 @@
     let res;
     try { res = await auth.fetch('/api/journals'); } catch { offline = true; scheduleRetry(); emit('change', { reason: 'offline' }); return; }
     if (!res.ok || mode !== 'server') return;
-    const { journals, favorites, findingsFavorites } = await res.json();
+    const { journals, favorites, findingsFavorites, findingsHidden: hiddenList } = await res.json();
     offline = false;
     const next = new Map(journals.map(j => [j.date, { title: j.title, courses: j.courses, html: j.html, savedAt: j.savedAt, version: j.version }]));
     // unsent local edits win on this device until they're sent (and conflict-checked)
@@ -173,6 +178,7 @@
     entries = next;
     favs = new Set(favorites);
     findingsFavs = Array.isArray(findingsFavorites) ? findingsFavorites : [];
+    findingsHidden = Array.isArray(hiddenList) ? hiddenList : [];
     loaded = true;
     persist();
     emit('change', { reason: 'loaded' });
@@ -302,6 +308,29 @@
             persist();
             emit('change', { reason: 'favorite' });
             emit('notice', { type: 'favorite-failed' });
+          });
+      },
+    },
+
+    // ---- Findings에서만 지우기 (2026-09-22 사용자 지시): 원본 저널은 건드리지 않고 숨길 박스 키만 둔다 ----
+    findingsHidden: {
+      all: () => (mode === 'local' ? local.findingsHidden() : [...findingsHidden]),
+      set(key, on) {
+        if (mode === 'local') {
+          const list = local.findingsHidden().filter(k => k !== key);
+          local.saveFindingsHidden(on ? [...list, key] : list);
+          return;
+        }
+        findingsHidden = on ? [...findingsHidden.filter(k => k !== key), key] : findingsHidden.filter(k => k !== key);
+        persist();
+        auth.fetch(`/api/findings/hidden/${encodeURIComponent(key)}`, { method: on ? 'PUT' : 'DELETE' })
+          .then(r => { if (!r.ok) throw new Error(); })
+          .catch(() => {
+            if (mode !== 'server') return;
+            findingsHidden = on ? findingsHidden.filter(k => k !== key) : [...findingsHidden, key];
+            persist();
+            emit('change', { reason: 'favorite' });
+            emit('notice', { type: 'hidden-failed' });
           });
       },
     },
