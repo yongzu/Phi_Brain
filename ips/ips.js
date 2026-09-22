@@ -2,6 +2,25 @@
 // scroll reveal, auto-opening dropdown, left TOC with active marker,
 // paper cards with hover preview, and a side panel with ←/→ stepping.
 
+// ---------- Smooth scroll (Lenis) ----------
+// Wheel scrolling eases toward its target instead of jumping per notch.
+// Touch stays native. Skipped when reduced motion is on or the CDN didn't load —
+// the page then falls back to plain scrolling.
+const lenis = window.Lenis && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ? new window.Lenis({ lerp: 0.09, autoRaf: true })
+  : null;
+// Scroll to a page Y (or element) with Lenis when present, native smooth otherwise.
+function scrollToY(target) {
+  if (lenis) lenis.scrollTo(target);
+  else window.scrollTo({ top: typeof target === 'number' ? target : target.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
+}
+// Header links to #top — Lenis doesn't follow in-page anchors on its own here.
+document.querySelectorAll('a[href="#top"]').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  scrollToY(0);
+  history.replaceState(null, '', location.pathname + location.search);
+}));
+
 // Paper summaries. `points` items may use <b> for emphasis (trusted, authored here).
 // `flow` is the diagram: each row is a chain of steps; the last step of a row is highlighted.
 const PAPERS = [
@@ -271,6 +290,7 @@ function openPanel(i, trigger) {
   panel.dataset.open = 'true';
   panel.inert = false;
   document.documentElement.style.overflow = 'hidden';
+  lenis?.stop();
   panel.querySelector('[data-close].panel__icon').focus({ preventScroll: true });
 }
 function closePanel() {
@@ -279,6 +299,7 @@ function closePanel() {
   panel.dataset.open = 'false';
   panel.inert = true;
   document.documentElement.style.overflow = '';
+  lenis?.start();
   lastTrigger?.focus({ preventScroll: true });
 }
 const step = (dir) => openPanel((current + dir + PAPERS.length) % PAPERS.length);
@@ -516,7 +537,7 @@ tocLinks.forEach((link) => {
     const contentH = rect.height - padTop;
     const slack = Math.max(headerH + 24, (window.innerHeight - contentH) / 2);
     const target = Math.max(0, Math.round(contentTop - slack));
-    window.scrollTo({ top: target, behavior: 'smooth' });
+    scrollToY(target);
     history.replaceState(null, '', '#' + id);
   });
 });

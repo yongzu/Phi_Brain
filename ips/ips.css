@@ -69,6 +69,11 @@
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { color-scheme: light; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 40px; }
+/* Lenis smooth scroll (ips.js) — it drives the scroll itself, so native smooth must be off or every frame animates twice */
+html.lenis, html.lenis body { height: auto; }
+html.lenis { scroll-behavior: auto; }
+.lenis.lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
 body {
   min-height: 100vh;
   background: var(--color-bg-default);
