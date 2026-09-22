@@ -74,6 +74,9 @@ html.lenis, html.lenis body { height: auto; }
 html.lenis { scroll-behavior: auto; }
 .lenis.lenis-stopped { overflow: clip; }
 .lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+/* While the page glides, cards passing under a still mouse must not fire their hover scale/shadow/blur — that repaint is what stutters */
+html.lenis-scrolling body { pointer-events: none; }
+html.lenis-scrolling .site-header, html.lenis-scrolling .toc { pointer-events: auto; }
 body {
   min-height: 100vh;
   background: var(--color-bg-default);

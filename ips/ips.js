@@ -7,7 +7,7 @@
 // Touch stays native. Skipped when reduced motion is on or the CDN didn't load —
 // the page then falls back to plain scrolling.
 const lenis = window.Lenis && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ? new window.Lenis({ lerp: 0.09, autoRaf: true })
+  ? new window.Lenis({ lerp: 0.07, wheelMultiplier: 0.9, autoRaf: true })
   : null;
 // Scroll to a page Y (or element) with Lenis when present, native smooth otherwise.
 function scrollToY(target) {
