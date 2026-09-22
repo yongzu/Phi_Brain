@@ -1309,11 +1309,12 @@
       const d = store.get(date);
       if (!d || !d.html) return;
       const seen = new Map();
-      findingSlices(d.html).forEach(s => {
+      findingSlices(d.html).forEach((s, pos) => {
         const n = seen.get(s.course) || 0;
         seen.set(s.course, n + 1);
         const hid = `${date}::${s.course}::${textPrint(s.html)}`;
-        out.push({ date, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}`, hid, hidden: gone.has(hid) });
+        // pos = 그 날 저널 안에서 몇 번째 박스인지(과목 무관) — 시간순 정렬에 쓴다
+        out.push({ date, pos, html: s.html, courses: [s.course], key: `${date}::${s.course}::${n}`, hid, hidden: gone.has(hid) });
       });
     });
     return out;
@@ -1338,6 +1339,18 @@
   ].map(t => (t === 'hl' ? '<!--hl-->' : t ? `<button type="button" class="pill pill-icon" data-fmt="${t[0]}" aria-pressed="false" aria-label="${t[1]}" title="${t[1]}">${t[2]}</button>`
     : '<span class="tool-sep" aria-hidden="true"></span>')).join('');
   let findingsEditKey = null, findingsDraft = '';
+  // 저널에 쓴 "1. "·"2) " 같은 번호는 박스를 나누는 표시일 뿐 — 박스에는 Findings 번호가 따로 붙으므로 보여줄 때만 뗀다.
+  // 저널 원문과 수정하기 칸에는 그대로 남는다.
+  function withoutLeadNumber(html) {
+    const t = document.createElement('div');
+    t.innerHTML = html;
+    const w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode()) && !n.textContent.trim());
+    if (!n || !NUMBERED.test(n.textContent)) return html;
+    n.textContent = n.textContent.replace(/^\s*\d{1,3}\s*[.)]\s*/, '');
+    return t.innerHTML;
+  }
   function findingsCardHTML(key, e) {
     const label = key === 'general' ? 'General' : `<span class="nav-code">${esc(key)}</span>_${esc(courseName(key))}`;
     const isFav = store.findingsFavorites.all().includes(e.key);
@@ -1345,6 +1358,7 @@
     const editing = findingsEditKey === e.key;
     return `<section class="fi-box findings-card${editing ? ' is-editing' : ''}" data-box="${key}" data-key="${esc(e.key)}">
       <header class="fi-box-head">
+        ${e.num ? `<span class="findings-num" aria-label="${e.num}번">${e.num}</span>` : ''}
         <h2 class="fi-box-title">${label}</h2>
         <span class="findings-date">${esc(monthDay(e.date))}</span>
         ${editing ? '' : `<button type="button" class="findings-edit-btn" data-findings-edit="${esc(e.key)}" aria-label="수정하기: ${esc(plain)}">수정하기</button>`
@@ -1360,7 +1374,7 @@
         <button type="button" class="pill" data-findings-cancel>취소</button>
         <button type="button" class="btn-primary" data-findings-save>저장하기</button>
       </div>`
-        : `<div class="editor archive-preview findings-body">${e.html}</div>`}
+        : `<div class="editor archive-preview findings-body">${withoutLeadNumber(e.html)}</div>`}
     </section>`;
   }
   // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
@@ -1403,7 +1417,8 @@
       .flatMap(k => (box.get(k) || []).map(e => [k, e]));
     const starred = store.findingsFavorites.all(); // 별표한 순서 그대로
     const rank = c => { const i = starred.indexOf(c[1].key); return i === -1 ? Infinity : i; };
-    cards.sort((a, b) => rank(a) - rank(b)); // 안정 정렬 — 별표 없는 박스끼리는 원래 순서 유지
+    // 순서 = 별표한 것(별표한 순서) → 나머지는 시간순(오래된 날짜부터, 같은 날은 저널에 쓴 순서) — 사용자 지시 2026-09-22
+    cards.sort((a, b) => rank(a) - rank(b) || a[1].date.localeCompare(b[1].date) || a[1].pos - b[1].pos);
     layoutFindings(cards);
   }
   // 박스 배치(사용자 지시 2026-09-22): 줄 맞춤 격자 대신 두 세로 줄에 차례로 쌓는다 — 박스마다 그때 더 짧은
@@ -1423,7 +1438,9 @@
     });
   }
   function layoutFindings(cards) {
-    const shown = cards.filter(([, e]) => !e.hidden), hidden = cards.filter(([, e]) => e.hidden);
+    // Findings 번호(사용자 지시 2026-09-22): 저널에 쓴 번호와 별개로, 지금 보이는 순서대로 1부터. 숨긴 박스는 번호 없이
+    const shown = cards.filter(([, e]) => !e.hidden).map(([k, e], i) => [k, { ...e, num: i + 1 }]);
+    const hidden = cards.filter(([, e]) => e.hidden);
     findingsListEl.innerHTML = '<div class="findings-stack"></div>'
       + (hidden.length ? `<section class="findings-hidden" aria-label="숨긴 박스"><p class="findings-hidden-label">숨긴 박스 ${hidden.length}</p><div class="findings-stack"></div></section>` : '');
     const [main, rest] = findingsListEl.querySelectorAll('.findings-stack');

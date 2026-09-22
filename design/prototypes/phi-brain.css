@@ -684,6 +684,8 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .findings-hidden-label{margin:0 0 10px;color:var(--gray);font-size:.78rem}
 /* 박스 머리줄: 과목 이름 · 날짜 · 별표(별표는 .fi-box-fav의 margin-left:auto로 오른쪽 끝) */
 .findings-date{color:var(--gray);font-size:.78rem}
+/* Findings 번호(2026-09-22): 저널 번호와 별개로 보이는 순서(별표 → 시간순) 1, 2, 3… — 과목 이름 앞 작은 검정 알약 */
+.findings-num{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:.72rem;font-weight:600;font-variant-numeric:tabular-nums}
 .findings-body{margin-top:8px;padding-bottom:0}
 /* 수정하기(2026-09-22): 머리줄 오른쪽, 별표 바로 앞의 조용한 텍스트 버튼. 편집 중엔 박스 안에 저널링과 같은
    서식 툴바 → 편집 칸 → 취소/저장하기 순서. 편집 칸은 내용 높이만큼, 길면 박스 안에서 스크롤 */
