@@ -1352,8 +1352,10 @@
     const t = document.createElement('div');
     t.innerHTML = html;
     const n = firstText(t);
-    if (!n || !NUMBERED.test(n.textContent)) return ['', html];
-    const lead = n.textContent.match(/^\s*\d{1,3}\s*[.)]\s*/)[0];
+    // 번호인지는 줄 전체로 본다 — "12. <mark>…</mark>"처럼 번호 뒤가 서식 안이면 첫 글자 조각엔 "12. "만 있다
+    const line = n?.parentElement?.closest('p, div, li, blockquote, h3') || t;
+    const lead = n && NUMBERED.test(line.textContent) && n.textContent.match(/^\s*\d{1,3}\s*[.)]\s*/)?.[0];
+    if (!lead) return ['', html];
     n.textContent = n.textContent.slice(lead.length);
     return [lead, t.innerHTML];
   }
@@ -1461,6 +1463,14 @@
     // Findings 번호(사용자 지시 2026-09-22): 저널에 쓴 번호와 별개로, 지금 보이는 순서대로 1부터. 숨긴 박스는 번호 없이
     const shown = cards.filter(([, e]) => !e.hidden).map(([k, e], i) => [k, { ...e, num: i + 1 }]);
     const hidden = cards.filter(([, e]) => e.hidden);
+    // 다시 그리는 동안 목록이 잠깐 비면 페이지가 짧아져 스크롤이 위로 튄다(하이라이트·별표·숨기기 뒤 맨 위로 가던
+    // 버그, 사용자 제보 2026-09-22) — 그리는 동안 높이를 붙잡고, 끝나면 스크롤 위치를 되돌린다
+    const y = scrollY;
+    findingsListEl.style.minHeight = `${findingsListEl.offsetHeight}px`;
+    try { fillFindings(shown, hidden); } finally { findingsListEl.style.minHeight = ''; }
+    if (scrollY !== y) scrollTo(0, y);
+  }
+  function fillFindings(shown, hidden) {
     findingsListEl.innerHTML = '<div class="findings-stack"></div>'
       + (hidden.length ? `<section class="findings-hidden" aria-label="숨긴 박스"><p class="findings-hidden-label">숨긴 박스 ${hidden.length}</p><div class="findings-stack"></div></section>` : '');
     const [main, rest] = findingsListEl.querySelectorAll('.findings-stack');
@@ -1510,7 +1520,9 @@
   document.addEventListener('selectionchange', () => { clearTimeout(hlPopTimer); hlPopTimer = setTimeout(placeHlPop, 60); });
   addEventListener('scroll', () => { if (!hlPop.hidden) placeHlPop(); }, { passive: true });
   hlPop.addEventListener('mousedown', e => e.preventDefault()); // 드래그한 글자 선택을 지킨다
-  function quickHighlight(color) {
+  const quickHighlight = color => quickFormat(color === 'clear' ? 'clear' : 'highlight', color);
+  // 박스 본문에서 바로 서식 걸기 — 하이라이트(색·지우기)와 Ctrl+B 굵게(사용자 지시 2026-09-22)가 같은 길을 쓴다
+  function quickFormat(kind, color) {
     const body = selectedFindingBody();
     const card = body?.closest('.findings-card');
     if (!card) return;
@@ -1527,7 +1539,8 @@
     fmtRoot = body;
     applyingFormat = true;
     try {
-      if (color === 'clear') [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m)).forEach(m => m.replaceWith(...m.childNodes));
+      if (kind === 'clear') [...body.querySelectorAll('mark')].filter(m => range.intersectsNode(m)).forEach(m => m.replaceWith(...m.childNodes));
+      else if (kind === 'bold') document.execCommand('bold');
       else { setHlColor(color); toggleHighlight(true); }
       body.normalize();
     } finally {
@@ -1542,7 +1555,7 @@
     if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요', null, 'error'); renderFindings(); return; }
     if (current === date) load(date);
     renderFindings();
-    window.PhiBrain.ui.toast(color === 'clear' ? '하이라이트를 지웠어요' : '하이라이트했어요', {
+    window.PhiBrain.ui.toast(kind === 'clear' ? '하이라이트를 지웠어요' : kind === 'bold' ? '굵기를 바꿨어요' : '하이라이트했어요', {
       label: '되돌리기',
       run: () => {
         const now = store.get(date);
@@ -1555,11 +1568,15 @@
   }
   hlPop.addEventListener('click', e => { const b = e.target.closest('[data-quick-hl]'); if (b) quickHighlight(b.dataset.quickHl); });
   document.addEventListener('keydown', e => {
-    if (!(e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h')) return;
+    const k = e.key.toLowerCase();
+    if (e.altKey || e.shiftKey) return;
+    const h = e.ctrlKey && !e.metaKey && k === 'h', b = (e.ctrlKey || e.metaKey) && k === 'b';
+    if (!h && !b) return;
     const body = selectedFindingBody();
     if (!body) return;
     e.preventDefault();
-    quickHighlight(hitsMark(body, getSelection().getRangeAt(0)) ? 'clear' : hlColor);
+    if (b) quickFormat('bold'); // 굵게는 켜고 끄기 — 이미 굵으면 풀린다(에디터의 Ctrl+B와 같다)
+    else quickHighlight(hitsMark(body, getSelection().getRangeAt(0)) ? 'clear' : hlColor);
   });
   const findingsEditEl = () => findingsListEl.querySelector('.findings-edit');
   function startFindingEdit(key) {

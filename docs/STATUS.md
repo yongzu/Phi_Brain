@@ -1566,3 +1566,10 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - `journal.js`: `.findings-hl-pop`(fixed) — selectionchange로 드래그가 박스 본문 하나 안이면 끝 글자 오른쪽(줄 가운데)에 3색 + 지우기(칠한 곳이 걸릴 때만). `quickHighlight`: 그 순간만 본문을 contenteditable로 바꿔 에디터와 같은 `toggleHighlight`로 칠하고, `withLeadNumber`로 뗀 저널 번호를 줄 맨 앞(서식 밖)에 다시 붙여 `replaceFindingSlice` → `store.set`, 되돌리기 토스트(그 사이 저널이 또 바뀌었으면 되돌리지 않음). Ctrl+H 지원. 저널링 탭에 같은 날짜가 열려 있으면 먼저 `save()`, 뒤에 `load()`. `splitLeadNumber`/`data-lead` 추가.
 - 발견해서 고친 것: 처음엔 뗀 번호를 첫 글자에 붙여 "1. "까지 하이라이트 안에 들어감 → 줄 맨 앞에 서식 없이 붙이도록.
 - 검증(로컬): "문제정의" 드래그 → 버튼이 선택 끝 +6px·같은 줄 높이에 뜸, 파랑 클릭 → 저장본 `1. <mark data-hl="blue">문제정의 <b>핵심</b></mark> 문장이다`(굵게 유지, 번호는 밖), 실제 Ctrl+H 동일, 칠한 곳 드래그 → ✕ 표시, 클릭 → 원문으로 복귀 + "하이라이트를 지웠어요 · 되돌리기". 테스트 데이터 삭제. 캐시 css 20260922-10, journal.js 20260922-9.
+
+## 2026-09-22 · Claude Code · Findings 바로 Ctrl+B + 하이라이트 뒤 맨 위로 튀던 문제
+- 사용자: 수정하기 없이 Ctrl+B도, 하이라이트하면 페이지 맨 위로 가는 것 수정.
+- 스크롤 원인: 다시 그릴 때 목록을 비우고(높이 0) 박스를 하나씩 붙이며 높이를 재는 동안 페이지가 짧아져 스크롤이 위로 밀림. `layoutFindings`가 그리는 동안 목록 `min-height`를 이전 높이로 잡고, 끝나면 스크롤 위치 복원(별표·숨기기 뒤에도 같은 효과).
+- Ctrl+B: `quickHighlight`를 `quickFormat(kind)`로 일반화(highlight/clear/bold), 박스 본문 선택 중 Ctrl/⌘+B → `execCommand('bold')` 후 저널에 저장, "굵기를 바꿨어요 · 되돌리기".
+- 발견해서 고친 것: 번호 바로 뒤 글자를 칠하면 첫 글자 조각이 "12. "뿐이라 번호로 인식 못 해 박스에 "12."가 다시 보임 → `splitLeadNumber`가 줄 전체 글자로 번호를 판별.
+- 검증(로컬, 박스 15개로 스크롤 1395px 위치): Ctrl+H → 스크롤 1395 유지, 박스에 번호 안 보임, 저장 `12. <mark>박스 12</mark>…`. Ctrl+B → `<b>내용</b>` 저장·스크롤 유지·토스트, 다시 Ctrl+B → 굵게 해제. 테스트 데이터 삭제. 캐시 journal.js 20260922-10.
