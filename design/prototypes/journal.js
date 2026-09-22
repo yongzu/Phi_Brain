@@ -389,13 +389,27 @@
   });
 
   // ---- format bar: acts on the dragged text ----
+  // 같은 서식 버튼이 저널 에디터와 Findings 수정 에디터(.findings-edit) 양쪽에서 돈다
+  // (사용자 지시 2026-09-22 — "저널링의 툴바와 작성 매커니즘을 그대로"). fmtRoot는
+  // 지금 누른 툴바가 붙은 에디터다. 저널 툴바면 #editor, Findings 박스의 툴바면 그 박스의 에디터.
+  let fmtRoot = editor;
   const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const closestIn = (node, sel) => {
     const el = node && (node.nodeType === 1 ? node : node.parentElement);
     const hit = el?.closest(sel);
-    return hit && editor.contains(hit) ? hit : null;
+    return hit && fmtRoot.contains(hit) ? hit : null;
   };
-  const unwrap = el => { el.replaceWith(...el.childNodes); editor.normalize(); };
+  const unwrap = el => { const root = fmtRoot; el.replaceWith(...el.childNodes); root.normalize(); };
+  // 툴바 버튼 → 그 툴바가 서식을 거는 에디터
+  const rootForButton = btn => btn.closest('.findings-card')?.querySelector('.findings-edit') || editor;
+  // 선택(캐럿)이 들어있는 에디터 — 둘 다 아니면 null
+  const rootOfSelection = () => {
+    const s = getSelection();
+    if (!s.rangeCount) return null;
+    const el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
+    if (editor.contains(el)) return editor;
+    return el?.closest('.findings-edit') || null;
+  };
 
   function toggleQuote() {
     const bq = closestIn(getSelection().anchorNode, 'blockquote');
@@ -415,25 +429,78 @@
     if (s.isCollapsed) return;
     document.execCommand('insertHTML', false, `<code>${esc(s.toString().replace(/\s*\n\s*/g, ' '))}</code>`);
   }
+  // 하이라이터(사용자 지시 2026-09-22 — Findings가 줄글이라 중요한 지점이 안 보여서).
+  // 저장 형태는 <mark>. 드래그한 곳에 하이라이트가 하나라도 걸려 있으면(캐럿만 올려도) 걸린
+  // 하이라이트를 통째로 걷어내고, 없으면 드래그한 글자에 새로 칠한다. 한 줄 안이면
+  // insertHTML이라 Ctrl+Z로 되돌릴 수 있고, 여러 줄에 걸치면 브라우저 배경색 명령으로
+  // 칠한 뒤 그 표시를 <mark>로 바꾼다(굵게·기울임 같은 안쪽 서식은 그대로 남는다).
+  const MARK_PROBE = 'rgb(255, 238, 0)';
+  function toggleHighlight() {
+    const s = getSelection();
+    if (!s.rangeCount) return;
+    const r = s.getRangeAt(0);
+    const hit = [...fmtRoot.querySelectorAll('mark')].filter(m => r.intersectsNode(m));
+    if (hit.length) {
+      const root = fmtRoot;
+      hit.forEach(m => m.replaceWith(...m.childNodes));
+      root.normalize();
+      return;
+    }
+    if (s.isCollapsed) return;
+    const startBlock = closestIn(r.startContainer, 'p, li, h3, blockquote, div');
+    const endBlock = closestIn(r.endContainer, 'p, li, h3, blockquote, div');
+    if (startBlock && startBlock === endBlock && startBlock !== fmtRoot) {
+      const box = document.createElement('div');
+      box.append(r.cloneContents());
+      box.querySelectorAll('mark').forEach(m => m.replaceWith(...m.childNodes));
+      document.execCommand('insertHTML', false, `<mark>${box.innerHTML}</mark>`);
+      return;
+    }
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('hiliteColor', false, MARK_PROBE);
+    document.execCommand('styleWithCSS', false, false);
+    const made = [];
+    fmtRoot.querySelectorAll('[style]').forEach(el => {
+      if (el.style.backgroundColor !== MARK_PROBE) return;
+      el.style.removeProperty('background-color');
+      const mark = document.createElement('mark');
+      if (el.tagName === 'SPAN' && !el.getAttribute('style')) { el.replaceWith(mark); mark.append(...el.childNodes); }
+      else { mark.append(...el.childNodes); el.append(mark); if (!el.getAttribute('style')) el.removeAttribute('style'); }
+      made.push(mark);
+    });
+    if (made.length) {
+      const nr = document.createRange();
+      nr.setStartBefore(made[0]);
+      nr.setEndAfter(made[made.length - 1]);
+      s.removeAllRanges();
+      s.addRange(nr);
+    }
+  }
   function applyFormat(f) {
-    ensureCaret();
+    if (fmtRoot === editor) ensureCaret();
+    else if (rootOfSelection() !== fmtRoot) { fmtRoot.focus(); return; }
     if (f === 'quote') toggleQuote();
     else if (f === 'code') toggleCode();
+    else if (f === 'highlight') toggleHighlight();
     else document.execCommand(f);
-    afterEdit();
+    if (fmtRoot === editor) afterEdit();
     refreshFormatState();
   }
-  const fmtButtons = [...document.querySelectorAll('[data-fmt]')];
   function refreshFormatState() {
     const s = getSelection();
-    const inside = s.rangeCount > 0 && editor.contains(s.anchorNode);
-    fmtButtons.forEach(b => {
+    const selRoot = rootOfSelection();
+    document.querySelectorAll('[data-fmt]').forEach(b => {
       const f = b.dataset.fmt;
       let on = false;
-      if (inside) {
+      const root = rootForButton(b);
+      if (selRoot && root === selRoot) {
+        const prev = fmtRoot;
+        fmtRoot = root;
         if (f === 'quote') on = !!closestIn(s.anchorNode, 'blockquote');
         else if (f === 'code') on = !!closestIn(s.anchorNode, 'code');
+        else if (f === 'highlight') on = !!closestIn(s.anchorNode, 'mark');
         else try { on = document.queryCommandState(f); } catch { on = false; }
+        fmtRoot = prev;
       }
       b.setAttribute('aria-pressed', String(on));
     });
@@ -441,9 +508,14 @@
   document.addEventListener('selectionchange', refreshFormatState);
 
   const COMMANDS = { template: toggleTemplate };
-  document.querySelectorAll('[data-cmd], [data-fmt]').forEach(btn => {
-    btn.addEventListener('mousedown', e => e.preventDefault()); // keep the editor's selection
-    btn.addEventListener('click', () => btn.dataset.cmd ? COMMANDS[btn.dataset.cmd]() : applyFormat(btn.dataset.fmt));
+  // 위임 — Findings 박스의 툴바는 수정하기를 누를 때 새로 그려지므로 버튼마다 달 수 없다
+  document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd], [data-fmt]')) e.preventDefault(); }); // keep the editor's selection
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-cmd], [data-fmt]');
+    if (!btn) return;
+    if (btn.dataset.cmd) { COMMANDS[btn.dataset.cmd]?.(); return; }
+    fmtRoot = rootForButton(btn);
+    applyFormat(btn.dataset.fmt);
   });
 
   function afterEdit() { syncGuides(); refreshEmpty(); refreshTemplateState(); scheduleSave(); }
@@ -519,15 +591,20 @@
   }
   editor.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
   editor.addEventListener('input', afterEdit);
-  editor.addEventListener('paste', e => { // paste as plain text so Discord/Notion styling doesn't leak in
+  // paste as plain text so Discord/Notion styling doesn't leak in. Findings 수정 에디터는
+  // 한 과목의 Finding 조각이라 4F 소제목·과목 박스를 새로 만들지 않고 줄과 **굵게**만 살린다
+  // (거기서 과목 박스가 생기면 그 조각이 다른 과목으로 쪼개진다).
+  function pastePlain(e, structured) {
     e.preventDefault();
     // normalize \r\n/\r first — leaving \r in place makes execCommand('insertText')
     // treat \r and \n as separate breaks, turning one blank line into three
     const text = e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
     if (!text.includes('\n')) { document.execCommand('insertText', false, text); return; }
-    ensureCaret();
-    document.execCommand('insertHTML', false, pastedTextToHtml(text));
-  });
+    if (structured) ensureCaret();
+    document.execCommand('insertHTML', false, structured ? pastedTextToHtml(text)
+      : text.split('\n').map(l => (l.trim() ? `<p>${inlineBold(l.trim())}</p>` : '<p><br></p>')).join(''));
+  }
+  editor.addEventListener('paste', e => pastePlain(e, true));
   editor.addEventListener('click', e => {
     const box = e.target.closest('.course-box');
     if (box) { menuBox === box ? closeCourseMenu() : openCourseMenu(box); return; }
@@ -925,9 +1002,8 @@
   // 잡는 등 사용자가 고르지 않은 배정을 만들었다). General도 태그로 고른 경우만.
   // 과목 박스 자체는 빼고 담는다 — 어느 박스에 들어있는지가 이미 과목을 말해 준다.
   const isBlankBlock = el => el.textContent.trim() === '' && !el.querySelector('img, hr');
-  function findingSlices(html) {
-    const frag = document.createElement('div');
-    frag.innerHTML = html;
+  // 조각마다 원문의 요소 목록(els)까지 돌려준다 — Findings에서 고친 내용을 저널의 그 자리에 되돌려 쓰려고
+  function findingSliceNodes(frag) {
     const slices = [];
     let capturing = false, cur = null;
     const flush = () => {
@@ -935,7 +1011,7 @@
       // 태그 바로 뒤·다음 태그 직전의 빈 줄(<p><br></p>)은 잘라 박스 위아래 공백을 없앤다
       while (cur.els.length && isBlankBlock(cur.els[0])) cur.els.shift();
       while (cur.els.length && isBlankBlock(cur.els[cur.els.length - 1])) cur.els.pop();
-      if (cur.els.length) slices.push({ course: cur.course, html: cur.els.map(el => el.outerHTML).join('') });
+      if (cur.els.length) slices.push({ course: cur.course, els: cur.els });
       cur = null;
     };
     [...frag.children].forEach(el => {
@@ -946,6 +1022,24 @@
     });
     flush();
     return slices.filter(s => JOURNAL_SCOPES.some(c => c[0] === s.course));
+  }
+  function findingSlices(html) {
+    const frag = document.createElement('div');
+    frag.innerHTML = html;
+    return findingSliceNodes(frag).map(s => ({ course: s.course, html: s.els.map(el => el.outerHTML).join('') }));
+  }
+  // 키(날짜::과목::n)가 가리키는 조각을 newHtml로 바꾼 저널 본문. 못 찾으면 null.
+  // n은 findingsEntries와 같은 규칙(그 날 그 과목의 몇 번째 조각)으로 센다.
+  function replaceFindingSlice(html, course, n, newHtml) {
+    const frag = document.createElement('div');
+    frag.innerHTML = html;
+    const target = findingSliceNodes(frag).filter(s => s.course === course)[n];
+    if (!target) return null;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = newHtml;
+    target.els[0].before(...tmp.childNodes);
+    target.els.forEach(el => el.remove());
+    return frag.innerHTML;
   }
   // 별표 하나가 박스 하나 — 같은 과목 안에서도 중요한 Finding만 앞에 세우려고(사용자 지시 2026-09-16).
   // 박스 키는 "날짜::과목::그 날 그 과목의 몇 번째". 저널을 고쳐 Finding 순서가 바뀌면 별표도 그 자리를 따라간다.
@@ -973,17 +1067,36 @@
   }
   // 과목별 큰 박스는 없앴다(사용자 지시 2026-09-16) — Finding 하나가 곧 박스 하나고,
   // 과목 이름·날짜·별표는 그 박스의 머리줄에 들어간다. 별표도 박스 하나씩 따로 켠다.
+  // 수정하기(사용자 지시 2026-09-22): 박스 안에서 그 과목의 Finding 조각만 고친다. 툴바는 저널링과
+  // 같은 서식 버튼(4F 템플릿·과목 박스는 조각을 쪼개므로 뺀다). 저장하면 원래 저널의 그 자리가 바뀐다.
+  // 한 번에 박스 하나만 — 편집 중인 내용은 findingsDraft에 들고 있어 별표·필터로 다시 그려져도 남는다.
+  const FINDINGS_TOOLS = [
+    ['bold', '굵게', '<b>B</b>'], ['italic', '기울임', '<i>I</i>'], ['underline', '밑줄', '<u>U</u>'],
+    ['strikeThrough', '취소선', '<s>S</s>'], ['highlight', '하이라이트', '<span class="ico-mark" aria-hidden="true">H</span>'], null,
+    ['quote', '인용', '<span class="ico-quote" aria-hidden="true"></span>'], ['code', '코드', '<span class="ico-code" aria-hidden="true">&lt;/&gt;</span>'],
+  ].map(t => (t ? `<button type="button" class="pill pill-icon" data-fmt="${t[0]}" aria-pressed="false" aria-label="${t[1]}" title="${t[1]}">${t[2]}</button>`
+    : '<span class="tool-sep" aria-hidden="true"></span>')).join('');
+  let findingsEditKey = null, findingsDraft = '';
   function findingsCardHTML(key, e) {
     const label = key === 'general' ? 'General' : `<span class="nav-code">${esc(key)}</span>_${esc(courseName(key))}`;
     const isFav = store.findingsFavorites.all().includes(e.key);
     const plain = `${key === 'general' ? 'General' : key} ${monthDay(e.date)}`;
-    return `<section class="fi-box findings-card" data-box="${key}" data-key="${esc(e.key)}">
+    const editing = findingsEditKey === e.key;
+    return `<section class="fi-box findings-card${editing ? ' is-editing' : ''}" data-box="${key}" data-key="${esc(e.key)}">
       <header class="fi-box-head">
         <h2 class="fi-box-title">${label}</h2>
         <span class="findings-date">${esc(monthDay(e.date))}</span>
+        ${editing ? '' : `<button type="button" class="findings-edit-btn" data-findings-edit="${esc(e.key)}" aria-label="수정하기: ${esc(plain)}">수정하기</button>`}
         <button type="button" class="fi-box-fav${isFav ? ' is-fav' : ''}" data-findings-fav="${esc(e.key)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}: ${esc(plain)}"></button>
       </header>
-      <div class="editor archive-preview findings-body">${e.html}</div>
+      ${editing
+        ? `<div class="editor-tools findings-tools" role="toolbar" aria-label="서식">${FINDINGS_TOOLS}</div>
+      <div class="editor findings-edit" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Finding 수정">${findingsDraft}</div>
+      <div class="findings-edit-foot">
+        <button type="button" class="pill" data-findings-cancel>취소</button>
+        <button type="button" class="btn-primary" data-findings-save>저장하기</button>
+      </div>`
+        : `<div class="editor archive-preview findings-body">${e.html}</div>`}
     </section>`;
   }
   // 내용이 있는 과목만 — 필터 pill도 박스도 빈 과목은 아예 그리지 않는다(사용자 확정)
@@ -1030,7 +1143,54 @@
     cards.sort((a, b) => rank(a) - rank(b)); // 안정 정렬 — 별표 없는 박스끼리는 원래 순서 유지
     findingsListEl.innerHTML = cards.map(([k, e]) => findingsCardHTML(k, e)).join('');
   }
+  const findingsEditEl = () => findingsListEl.querySelector('.findings-edit');
+  function startFindingEdit(key) {
+    if (findingsEditKey && findingsEditKey !== key && !confirm('수정 중인 Finding이 있어요. 저장하지 않고 다른 박스를 수정할까요?')) return;
+    const entry = findingsEntries().find(x => x.key === key);
+    if (!entry) return;
+    if (current === entry.date) save(); // 저널링 탭에 같은 날짜가 열려 있으면 자동 저장 대기분부터 올린다
+    findingsEditKey = key;
+    findingsDraft = entry.html;
+    renderFindings();
+    const ed = findingsEditEl();
+    if (!ed) return;
+    ed.focus();
+    const r = document.createRange();
+    r.selectNodeContents(ed);
+    r.collapse(false);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+  }
+  function endFindingEdit() {
+    findingsEditKey = null;
+    findingsDraft = '';
+    renderFindings();
+  }
+  function saveFindingEdit() {
+    const ed = findingsEditEl();
+    if (!ed || !findingsEditKey) return;
+    const [date, course, nStr] = findingsEditKey.split('::');
+    const d = store.get(date);
+    const html = d && replaceFindingSlice(d.html, course, Number(nStr), ed.innerHTML);
+    if (html == null) { window.PhiBrain.ui.toast('원래 저널에서 이 Finding을 찾지 못했어요'); return; }
+    if (!store.set(date, { ...d, html, savedAt: Date.now() })) { window.PhiBrain.ui.toast('저장하지 못했어요'); return; }
+    const key = findingsEditKey;
+    if (current === date) load(date); // 저널링 탭에도 고친 내용이 바로 보이게
+    endFindingEdit();
+    window.PhiBrain.ui.toast('변경 사항이 저장되었어요.');
+    findingsListEl.querySelector(`[data-findings-edit="${key}"]`)?.focus({ preventScroll: true });
+  }
+  findingsListEl.addEventListener('input', e => { const ed = e.target.closest('.findings-edit'); if (ed) findingsDraft = ed.innerHTML; });
+  findingsListEl.addEventListener('focusin', e => { if (e.target.closest('.findings-edit')) document.execCommand('defaultParagraphSeparator', false, 'p'); });
+  findingsListEl.addEventListener('paste', e => { if (e.target.closest('.findings-edit')) pastePlain(e, false); });
+  findingsListEl.addEventListener('keydown', e => {
+    if (!e.target.closest('.findings-edit')) return;
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveFindingEdit(); }
+  });
   findingsListEl.addEventListener('click', e => {
+    if (e.target.closest('[data-findings-edit]')) { startFindingEdit(e.target.closest('[data-findings-edit]').dataset.findingsEdit); return; }
+    if (e.target.closest('[data-findings-save]')) { saveFindingEdit(); return; }
+    if (e.target.closest('[data-findings-cancel]')) { endFindingEdit(); return; }
     const b = e.target.closest('[data-findings-fav]');
     if (!b) return;
     const key = b.dataset.findingsFav;

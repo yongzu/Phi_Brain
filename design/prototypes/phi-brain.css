@@ -15,6 +15,9 @@
   --gray:#999;    /* all secondary text: Tab2, meta, hints, placeholder, footer */
   --line:#ededed; /* borders, text selection */
   --fill:#f5f5f5; /* quiet surfaces: nav hover box, input, chips, search hover */
+  /* the one exception to the 4 tones: text the user highlighted (<mark>, 하이라이터 — 2026-09-22).
+     It has to read as "marked" at a glance, which no gray can do next to --fill code chips. */
+  --mark:#fff1a6;
   /* ?v= busts the OS/browser's cursor-bitmap cache, which can keep showing an old
      image after this file's content changes even with the page cache cleared —
      bump this number whenever cursor-arrow.svg, cursor-pointer.svg or cursor-text.svg changes. */
@@ -218,6 +221,7 @@
 
 .ico-quote{width:10px;height:12px;border-left:2px solid currentColor;background:linear-gradient(currentColor,currentColor) 3px 3px/7px 1px no-repeat,linear-gradient(currentColor,currentColor) 3px 8px/5px 1px no-repeat}
 .ico-code{letter-spacing:-.5px}
+.ico-mark{padding:0 3px;border-radius:2px;background:var(--mark);color:var(--ink);font-weight:700;line-height:1.3}
 
 /* course menu — same floating card as the date picker */
 .journal{position:relative}
@@ -263,6 +267,7 @@
 .editor i,.editor em{font-style:italic;font-synthesis:style}
 .editor blockquote{margin:6px 0;padding:0 0 0 12px;border-left:2px solid var(--gray)}
 .editor code{background:var(--fill);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 5px}
+.editor mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .editor ul{margin:0;padding-left:18px}
 .editor ul.checklist{list-style:none;padding-left:22px}
 .editor ul.checklist>li{position:relative}
@@ -641,6 +646,15 @@
 /* 박스 머리줄: 과목 이름 · 날짜 · 별표(별표는 .fi-box-fav의 margin-left:auto로 오른쪽 끝) */
 .findings-date{color:var(--gray);font-size:.78rem}
 .findings-body{margin-top:8px;padding-bottom:0}
+/* 수정하기(2026-09-22): 머리줄 오른쪽, 별표 바로 앞의 조용한 텍스트 버튼. 편집 중엔 박스 안에 저널링과 같은
+   서식 툴바 → 편집 칸 → 취소/저장하기 순서. 편집 칸은 내용 높이만큼, 길면 박스 안에서 스크롤 */
+.findings-edit-btn{margin-left:auto;color:var(--gray);font-size:.78rem;padding:2px 6px;border-radius:var(--radius-sm);transition:color 140ms,background 140ms}
+.findings-edit-btn:hover,.findings-edit-btn:focus-visible{color:var(--ink);background:var(--fill);outline:0}
+.findings-edit-btn+.fi-box-fav{margin-left:4px}
+.findings-tools{margin-top:10px;padding:6px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.findings-edit{min-height:120px;max-height:420px;overflow-y:auto;overscroll-behavior:contain;padding:10px 0 12px}
+.findings-edit h3,.findings-edit .course-box{margin-left:0}
+.findings-edit-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
 
 /* course filter → card grid instead of the All list: one card per journal
    date that has that course, showing only that course's content. Same box
