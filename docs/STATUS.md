@@ -1500,3 +1500,7 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 구성: 더블 다이아몬드 4단계 띠(Discover 발견 / Define 정의 / Develop 방향 / Deliver Phi Brain) → 조사 근거 + 핵심 문제(07 결론 문장) + HMW → 4개 행(A 저널 이중 작성→Journaling·Journal Archive, B1 Findings 휘발→Findings, B2 Future Item 중복→Future Item, C 과제 관리→Assignment Manage) → Desktop App. 원인 문구는 페이지 섹션 인사이트에서 가져옴.
 - 주의: Define·Develop은 페이지상 아직 확정 전(HANDOFF "남은 일")이라 HMW 문장과 "해결 방향" 문구는 에이전트 초안. 텍스트는 `<text>` 그대로라 Figma에서 편집 가능, 글꼴은 Pretendard(없으면 맑은 고딕으로 대체).
 - 검증: 브라우저에서 모든 글자가 박스 안(좌우 여백 16px 이상)에 들어가는 것 측정, 핵심 문제와 HMW 문장 겹침 없음(1038 < 1221).
+
+## 2026-09-22 · Claude Code · 도식 더블 다이아몬드 비율 수정
+- 사용자: "더블다이아몬드 찌그러지지 않게만 다시". 기존엔 단계 쐐기를 열 폭(340×68)에 맞춰 늘려 납작했다.
+- `tools/process-map.js`: 페이지 01 진행 방식과 같은 정사각 다이아몬드(45°, 네 조각 같은 크기 140, 높이 280)를 제목 오른쪽에 따로 그리고 Deliver 조각만 검정. 열 머리는 텍스트 + 검정 선으로 바꿈. 나머지 내용은 그대로. SVG 1600×1350.

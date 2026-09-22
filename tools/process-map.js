@@ -61,25 +61,32 @@ let y = 0;
 out.push(text(40, 70, 'Phi Brain — 문제 정의에서 해결까지', { size: 34, weight: 700, ls: '-0.02em' }));
 out.push(text(40, 104, 'IPS · 문제해결 월드컵 3라운드 · Double Diamond', { size: 16, weight: 500, fill: GRAY }));
 
-// Phase strip with the double-diamond silhouette: diverge, converge, diverge, converge
-y = 140;
-PHASES.forEach(([num, name, ko], i) => {
-  const x = X[i];
+// Double diamond, drawn square like the page (45° sides, every quarter the same size) — never stretched to fit the columns
+const DQ = 140; // quarter width = half height
+const DX = W - 40 - DQ * 4;
+const DY = 36;
+PHASES.forEach(([num, name], i) => {
+  const x = DX + i * DQ;
   const diverge = i % 2 === 0;
-  const mid = y + 34;
-  // small diamond half: a wedge that opens (diverge) or closes (converge)
   const pts = diverge
-    ? `${x},${mid} ${x + COL_W},${y} ${x + COL_W},${y + 68}`
-    : `${x},${y} ${x + COL_W},${mid} ${x},${y + 68}`;
-  out.push(`<polygon points="${pts}" fill="${SOFT}" stroke="${RULE}" stroke-width="1"/>`);
-  const tx = diverge ? x + COL_W - 18 : x + 18;
-  const anchor = diverge ? 'end' : 'start';
-  out.push(text(tx, y + 30, `${num} · ${diverge ? '발산' : '수렴'}`, { size: 13, weight: 600, fill: GRAY, anchor }));
-  out.push(text(tx, y + 54, `${name}  ${ko}`, { size: 18, weight: 700, anchor }));
+    ? `${x},${DY + DQ} ${x + DQ},${DY} ${x + DQ},${DY + DQ * 2}`
+    : `${x},${DY} ${x + DQ},${DY + DQ} ${x},${DY + DQ * 2}`;
+  out.push(`<polygon points="${pts}" fill="${i === 3 ? INK : SOFT}" stroke="${i === 3 ? INK : RULE}" stroke-width="1"/>`);
+  const cx = diverge ? x + DQ * 0.62 : x + DQ * 0.38;
+  out.push(text(cx, DY + DQ - 6, `${num} · ${diverge ? "발산" : "수렴"}`, { size: 11, weight: 600, fill: i === 3 ? "#bdbdbd" : GRAY, anchor: "middle" }));
+  out.push(text(cx, DY + DQ + 16, name, { size: 15, weight: 700, fill: i === 3 ? "#fff" : INK, anchor: "middle" }));
+});
+
+// Column headers — one phase per column
+y = DY + DQ * 2 + 44;
+PHASES.forEach(([num, name, ko], i) => {
+  out.push(text(X[i], y, `${num} · ${name}`, { size: 13, weight: 600, fill: GRAY }));
+  out.push(text(X[i], y + 26, ko, { size: 19, weight: 700, ls: "-0.02em" }));
+  out.push(`<rect x="${X[i]}" y="${y + 40}" width="${COL_W}" height="2" fill="${INK}"/>`);
 });
 
 // Evidence (Discover) + core problem statement (Define → Deliver)
-y = 236;
+y += 64;
 const BAND_H = 96;
 out.push(`<rect x="${X[0]}" y="${y}" width="${COL_W}" height="${BAND_H}" rx="20" fill="#fff" stroke="${RULE}"/>`);
 out.push(text(X[0] + 24, y + 32, '조사 근거', { size: 13, weight: 600, fill: GRAY }));
@@ -97,7 +104,7 @@ out.push(text(coreX + coreW - 28, y + 70, '매일 쓰는 기록이 과목별로 
 // Rows
 const ROW_H = 150;
 const ROW_GAP = 18;
-y = 360;
+y += BAND_H + 28;
 ROWS.forEach((row) => {
   row.forEach((cell, i) => {
     const x = X[i];
