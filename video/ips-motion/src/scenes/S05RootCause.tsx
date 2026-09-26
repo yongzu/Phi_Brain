@@ -1,4 +1,4 @@
-// 5 · 근본 원인 (0:38–0:43)
+// 5 · 근본 원인 (0:45–0:50)
 import React from 'react';
 import { AbsoluteFill } from 'remotion';
 import { Reveal, Scene, Tag } from '../motion';

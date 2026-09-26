@@ -6,7 +6,8 @@
     "studio": "remotion studio",
     "render": "remotion render IpsMotion out/ips-motion.mp4",
     "render:intro": "remotion render LogoIntro out/logo-intro.mp4",
-    "still": "remotion still IpsMotion out/still.png"
+    "still": "remotion still IpsMotion out/still.png",
+    "pull": "node tools/pull-real-data.mjs && node tools/sync-app.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.529",

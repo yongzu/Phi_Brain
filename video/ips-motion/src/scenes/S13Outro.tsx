@@ -1,21 +1,21 @@
-// 14 · 마무리 (1:34–1:38) — 잉크 박스 인사이트 → Phi Brain + 주소
+// 13 · 마무리 (2:07–2:12) — 인사이트 한 줄(회색) → Phi Brain + 주소
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { Reveal, Scene } from '../motion';
 import { mix, ramp } from '../phi';
 import { C, sec } from '../theme';
 
-export const S14_DURATION = sec(4.5);
+export const S13_DURATION = sec(4.5);
 
-export const S14Outro: React.FC = () => {
+export const S13Outro: React.FC = () => {
   const f = useCurrentFrame();
   const lift = ramp(f, sec(1.7), sec(2.5));
   return (
-    <Scene duration={S14_DURATION} exit={sec(0.6)}>
+    <Scene duration={S13_DURATION} exit={sec(0.6)}>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ transform: `translateY(${mix(0, -150, lift)}px) scale(${mix(1, 0.62, lift)})` }}>
           <Reveal at={sec(0.2)} dur={sec(0.8)} y={32}>
-            <p style={{ padding: '44px 80px', borderRadius: 36, background: C.ink, color: C.white, fontSize: 96, fontWeight: 700, letterSpacing: '-0.04em', textAlign: 'center' }}>
+            <p style={{ color: C.secondary, fontSize: 96, fontWeight: 700, letterSpacing: '-0.04em', textAlign: 'center' }}>
               배운 것이 다시 돌아오게.
             </p>
           </Reveal>

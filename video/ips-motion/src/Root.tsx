@@ -11,7 +11,7 @@ loadFont({ family: 'Pretendard', url: staticFile('fonts/PretendardVariable.woff2
 export const Root: React.FC = () => (
   <>
     <Composition id="IpsMotion" component={Video} durationInFrames={TOTAL} fps={FPS} width={W} height={H} />
-    {/* 본편 앞에 따로 붙이는 로고 인트로 */}
+    {/* 로고 인트로 단독 — 본편(IpsMotion)에도 맨 앞과 8번 뒤에 같은 것이 들어 있다 */}
     <Composition id="LogoIntro" component={LogoIntro} durationInFrames={INTRO_DURATION} fps={FPS} width={W} height={H} />
   </>
 );
