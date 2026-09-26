@@ -353,19 +353,20 @@ const dd = document.querySelector('.dd');
 if (dd) {
   const phases = [...dd.querySelectorAll('.dd__phase')];
   const detail = dd.querySelector('.dd__detail');
+  // every phase is rendered once and stacked in the same cell (CSS), so the box keeps the longest one's height
+  detail.innerHTML = PHASES.map((p) => `<div class="dd__panel">
+      <span class="typo-label color-tertiary">${esc(p.label)}</span>
+      <h3 class="typo-subheading">${esc(p.name)}</h3>
+      <p class="typo-body color-secondary">${esc(p.lead)}</p>
+      <ul class="typo-body color-secondary">${p.items.map((t) => `<li class="dash">${esc(t)}</li>`).join('')}</ul>
+    </div>`).join('');
+  const panels = [...detail.children];
   let shown = -1;
   const show = (i) => {
     if (i === shown) return;
     shown = i;
-    phases.forEach((g, k) => {
-      g.classList.toggle('is-active', k === i);
-    });
-    const p = PHASES[i];
-    detail.innerHTML = `
-      <span class="typo-label color-tertiary">${esc(p.label)}</span>
-      <h3 class="typo-subheading">${esc(p.name)}</h3>
-      <p class="typo-body color-secondary">${esc(p.lead)}</p>
-      <ul class="typo-body color-secondary">${p.items.map((t) => `<li class="dash">${esc(t)}</li>`).join('')}</ul>`;
+    phases.forEach((g, k) => g.classList.toggle('is-active', k === i));
+    panels.forEach((el, k) => { el.classList.toggle('is-shown', k === i); el.setAttribute('aria-hidden', String(k !== i)); });
   };
   phases.forEach((g, i) => {
     g.addEventListener('mouseenter', () => show(i));
@@ -385,12 +386,32 @@ const processPop = document.getElementById('process');
 if (heroTrigger && processPop) {
   const wrap = heroTrigger.closest('.hero__title-wrap');
   let pinned = false;
+  let isOpen = false;
   let timer = 0;
+  // closing plays the leave animation first (blur out), then hides; reopening mid-way cancels it
   const setOpen = (open) => {
-    processPop.hidden = !open;
+    if (open === isOpen) return;
+    isOpen = open;
     heroTrigger.setAttribute('aria-expanded', String(open));
-    if (!open) pinned = false;
+    if (open) {
+      processPop.classList.remove('is-leaving');
+      processPop.hidden = false;
+      return;
+    }
+    pinned = false;
+    processPop.classList.add('is-leaving');
+    clearTimeout(leaveTimer);
+    leaveTimer = setTimeout(finishLeave, 320); // animationend doesn't fire in a background tab or with reduced motion
   };
+  let leaveTimer = 0;
+  const finishLeave = () => {
+    clearTimeout(leaveTimer);
+    if (isOpen || !processPop.classList.contains('is-leaving')) return;
+    processPop.hidden = true;
+    processPop.classList.remove('is-leaving');
+  };
+  // only the popover's own leave animation — children (the diamond detail) animate too and bubble up
+  processPop.addEventListener('animationend', (e) => { if (e.target === processPop) finishLeave(); });
   const later = (fn, ms) => { clearTimeout(timer); timer = setTimeout(fn, ms); };
   if (matchMedia('(hover: hover)').matches) {
     heroTrigger.addEventListener('mouseenter', () => later(() => setOpen(true), 120));
@@ -404,8 +425,8 @@ if (heroTrigger && processPop) {
     pinned = true;
   });
   processPop.querySelector('[data-process-close]').addEventListener('click', () => { setOpen(false); heroTrigger.focus({ preventScroll: true }); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !processPop.hidden) { setOpen(false); heroTrigger.focus({ preventScroll: true }); } });
-  document.addEventListener('click', (e) => { if (!processPop.hidden && !wrap.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) { setOpen(false); heroTrigger.focus({ preventScroll: true }); } });
+  document.addEventListener('click', (e) => { if (isOpen && !wrap.contains(e.target)) setOpen(false); });
 }
 
 // ---------- Blueprint: a cell with problem badges shows those problems on hover, focus or click ----------

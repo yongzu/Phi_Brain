@@ -237,7 +237,7 @@ b, strong { font-weight: 700; color: var(--color-text-primary); }
 .hero > * { position: relative; z-index: 1; }
 .hero__eyebrow { margin-bottom: 28px; }
 .hero__title { font-size: clamp(2.5rem, 4vw, 4.75rem); white-space: nowrap; }
-.hero__intro { display: flex; flex-direction: column; align-items: center; max-width: 800px; margin-top: clamp(180px, 35vh, 380px); }
+.hero__intro { display: flex; flex-direction: column; align-items: center; max-width: 800px; margin-top: clamp(90px, 17.5vh, 190px); }
 /* 히어로 근거 문단(논문 02 인용)은 본 문제 제기보다 한 단계 작게 */
 .hero__evidence { display: flex; flex-direction: column; align-items: center; font-size: 0.85em; }
 .hero__evidence .hero__source { font-size: 0.8125rem; }
@@ -250,11 +250,13 @@ b, strong { font-weight: 700; color: var(--color-text-primary); }
 .hero__hint { margin-top: 20px; }
 .process-pop { position: absolute; top: calc(100% + 16px); left: 50%; width: min(1200px, calc(100vw - 48px)); padding: 22px 28px 26px; border-radius: 24px; background: var(--color-bg-default); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06); text-align: left; margin-left: calc(min(1200px, 100vw - 48px) / -2); animation: cp-surface 360ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .process-pop[hidden] { display: none; }
+.process-pop.is-leaving { animation: cp-surface-out 240ms cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+@keyframes cp-surface-out { from { opacity: 1; filter: blur(0); transform: none; } to { opacity: 0; filter: blur(10px); transform: translateY(8px); } }
 .process-pop__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
 .process-pop__head p { max-width: 760px; margin-top: 6px; }
 .process-pop .panel__icon { flex: none; }
 .process-pop .dd { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); margin-top: 16px; gap: 40px; }
-.process-pop .dd__detail { min-height: 240px; }
+.process-pop .dd { align-items: start; } /* 위를 고정하고 아래로만 — 설명 칸 높이는 가장 긴 단계 기준(.dd__panel 겹쳐 쌓기) */
 .overview { width: min(100%, 783px); margin-top: var(--hero-gap); }
 .overview__list { padding: 4px 0 24px; }
 .overview__row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 12px 0; }
@@ -357,9 +359,12 @@ b, strong { font-weight: 700; color: var(--color-text-primary); }
 .dd__phase:focus-visible polygon { stroke-width: 3; }
 .dd__num { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
 .dd__name { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; }
-.dd__detail { display: flex; flex-direction: column; gap: 14px; min-height: 380px; justify-content: center; }
-.dd__detail > * { animation: cp-surface 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.dd__detail ul { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+/* all four phase panels share one grid cell: the cell is as tall as the longest, so switching never moves the box */
+.dd__detail { display: grid; }
+.dd__panel { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 14px; visibility: hidden; }
+.dd__panel.is-shown { visibility: visible; }
+.dd__panel.is-shown > * { animation: cp-surface 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.dd__panel ul { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--color-border); }
 
 /* ---------- Service blueprint ---------- */
 .bp-scroll { margin-top: 45px; }
@@ -701,7 +706,6 @@ b, strong { font-weight: 700; color: var(--color-text-primary); }
   .dd, .interview, .pain-grid, .pain-card--main .pain-card__list { grid-template-columns: 1fr; }
   .pain-card__head, .pain-card__top .typo-label { white-space: normal; }
   .dd__svg, .dd__detail { order: 0; }
-  .dd__detail { min-height: 0; }
   .stats, #numbers-mine .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-cards--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
