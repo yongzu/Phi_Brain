@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phi Brain · IPS Discover</title>
-  <meta name="description" content="Iterative Problem Solving — Phi Brain 문제해결의 Discover 단계: 저널을 다시 보지 않아 학습 성찰이 일어나지 않는 문제와 그 근거" />
+  <title>Phi Brain · IPS</title>
+  <meta name="description" content="Iterative Problem Solving — Phi Brain 문제해결 전 과정(Discover · Define · Develop · Deliver): 저널을 다시 보지 않아 학습 성찰이 일어나지 않는 문제에서 해법까지" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="ips.css?v=20260926-3" />
+  <link rel="stylesheet" href="ips.css?v=20260926-12" />
 </head>
 <body>
   <header class="site-header">
     <a href="#top" class="site-header__brand">Phi Brain <span>· IPS</span></a>
     <nav class="site-header__nav" aria-label="더블 다이아몬드 단계">
-      <a href="#top" class="site-header__link" aria-current="page">Discover</a>
-      <span class="site-header__link" aria-disabled="true" title="다음 라운드에서 이어집니다">Define</span>
-      <span class="site-header__link" aria-disabled="true" title="다음 라운드에서 이어집니다">Develop</span>
-      <span class="site-header__link" aria-disabled="true" title="다음 라운드에서 이어집니다">Deliver</span>
+      <a href="#top" class="site-header__link" data-phase-link="discover" aria-current="page">Discover</a>
+      <a href="#define" class="site-header__link" data-phase-link="define">Define</a>
+      <a href="#develop" class="site-header__link" data-phase-link="develop">Develop</a>
+      <a href="#deliver" class="site-header__link" data-phase-link="deliver">Deliver</a>
     </nav>
     <span class="site-header__cta-space" aria-hidden="true"></span>
     <a href="../prototypes/home.html" class="site-header__cta" target="_blank" rel="noreferrer">Phi Brain 프로토타입 ↗</a>
@@ -26,34 +26,85 @@
     <div class="toc-rail">
       <nav class="toc" aria-label="페이지 목차">
         <p class="toc__title">ON THIS PAGE</p>
+        <!-- 네 단계가 최상위. 읽고 있는 단계의 목차만 펼친다(ips.js updatePhase) -->
         <ul>
-          <li class="toc__lv1"><a href="#pain">핵심 문제</a>
-            <ul>
-              <li class="toc__lv2"><a href="#problem-1">문제 1 · 학습 성찰</a></li>
-              <li class="toc__lv2"><a href="#problem-2">문제 2 · 행동 수행</a></li>
-              <li class="toc__lv2"><a href="#problem-3">문제 3 · 현황 파악</a></li>
+          <li class="toc__phase-item is-open" data-toc-phase="discover"><a href="#discover" class="toc__phase-link">Discover</a>
+            <ul class="toc__sub">
+              <li class="toc__lv1"><a href="#pain">핵심 문제</a></li>
+              <li class="toc__lv1"><a href="#blueprint">서비스 블루프린트</a></li>
+              <!-- 정량 조사 · 정성 조사 · 제출 데이터를 한 항목으로: 세 섹션 어디를 읽어도 이 항목이 켜진다 -->
+              <li class="toc__lv1"><a href="#research" data-toc-also="interview numbers">사용자 리서치</a></li>
+              <li class="toc__lv1"><a href="#conclusion">Discover 결론</a></li>
             </ul>
           </li>
-          <li class="toc__lv1"><a href="#blueprint">서비스 블루프린트</a></li>
-          <li class="toc__lv1"><a href="#research">정량 조사</a>
-            <ul>
-              <li class="toc__lv2"><a href="#research-a">문제 1이 왜 중요한가</a></li>
-              <li class="toc__lv2"><a href="#research-b">문제 1이 왜 생기는가</a></li>
+          <li class="toc__phase-item" data-toc-phase="define"><a href="#define" class="toc__phase-link">Define</a>
+            <ul class="toc__sub">
+              <li class="toc__lv1"><a href="#whys">5 Whys</a></li>
+              <li class="toc__lv1"><a href="#hmw">인사이트 · HMW</a></li>
+              <li class="toc__lv1"><a href="#criteria">성공 기준</a></li>
             </ul>
           </li>
-          <li class="toc__lv1"><a href="#interview">정성 조사</a></li>
-          <li class="toc__lv1"><a href="#numbers">제출 데이터</a></li>
-          <li class="toc__lv1"><a href="#conclusion">Discover 결론</a></li>
-          <li class="toc__lv1"><a href="#process">진행 방식</a></li>
+          <li class="toc__phase-item" data-toc-phase="develop"><a href="#develop" class="toc__phase-link">Develop</a>
+            <ul class="toc__sub">
+              <li class="toc__lv1"><a href="#ideas">해법 후보</a></li>
+              <li class="toc__lv1"><a href="#choose">평가 · 선택</a></li>
+            </ul>
+          </li>
+          <li class="toc__phase-item" data-toc-phase="deliver"><a href="#deliver" class="toc__phase-link">Deliver</a>
+            <ul class="toc__sub">
+              <li class="toc__lv1"><a href="#solution">최종 해법</a></li>
+              <li class="toc__lv1"><a href="#solution-sub">부차 해법</a></li>
+              <li class="toc__lv1"><a href="#verify">검증 계획 · 한계</a></li>
+              <li class="toc__lv1"><a href="#iterate">버전 로그</a></li>
+            </ul>
+          </li>
         </ul>
       </nav>
     </div>
 
     <main class="container">
       <!-- ---------- Hero ---------- -->
-      <section class="hero">
+      <section class="hero" id="discover">
         <p class="hero__eyebrow typo-label color-tertiary" data-r>Iterative Problem Solving · 문제해결 월드컵 3라운드</p>
-        <h1 class="hero__title typo-display" data-r>Phi에서 배운 인사이트를<br />자신의 디자인에 적용하고 있나요?</h1>
+        <div class="hero__title-wrap" data-r>
+          <h1 class="hero__title typo-display"><button type="button" class="hero__trigger" aria-expanded="false" aria-controls="process">Phi에서 배운 인사이트를<br />자신의 디자인에 적용하고 있나요?</button></h1>
+          <p class="hero__hint typo-label color-tertiary" aria-hidden="true">제목에 마우스를 올리거나 누르면 진행 방식이 보입니다</p>
+          <!-- 진행 방식(더블 다이아몬드): 제목에 호버하면 잠깐, 누르면 고정해서 띄운다 (ips.js process popover) -->
+          <div class="process-pop" id="process" role="dialog" aria-label="진행 방식 — 더블 다이아몬드" hidden>
+            <div class="process-pop__head">
+              <div>
+                <span class="typo-label color-tertiary">진행 방식</span>
+                <p class="typo-body color-secondary"><strong>이 문제가 왜 생기는지 찾고 해결하기 위해</strong> 더블 다이아몬드 프로세스를 활용합니다. 문제를 넓게 보고 좁힌 뒤, 해법을 넓게 시도하고 좁힙니다.</p>
+              </div>
+              <button type="button" class="panel__icon" data-process-close aria-label="닫기">✕</button>
+            </div>
+            <div class="dd">
+              <svg class="dd__svg" viewBox="-4 -4 968 488" role="group" aria-label="더블 다이아몬드 단계">
+                <g class="dd__phase" data-phase="0" tabindex="0" role="button" aria-label="Discover 단계 세부 내용">
+                  <polygon points="0,240 240,0 240,480" />
+                  <text x="150" y="226" text-anchor="middle" class="dd__num">01 · 발산</text>
+                  <text x="150" y="266" text-anchor="middle" class="dd__name">Discover</text>
+                </g>
+                <g class="dd__phase" data-phase="1" tabindex="0" role="button" aria-label="Define 단계 세부 내용">
+                  <polygon points="240,0 480,240 240,480" />
+                  <text x="330" y="226" text-anchor="middle" class="dd__num">02 · 수렴</text>
+                  <text x="330" y="266" text-anchor="middle" class="dd__name">Define</text>
+                </g>
+                <g class="dd__phase" data-phase="2" tabindex="0" role="button" aria-label="Develop 단계 세부 내용">
+                  <polygon points="480,240 720,0 720,480" />
+                  <text x="630" y="226" text-anchor="middle" class="dd__num">03 · 발산</text>
+                  <text x="630" y="266" text-anchor="middle" class="dd__name">Develop</text>
+                </g>
+                <g class="dd__phase" data-phase="3" tabindex="0" role="button" aria-label="Deliver 단계 세부 내용">
+                  <polygon points="720,0 960,240 720,480" />
+                  <text x="810" y="226" text-anchor="middle" class="dd__num">04 · 수렴</text>
+                  <text x="810" y="266" text-anchor="middle" class="dd__name">Deliver</text>
+                </g>
+              </svg>
+              <div class="dd__detail" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
         <div class="hero__intro typo-lead color-secondary" data-r>
           <div class="hero__evidence">
           <p><strong>Phi의 학습 성찰 기록, 저널링의 효과는 두 가지입니다.</strong></p>
@@ -344,41 +395,336 @@
         </div>
       </section>
 
-      <!-- ---------- 07 Process ---------- -->
-      <section class="section" id="process">
+      <!-- ================= Define ================= -->
+      <section class="phase" id="define">
+        <span class="phase__num typo-label color-tertiary" data-r>02 · 수렴</span>
+        <h2 class="phase__name" data-r>Define</h2>
+        <p class="phase__lead typo-lead color-secondary" data-r>Discover에서 확인한 문제 1의 근본 원인을 하나로 좁히고, 풀어야 할 질문을 정합니다.</p>
+      </section>
+
+      <!-- ---------- 07 5 Whys ---------- -->
+      <section class="section section--after-phase" id="whys">
         <div class="section-header">
           <div>
             <span class="section-header__num typo-label color-tertiary" data-r>07</span>
-            <h2 class="typo-heading" data-r>진행 방식</h2>
+            <h2 class="typo-heading" data-r>5 Whys</h2>
           </div>
-          <p class="typo-lead color-secondary" data-r><strong>이 문제가 왜 생기는지 찾고 해결하기 위해</strong> 더블 다이아몬드 프로세스를 활용합니다.<br />문제를 넓게 보고 좁힌 뒤, 해법을 넓게 시도하고 좁힙니다.</p>
+          <p class="typo-lead color-secondary" data-r>문제 1에서 시작해 '왜'를 다섯 번 물었습니다.<br />각 단계에는 Discover에서 찾은 근거를 붙였습니다.</p>
         </div>
 
-        <div class="dd" data-r>
-          <svg class="dd__svg" viewBox="-4 -4 968 488" role="group" aria-label="더블 다이아몬드 단계">
-            <g class="dd__phase" data-phase="0" tabindex="0" role="button" aria-label="Discover 단계 세부 내용">
-              <polygon points="0,240 240,0 240,480" />
-              <text x="150" y="226" text-anchor="middle" class="dd__num">01 · 발산</text>
-              <text x="150" y="266" text-anchor="middle" class="dd__name">Discover</text>
-            </g>
-            <g class="dd__phase" data-phase="1" tabindex="0" role="button" aria-label="Define 단계 세부 내용">
-              <polygon points="240,0 480,240 240,480" />
-              <text x="330" y="226" text-anchor="middle" class="dd__num">02 · 수렴</text>
-              <text x="330" y="266" text-anchor="middle" class="dd__name">Define</text>
-            </g>
-            <g class="dd__phase" data-phase="2" tabindex="0" role="button" aria-label="Develop 단계 세부 내용">
-              <polygon points="480,240 720,0 720,480" />
-              <text x="630" y="226" text-anchor="middle" class="dd__num">03 · 발산</text>
-              <text x="630" y="266" text-anchor="middle" class="dd__name">Develop</text>
-            </g>
-            <g class="dd__phase" data-phase="3" tabindex="0" role="button" aria-label="Deliver 단계 세부 내용">
-              <polygon points="720,0 960,240 720,480" />
-              <text x="810" y="226" text-anchor="middle" class="dd__num">04 · 수렴</text>
-              <text x="810" y="266" text-anchor="middle" class="dd__name">Deliver</text>
-            </g>
-          </svg>
-          <div class="dd__detail" aria-live="polite"></div>
+        <p class="whys-start" data-r><span class="typo-label color-tertiary">출발 · 문제 1</span><strong>저널을 다시 보지 않아 학습 성찰이 일어나지 않는다</strong></p>
+        <div class="dtable-wrap" data-r data-lenis-prevent-horizontal>
+          <table class="dtable dtable--whys">
+            <thead>
+              <tr><th scope="col">단계</th><th scope="col">질문</th><th scope="col">답</th><th scope="col">근거</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Why 1</th><td>왜 지난 저널을 다시 보지 않는가?</td><td><b>다시 봐도 원하는 내용을 찾을 수 없다.</b></td><td>정성 조사 질문 02(날짜별 수직 구조·하이라이트 부재) · 논문 03(보관 방법 평균 4.87가지)</td></tr>
+              <tr><th scope="row">Why 2</th><td>왜 찾을 수 없는가?</td><td><b>기록이 날짜순으로만 쌓이고, 과목이나 중요도로 모이지 않는다.</b></td><td>1-3 · 블루프린트 2단계 백스테이지(과목 태그 없음) · 논문 05(학생은 과목으로 정리)</td></tr>
+              <tr><th scope="row">Why 3</th><td>왜 과목·중요도로 모이지 않는가?</td><td><b>과목별 정리는 각자의 외부 앱에서 하고, 저널은 그것을 옮겨 쓰는 사본이 된다.</b></td><td>1-2 · 정성 조사 질문 03(Findings는 노션·옵시디언·피그마·메모에 정리)</td></tr>
+              <tr><th scope="row">Why 4</th><td>왜 사본이 되는가?</td><td><b>저널에는 쓴 뒤 다시 돌아올 이유가 없다. 다시 보는 쪽은 개인 노트다.</b></td><td>블루프린트 6단계(지난 저널은 찾지 않고 개인 노트를 연다) · 논문 03(안 보이면 잊는다)</td></tr>
+              <tr><th scope="row">Why 5</th><td>왜 돌아올 이유가 없는가?</td><td><b>저널링이 '쓰기'까지만 짜여 있고, 쓴 것을 다시 꺼내 보는 단계가 학습 흐름에 없다.</b><small>근거를 이어 붙인 추론</small></td><td>블루프린트 6단계 백스테이지(과목·목적으로 거르는 필터가 없다) · 논문 01(모아서 다시 봐야 성찰이 일어난다)</td></tr>
+            </tbody>
+          </table>
         </div>
+
+        <p class="statement statement--root typo-subheading" data-r>
+          <span class="typo-label color-tertiary">근본 원인</span>
+          <span class="statement__line">저널링은 쓰는 데서 끝나도록 짜여 있어,</span>
+          <span class="statement__line">배운 것을 다시 꺼내 보는 단계가 없다.</span>
+        </p>
+        <p class="section-insight" data-r>문제는 저널을 덜 써서가 아니라, 쓴 것이 다시 돌아오지 않는 데 있다.</p>
+      </section>
+
+      <!-- ---------- 08 Insight · HMW ---------- -->
+      <section class="section" id="hmw">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>08</span>
+            <h2 class="typo-heading" data-r>인사이트 · HMW</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>근본 원인을 학습자의 입장에서 다시 쓰고,<br />풀어야 할 질문(How Might We)으로 바꿨습니다.</p>
+        </div>
+
+        <div class="pov" data-r>
+          <span class="typo-label color-tertiary">인사이트 (POV)</span>
+          <p class="typo-title">Phi 학습자는 <strong>배운 것을 과목별로 다시 꺼내 보는 자리</strong>가 필요하다.<br />저널이 날짜순 사본으로 쌓여, 쓰고 나면 돌아올 이유도 방법도 없기 때문이다.</p>
+        </div>
+
+        <div class="hmw">
+          <article class="hmw__main" data-r>
+            <span class="typo-label color-tertiary">핵심 HMW · 문제 1</span>
+            <p class="hmw__q">어떻게 하면 Phi 학습자가 저널에 쓴 Findings를 다시 꺼내 보고,<br />자신의 디자인에 적용하게 할 수 있을까?</p>
+          </article>
+          <p class="pain-sub typo-label color-tertiary" data-r>부차 HMW</p>
+          <article class="hmw__sub" data-r>
+            <span class="typo-label color-tertiary">문제 2</span>
+            <p>어떻게 하면 Future Item이 쓰는 데서 끝나지 않고 완료까지 이어질까?</p>
+          </article>
+          <article class="hmw__sub" data-r>
+            <span class="typo-label color-tertiary">문제 3</span>
+            <p>어떻게 하면 과제와 셀프 피드백의 현황과 우선순위를 한눈에 볼 수 있을까?</p>
+          </article>
+        </div>
+        <p class="section-insight" data-r>세 문제는 같은 원인에서 갈라진다 — 쓴 것이 한곳에 모여 다시 보이지 않는다.</p>
+      </section>
+
+      <!-- ---------- 09 Success criteria ---------- -->
+      <section class="section" id="criteria">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>09</span>
+            <h2 class="typo-heading" data-r>성공 기준</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>해법이 문제를 풀었는지 확인할 기준입니다.<br />기준값은 Discover에서 잰 값이고, 목표값은 정하지 않았습니다.</p>
+        </div>
+
+        <div class="dtable-wrap" data-r data-lenis-prevent-horizontal>
+          <table class="dtable dtable--criteria">
+            <thead>
+              <tr><th scope="col">지표</th><th scope="col">문제</th><th scope="col">Discover 기준값</th><th scope="col">확인 방법</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">지난 저널을 다시 보는 빈도</th><td>1</td><td class="is-key">주 1회 남짓<small>매일 다시 보는 응답자 없음 · 정성 조사 질문 02</small></td><td>같은 질문으로 다시 인터뷰</td></tr>
+              <tr><th scope="row">다시 볼 때 원하는 내용을 찾는가</th><td>1</td><td class="is-key">찾아보는 용도로는 쓰기 어려웠다<small>정성 조사 질문 02</small></td><td>같은 질문으로 다시 인터뷰</td></tr>
+              <tr><th scope="row">Findings를 자신의 디자인에 적용한 사례</th><td>1</td><td class="is-key">측정하지 않음</td><td>인터뷰에서 적용 사례를 새로 묻는다</td></tr>
+              <tr><th scope="row">Future Item 완료</th><td>2</td><td class="is-key">측정하지 않음<small>저널 속 할 일은 완료가 추적되지 않는다 · 블루프린트 3단계</small></td><td>Future Item 완료 기록</td></tr>
+              <tr><th scope="row">셀프 피드백 제출률</th><td>2 · 3</td><td class="is-key">56.0%<small>728칸 중 408칸 · 주차별 86.1% → 57.1% → 19.0%</small></td><td>같은 대시보드, 같은 집계 기준</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="section-insight" data-r>해법은 Discover와 같은 방법, 같은 기준값으로 확인한다.</p>
+      </section>
+
+      <!-- ================= Develop ================= -->
+      <section class="phase" id="develop">
+        <span class="phase__num typo-label color-tertiary" data-r>03 · 발산</span>
+        <h2 class="phase__name" data-r>Develop</h2>
+        <p class="phase__lead typo-lead color-secondary" data-r>핵심 HMW에서 해법을 넓게 벌리고, 근본 원인을 기준으로 좁힙니다.</p>
+      </section>
+
+      <!-- ---------- 10 Ideas ---------- -->
+      <section class="section section--after-phase" id="ideas">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>10</span>
+            <h2 class="typo-heading" data-r>해법 후보</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>핵심 HMW에 답하는 해법을 네 갈래로 벌렸습니다.<br />새 도구를 만들지 않는 방법도 함께 놓았습니다.</p>
+        </div>
+
+        <div class="ideas">
+          <article class="ideas__group" data-r>
+            <span class="typo-label color-tertiary">A · 수업 루틴</span>
+            <ol class="ideas__list">
+              <li><span class="pain-card__num">A1</span><p>주간 회고 시간에 지난주 Findings를 다시 읽는다</p></li>
+              <li><span class="pain-card__num">A2</span><p>세션을 시작할 때 지난 Finding 하나를 공유한다</p></li>
+            </ol>
+          </article>
+          <article class="ideas__group" data-r>
+            <span class="typo-label color-tertiary">B · 디스코드 안에서</span>
+            <ol class="ideas__list">
+              <li><span class="pain-card__num">B1</span><p>과목 태그를 붙이는 작성 규칙을 정한다</p></li>
+              <li><span class="pain-card__num">B2</span><p>봇이 지난주 Findings를 다시 보내 준다</p></li>
+            </ol>
+          </article>
+          <article class="ideas__group" data-r>
+            <span class="typo-label color-tertiary">C · 기존 앱 활용</span>
+            <ol class="ideas__list">
+              <li><span class="pain-card__num">C1</span><p>노션·옵시디언에 과목별 저널 템플릿을 만든다</p></li>
+              <li><span class="pain-card__num">C2</span><p>외부 앱의 기록을 디스코드로 옮기는 과정을 자동화한다</p></li>
+            </ol>
+          </article>
+          <article class="ideas__group ideas__group--pick" data-r>
+            <span class="typo-label color-tertiary">D · 새 도구 (Phi Brain)</span>
+            <ol class="ideas__list">
+              <li><span class="pain-card__num">D1</span><p>쓰는 곳에서 과목별로 저절로 모이게 한다</p></li>
+              <li><span class="pain-card__num">D2</span><p>중요한 문장만 표시해 모아 보여 준다</p></li>
+            </ol>
+          </article>
+        </div>
+        <p class="ideas__note typo-body color-secondary" data-r>A~C는 비교를 위해 함께 놓은 후보로, 실행해 보지는 않았습니다.</p>
+        <p class="section-insight" data-r>해법은 '더 자주 보게 하기'(A·B2)와 '다시 볼 수 있게 만들기'(B1·C·D) 두 방향으로 나뉜다.</p>
+      </section>
+
+      <!-- ---------- 11 Evaluate · choose ---------- -->
+      <section class="section" id="choose">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>11</span>
+            <h2 class="typo-heading" data-r>평가 · 선택</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>5 Whys에서 찾은 원인을 풀 수 있는지로 후보를 비교했습니다.<br />● 푼다 · ◐ 일부만 푼다 · ○ 풀지 못한다</p>
+        </div>
+
+        <div class="dtable-wrap" data-r data-lenis-prevent-horizontal>
+          <table class="dtable dtable--eval">
+            <thead>
+              <tr><th scope="col">후보</th><th scope="col">찾을 수 있게 되는가<small>Why 1·2</small></th><th scope="col">이중 작성이 사라지는가<small>Why 3</small></th><th scope="col">다시 돌아올 이유가 생기는가<small>Why 4·5</small></th><th scope="col">한계</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">A · 수업 루틴</th><td>○</td><td>○</td><td class="is-key">●</td><td>보는 시간은 생기지만, 날짜순 기록에서 찾기는 여전히 어렵다</td></tr>
+              <tr><th scope="row">B1 · 과목 태그 규칙</th><td>◐</td><td>○</td><td>○</td><td>검색은 되지만 과목별로 모아 보이지 않는다</td></tr>
+              <tr><th scope="row">B2 · 리마인드 봇</th><td>○</td><td>○</td><td>◐</td><td>다시 보내 줘도 날짜순 한 줄이다</td></tr>
+              <tr><th scope="row">C · 기존 앱 활용</th><td>◐</td><td>◐</td><td>◐</td><td>기록이 사람마다 다른 앱에 더 흩어진다(1-2)</td></tr>
+              <tr class="is-pick"><th scope="row">D · Phi Brain</th><td class="is-key">●</td><td class="is-key">●</td><td>◐</td><td>다시 볼 자리는 생기지만, 보러 오는 것은 학습자에게 달려 있다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="choose" data-r><span class="typo-label color-tertiary">선택</span><strong>D · Phi Brain — 쓰는 곳이 곧 과목별로 다시 보는 곳이 되게 한다.</strong><span class="typo-body color-secondary">A(수업 루틴)는 Phi Brain과 함께 쓸 수 있어, 남은 한계(Why 4·5)를 보완하는 방법으로 남긴다.</span></p>
+        <p class="section-insight" data-r>찾을 수 없으면 자주 봐도 소용없다. 먼저 다시 볼 수 있게 만든다.</p>
+      </section>
+
+      <!-- ================= Deliver ================= -->
+      <section class="phase" id="deliver">
+        <span class="phase__num typo-label color-tertiary" data-r>04 · 수렴</span>
+        <h2 class="phase__name" data-r>Deliver</h2>
+        <p class="phase__lead typo-lead color-secondary" data-r>선택한 해법을 Phi Brain으로 완성하고, 무엇으로 검증할지 정합니다. 만들며 고친 과정은 버전 로그로 남깁니다.</p>
+      </section>
+
+      <!-- ---------- 12 Solution ---------- -->
+      <section class="section section--after-phase" id="solution">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>12</span>
+            <h2 class="typo-heading" data-r>최종 해법 · 문제 1</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>저널을 쓰는 곳에서 Findings가 과목별로 모이고, 다시 꺼내 보게 됩니다.<br />화면은 실제로 쓰고 있는 Phi Brain 계정의 저널입니다.</p>
+        </div>
+
+        <ol class="sol">
+          <li class="sol__step" data-r>
+            <a class="sol__shot" href="img/phi-journaling.webp" target="_blank" rel="noreferrer"><img src="img/phi-journaling.webp" alt="Journaling 화면 — 9월 16일 저널의 BI Finding에 번호와 하이라이트, 굵게가 표시돼 있다" loading="lazy" /></a>
+            <span class="typo-label color-tertiary">① 쓴다 · 표시한다 — Journaling</span>
+            <p class="sol__title">과목 박스로 나눠 쓰고, 중요한 문장에 표시한다</p>
+            <p class="typo-body color-secondary">하이라이트 3색(Ctrl+H)과 굵게. 한곳에 쓰니 외부 앱에 옮겨 쓸 필요가 없다. <span class="sol__why">Why 3</span></p>
+          </li>
+          <li class="sol__step" data-r>
+            <a class="sol__shot" href="img/phi-findings.webp" target="_blank" rel="noreferrer"><img src="img/phi-findings.webp" alt="Findings 화면 — 과목별 Finding 박스가 번호와 함께 쌓이고 별표한 박스가 맨 앞에 있다" loading="lazy" /></a>
+            <span class="typo-label color-tertiary">② 모인다 — Findings</span>
+            <p class="sol__title">저널의 Finding만 과목별 박스로 모인다</p>
+            <p class="typo-body color-secondary">번호마다 박스 하나, 별표한 박스가 앞에. 과목·즐겨찾기로 거른다. <span class="sol__why">Why 1·2</span></p>
+          </li>
+          <li class="sol__step" data-r>
+            <a class="sol__shot" href="img/phi-archive.webp" target="_blank" rel="noreferrer"><img src="img/phi-archive.webp" alt="Archive 화면 — BI 과목을 고르자 날짜별 저널의 BI 부분만 카드로 보인다" loading="lazy" /></a>
+            <span class="typo-label color-tertiary">③ 다시 본다 — Archive</span>
+            <p class="sol__title">과목을 고르면 그 과목 부분만 이어 읽는다</p>
+            <p class="typo-body color-secondary">날짜를 넘어 한 과목의 흐름을 본다. 여러 과목을 함께 고를 수도 있다. <span class="sol__why">Why 2</span></p>
+          </li>
+        </ol>
+        <div class="sol__apply" data-r>
+          <div>
+            <span class="typo-label color-tertiary">④ 적용한다 — 학습자</span>
+            <p class="sol__title">적용은 학습자의 몫이다. Phi Brain은 다시 꺼내 보는 데까지 돕는다.</p>
+            <p class="typo-body color-secondary">깨달음에서 나온 행동은 저널의 Future Item 칸에 적고, 정리할 때 Future Item 보드로 등록해 끝까지 추적한다. <span class="sol__why">Why 4·5 일부</span></p>
+          </div>
+          <a class="link typo-body" href="../prototypes/home.html" target="_blank" rel="noreferrer">Phi Brain 프로토타입 열기 ↗</a>
+        </div>
+        <p class="section-insight" data-r>쓰는 곳이 곧 다시 보는 곳이 됐다. 다만 다시 보러 오게 하는 일은 아직 학습자에게 달려 있다.</p>
+      </section>
+
+      <!-- ---------- 13 Secondary solutions ---------- -->
+      <section class="section" id="solution-sub">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>13</span>
+            <h2 class="typo-heading" data-r>부차 해법 · 문제 2·3</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>문제 2·3은 같은 원칙으로 따로 풀었습니다.<br />쓴 것은 한곳에 모이고, 과목별로 다시 보입니다.</p>
+        </div>
+
+        <div class="subsol">
+          <article class="subsol__card" data-r>
+            <a class="subsol__shot" href="img/phi-future.webp" target="_blank" rel="noreferrer"><img src="img/phi-future.webp" alt="Future Item 화면 — 과목별 박스에 할 일이 번호와 함께 들어 있고, 완료한 항목은 따로 모인다" loading="lazy" /></a>
+            <span class="typo-label color-tertiary">문제 2 · Future Item</span>
+            <p class="sol__title">해야 할 행동을 과목별 보드에서 끝까지</p>
+            <ul class="typo-body color-secondary">
+              <li class="dash">저널의 Future Item을 그대로 등록한다(두 번 쓰지 않는다)</li>
+              <li class="dash">과목별 박스 · 마감 · 완료한 항목은 따로 모인다</li>
+              <li class="dash">못 한 일은 이번 주로 넘어온다</li>
+            </ul>
+          </article>
+          <article class="subsol__card" data-r>
+            <a class="subsol__shot" href="img/phi-assignment.webp" target="_blank" rel="noreferrer"><img src="img/phi-assignment.webp" alt="Assignment Manage 화면 — 과목마다 과제와 셀프 피드백의 제출 확인 여부가 표로 보인다" loading="lazy" /></a>
+            <span class="typo-label color-tertiary">문제 3 · Assignment Manage</span>
+            <p class="sol__title">과제와 셀프 피드백 현황을 과목 × 주차 표 하나로</p>
+            <ul class="typo-body color-secondary">
+              <li class="dash">제출 확인 메일로 제출 여부를 자동으로 확인한다(로그인 시)</li>
+              <li class="dash">지각 제출 · 미제출을 칸마다 표시한다</li>
+              <li class="dash">과제 내용과 피그마·제출 링크를 한곳에 둔다</li>
+            </ul>
+          </article>
+        </div>
+        <p class="subsol__note typo-body color-secondary" data-r>두 화면 모두 실제로 쓰고 있는 Phi Brain 계정의 기록입니다. Assignment Manage는 배포 사이트의 읽기 전용 표(2주차)입니다.</p>
+        <p class="section-insight" data-r>세 문제의 해법은 하나의 원칙을 따른다 — 흩어진 것을 한곳에 모아, 다시 보이게 한다.</p>
+      </section>
+
+      <!-- ---------- 14 Verify · limits ---------- -->
+      <section class="section" id="verify">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>14</span>
+            <h2 class="typo-heading" data-r>검증 계획 · 한계</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>아직 사용자 테스트는 하지 않았습니다.<br />09의 성공 기준을 Discover와 같은 방법으로 다시 재서 확인합니다.</p>
+        </div>
+
+        <div class="next next--3">
+          <div class="next__col" data-r>
+            <span class="typo-label color-tertiary">검증 계획</span>
+            <p class="typo-title">같은 동료에게, 같은 질문으로</p>
+            <p class="typo-body color-secondary">동료 학습자가 Phi Brain을 일정 기간 쓴 뒤 정성 조사 질문 02·03을 다시 묻고, Findings를 디자인에 적용한 사례를 새로 묻는다.</p>
+          </div>
+          <div class="next__col" data-r>
+            <span class="typo-label color-tertiary">비교 기준</span>
+            <p class="typo-title">기준값보다 나아졌는가</p>
+            <ul class="typo-body color-secondary">
+              <li class="dash">다시 보는 빈도 — 기준 주 1회 남짓</li>
+              <li class="dash">원하는 내용을 찾는가 — 기준 찾기 어려웠다</li>
+              <li class="dash">셀프 피드백 제출률 — 기준 56.0%</li>
+            </ul>
+          </div>
+          <div class="next__col" data-r>
+            <span class="typo-label color-tertiary">한계</span>
+            <p class="typo-title">아직 되지 않는 것</p>
+            <ul class="typo-body color-secondary">
+              <li class="dash">다시 보러 오라고 알려 주는 기능은 없다(Why 4·5)</li>
+              <li class="dash">로그인하지 않으면 이 브라우저에만 저장된다</li>
+            </ul>
+          </div>
+        </div>
+        <p class="section-insight" data-r>해법이 문제 1을 풀었는지는, 학습자가 쓴 것을 다시 보러 오는지로 판단한다.</p>
+      </section>
+
+      <!-- ---------- 15 Version log ---------- -->
+      <section class="section" id="iterate">
+        <div class="section-header">
+          <div>
+            <span class="section-header__num typo-label color-tertiary" data-r>15</span>
+            <h2 class="typo-heading" data-r>버전 로그</h2>
+          </div>
+          <p class="typo-lead color-secondary" data-r>Phi Brain을 만들며 실제로 고친 기록입니다(작업 기록 · git).<br />Findings 화면은 모두 '다시 찾고 다시 읽기 쉽게' 하는 쪽으로 바뀌었습니다.</p>
+        </div>
+
+        <div class="dtable-wrap" data-r data-lenis-prevent-horizontal>
+          <table class="dtable dtable--iter">
+            <thead>
+              <tr><th scope="col">날짜</th><th scope="col">시도</th><th scope="col">발견</th><th scope="col">수정</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">9/11</th><td>AI 정리 백엔드까지 한 번에 구현했다</td><td>화면을 합의하기 전에 만들어, 무엇을 보여줄지 정해지지 않았다</td><td><b>전부 되돌리고 화면부터 다시 설계</b></td></tr>
+              <tr><th scope="row">9/14</th><td>Findings에 모든 과목 박스를 그렸다</td><td>빈 과목 박스와 날짜만 있는 항목이 찾기를 방해했다</td><td><b>과목 태그를 단 Finding만, 빈 과목은 숨김</b></td></tr>
+              <tr><th scope="row">9/16</th><td>한 과목 박스 안에 Finding을 선으로 나눴다</td><td>저널 두 개에서 나온 Finding이 하나로 읽혔다</td><td><b>Finding 하나가 박스 하나</b></td></tr>
+              <tr><th scope="row">9/16</th><td>별표를 과목 단위로 달았다</td><td>같은 과목 안에서도 중요한 Finding이 다르다</td><td><b>별표를 박스 단위로, 별표한 박스가 앞으로</b></td></tr>
+              <tr><th scope="row">9/17</th><td>별표는 순서만 바꿨다</td><td>별표한 것만 모아 보기 어려웠다</td><td><b>즐겨찾기 필터</b></td></tr>
+              <tr><th scope="row">9/22</th><td>Finding을 줄글로 보여줬다</td><td>줄글이라 중요한 지점을 찾을 수 없었다</td><td><b>하이라이터 3색 · Ctrl+H</b></td></tr>
+              <tr><th scope="row">9/22</th><td>한 과목의 Finding을 한 박스로 묶었다</td><td>번호로 나눠 쓴 깨달음이 한 덩어리가 됐다</td><td><b>번호마다 박스를 나눔</b></td></tr>
+              <tr><th scope="row">9/22</th><td>표시하려면 수정하기를 눌러야 했다</td><td>다시 읽다가 바로 표시할 수 없었다</td><td><b>드래그만으로 하이라이트·굵게</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="section-insight" data-r>고친 방향은 하나였다 — 쓴 것을 다시 찾고, 다시 읽기 쉽게.</p>
       </section>
 
       <footer class="footer">
@@ -407,7 +753,23 @@
     </section>
   </div>
 
+  <!-- Solution screenshot zoom (13·14) -->
+  <div class="zoom" hidden>
+    <div class="zoom__backdrop" data-zoom-close></div>
+    <figure class="zoom__frame" role="dialog" aria-modal="true" aria-labelledby="zoom-cap">
+      <div class="zoom__bar">
+        <figcaption class="zoom__cap typo-body" id="zoom-cap"></figcaption>
+        <div class="panel__actions">
+          <button type="button" class="panel__icon" data-zoom-step="-1" aria-label="이전 화면">←</button>
+          <button type="button" class="panel__icon" data-zoom-step="1" aria-label="다음 화면">→</button>
+          <button type="button" class="panel__icon" data-zoom-close aria-label="닫기">✕</button>
+        </div>
+      </div>
+      <div class="zoom__scroll" data-lenis-prevent><img class="zoom__img" alt="" /></div>
+    </figure>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
-  <script src="ips.js?v=20260926-3"></script>
+  <script src="ips.js?v=20260926-12"></script>
 </body>
 </html>

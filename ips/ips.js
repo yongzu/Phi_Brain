@@ -325,28 +325,28 @@ document.addEventListener('keydown', (e) => {
 // ---------- Double diamond: hover / focus a phase to see what happens inside ----------
 const PHASES = [
   {
-    label: '01 · 발산 · 지금 단계',
+    label: '01 · 발산 · 01~06',
     name: 'Discover',
     lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
     items: ['핵심 문제: 학습 성찰 1 · 행동 수행 2 · 현황 파악 3', '서비스 블루프린트: 세 문제가 생기는 자리', '정량 조사: 논문 5편', '정성 조사: 동료 학습자 6명 인터뷰', '제출 데이터: 과제 93.9% · 셀프 피드백 56.0%'],
   },
   {
-    label: '02 · 수렴 · 다음 단계',
+    label: '02 · 수렴 · 07~09',
     name: 'Define',
-    lead: 'Discover에서 모은 현상을 하나의 진짜 문제로 좁힌다.',
-    items: ['문제 1 "왜 다시 보지 않는가"를 5 Whys로 좁히기', '인사이트 문장과 HMW 질문 확정', '문제 2·3이 문제 1과 이어지는 방식 정리'],
+    lead: 'Discover에서 모은 현상을 하나의 근본 원인으로 좁힌다.',
+    items: ['5 Whys: 쓴 것을 다시 꺼내 보는 단계가 없다', '인사이트(POV)와 핵심 HMW', '성공 기준: Discover 기준값과 확인 방법'],
   },
   {
-    label: '03 · 발산',
+    label: '03 · 발산 · 10~11',
     name: 'Develop',
-    lead: '해법을 여러 번 시도하고 고친다.',
-    items: ['저널 시스템과 제출 시스템을 따로 설계', '개입 시점 정하기: 저널을 저장하는 순간, 마감 전', 'Phi Brain 프로토타입 반복'],
+    lead: '해법을 넓게 벌리고, 근본 원인을 기준으로 좁힌다.',
+    items: ['해법 후보: 네 갈래 8개', '평가·선택: 쓰는 곳 = 다시 보는 곳(Phi Brain)'],
   },
   {
-    label: '04 · 수렴',
+    label: '04 · 수렴 · 12~15',
     name: 'Deliver',
-    lead: '하나의 제품으로 완성하고 검증한다.',
-    items: ['Phi Brain 배포', '제출 데이터로 누락이 줄었는지 확인', '동료 사용 테스트'],
+    lead: '하나의 제품으로 완성하고, 같은 기준으로 검증한다.',
+    items: ['최종 해법: 쓴다 → 모인다 → 다시 본다', '부차 해법: Future Item · Assignment Manage', '검증 계획과 한계', '버전 로그: 만들며 고친 기록 여덟 건'],
   },
 ];
 const dd = document.querySelector('.dd');
@@ -359,7 +359,6 @@ if (dd) {
     shown = i;
     phases.forEach((g, k) => {
       g.classList.toggle('is-active', k === i);
-      g.classList.toggle('is-later', k > 0 && k !== i);
     });
     const p = PHASES[i];
     detail.innerHTML = `
@@ -376,6 +375,37 @@ if (dd) {
   });
   dd.querySelector('.dd__svg').addEventListener('mouseleave', () => show(0));
   show(0);
+}
+
+// ---------- Process popover: the hero title shows the double diamond ----------
+// Hovering the title opens it while the pointer stays on the title or the popover;
+// clicking pins it open until ✕, Esc or a click elsewhere.
+const heroTrigger = document.querySelector('.hero__trigger');
+const processPop = document.getElementById('process');
+if (heroTrigger && processPop) {
+  const wrap = heroTrigger.closest('.hero__title-wrap');
+  let pinned = false;
+  let timer = 0;
+  const setOpen = (open) => {
+    processPop.hidden = !open;
+    heroTrigger.setAttribute('aria-expanded', String(open));
+    if (!open) pinned = false;
+  };
+  const later = (fn, ms) => { clearTimeout(timer); timer = setTimeout(fn, ms); };
+  if (matchMedia('(hover: hover)').matches) {
+    heroTrigger.addEventListener('mouseenter', () => later(() => setOpen(true), 120));
+    wrap.addEventListener('mouseenter', () => clearTimeout(timer));
+    wrap.addEventListener('mouseleave', () => { if (!pinned) later(() => setOpen(false), 250); });
+  }
+  heroTrigger.addEventListener('click', () => {
+    clearTimeout(timer);
+    if (pinned) { setOpen(false); return; }
+    setOpen(true);
+    pinned = true;
+  });
+  processPop.querySelector('[data-process-close]').addEventListener('click', () => { setOpen(false); heroTrigger.focus({ preventScroll: true }); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !processPop.hidden) { setOpen(false); heroTrigger.focus({ preventScroll: true }); } });
+  document.addEventListener('click', (e) => { if (!processPop.hidden && !wrap.contains(e.target)) setOpen(false); });
 }
 
 // ---------- Blueprint: a cell with problem badges shows those problems on hover, focus or click ----------
@@ -503,10 +533,13 @@ document.querySelectorAll('.dropdown').forEach((dd) => {
 
 // ---------- TOC active marker ----------
 const tocLinks = [...document.querySelectorAll('.toc a')];
-const tocIds = tocLinks.map((a) => a.getAttribute('href').slice(1));
+// a link can stand for several sections (data-toc-also): 사용자 리서치 = 정량 · 정성 · 제출 데이터
+const tocOwner = {};
+tocLinks.forEach((a) => (a.dataset.tocAlso || '').split(' ').filter(Boolean).forEach((id) => { tocOwner[id] = a.getAttribute('href').slice(1); }));
+const tocIds = [...tocLinks.map((a) => a.getAttribute('href').slice(1)), ...Object.keys(tocOwner)];
 function updateToc() {
   const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-  let active = atBottom ? tocIds[tocIds.length - 1] : null;
+  let active = atBottom ? tocLinks[tocLinks.length - 1].getAttribute('href').slice(1) : null;
   if (!atBottom) {
     let best = -Infinity;
     for (const id of tocIds) {
@@ -516,6 +549,7 @@ function updateToc() {
       if (top <= 160 && top >= best) { best = top; active = id; }
     }
   }
+  active = tocOwner[active] || active;
   tocLinks.forEach((a) => {
     const on = a.getAttribute('href') === `#${active}`;
     a.classList.toggle('is-active', on);
@@ -530,6 +564,12 @@ tocLinks.forEach((link) => {
     const el = document.getElementById(id);
     if (!el) return;
     e.preventDefault();
+    // 단계 이름(Discover·Define·Develop·Deliver)은 그 단계의 시작을 화면 위쪽에 둔다 — 그래야 그 단계 목차가 펼쳐진다
+    if (link.classList.contains('toc__phase-link')) {
+      scrollToY(id === 'discover' ? 0 : Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - 96)));
+      history.replaceState(null, '', '#' + id);
+      return;
+    }
     const header = document.querySelector('.site-header');
     const headerH = header ? header.getBoundingClientRect().height : 0;
     const padTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
@@ -543,9 +583,81 @@ tocLinks.forEach((link) => {
   });
 });
 
-window.addEventListener('scroll', updateToc, { passive: true });
-window.addEventListener('resize', updateToc);
-updateToc();
+// ---------- Solution screenshots (13·14): click to see the full screen, ←/→ between them, Esc to close ----------
+// The links still point at the image file, so without JS they open it in a new tab.
+const zoom = document.querySelector('.zoom');
+const zoomShots = [...document.querySelectorAll('.sol__shot, .subsol__shot')];
+if (zoom && zoomShots.length) {
+  const zoomImg = zoom.querySelector('.zoom__img');
+  const zoomCap = zoom.querySelector('.zoom__cap');
+  const zoomScroll = zoom.querySelector('.zoom__scroll');
+  let zoomAt = -1;
+  let zoomTrigger = null;
+  const showZoom = (i) => {
+    zoomAt = (i + zoomShots.length) % zoomShots.length;
+    const a = zoomShots[zoomAt];
+    const card = a.closest('.sol__step, .subsol__card');
+    zoomImg.src = a.getAttribute('href');
+    zoomImg.alt = a.querySelector('img')?.alt || '';
+    zoomCap.textContent = card?.querySelector('.typo-label')?.textContent || '';
+    zoomScroll.scrollTop = 0;
+  };
+  const openZoom = (i, trigger) => {
+    zoomTrigger = trigger;
+    showZoom(i);
+    zoom.hidden = false;
+    lenis?.stop();
+    zoom.querySelector('[data-zoom-close].panel__icon').focus({ preventScroll: true });
+  };
+  const closeZoom = () => {
+    if (zoom.hidden) return;
+    zoom.hidden = true;
+    lenis?.start();
+    zoomTrigger?.focus({ preventScroll: true });
+  };
+  zoomShots.forEach((a, i) => a.addEventListener('click', (e) => { e.preventDefault(); openZoom(i, a); }));
+  zoom.addEventListener('click', (e) => {
+    if (e.target.closest('[data-zoom-close]')) closeZoom();
+    const step = e.target.closest('[data-zoom-step]');
+    if (step) showZoom(zoomAt + Number(step.dataset.zoomStep));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (zoom.hidden) return;
+    if (e.key === 'Escape') closeZoom();
+    else if (e.key === 'ArrowRight') showZoom(zoomAt + 1);
+    else if (e.key === 'ArrowLeft') showZoom(zoomAt - 1);
+  });
+}
+
+// ---------- Header phase links: jump to each phase cover, mark the phase being read ----------
+const phaseLinks = [...document.querySelectorAll('[data-phase-link]')];
+const phaseCovers = ['define', 'develop', 'deliver'].map((id) => document.getElementById(id));
+phaseLinks.forEach((link) => {
+  const id = link.getAttribute('href').slice(1);
+  if (id === 'top') return; // #top is handled with the brand link above
+  link.addEventListener('click', (e) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    e.preventDefault();
+    scrollToY(Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - 96)));
+    history.replaceState(null, '', '#' + id);
+  });
+});
+function updatePhase() {
+  let current = 'discover';
+  phaseCovers.forEach((el) => { if (el && el.getBoundingClientRect().top <= window.innerHeight * 0.5) current = el.id; });
+  phaseLinks.forEach((a) => {
+    if (a.dataset.phaseLink === current) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  // left TOC: only the phase being read keeps its sections open
+  document.querySelectorAll('[data-toc-phase]').forEach((li) => li.classList.toggle('is-open', li.dataset.tocPhase === current));
+}
+
+function onScroll() { updateToc(); updatePhase(); }
+window.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('resize', onScroll);
+onScroll();
 
 // ---------- Scroll reveal (rise + fade in, staggered among siblings) ----------
 // ?static shows everything at once (for captures and printing).
