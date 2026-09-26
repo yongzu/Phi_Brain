@@ -1,6 +1,6 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-27 (IPS 모션 사용 장면 9~12 — 실제 앱 화면 · 실제 데이터) / Claude Code
+최종 갱신: 2026-09-27 (실제 저널 Git 허용 · IPS 영상 파일 저장소에) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
@@ -1709,3 +1709,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 확인: 로컬 앱(`tools/dev-server.js`, 5511)에 실제 데이터를 넣어 Findings 숫자(All 39 · 즐겨찾기 9 · BI 19 · IPS 6)가 사용자 스크린샷과 같은 것을 보고, 영상 쪽 렌더와 나란히 비교. 끝난 뒤 미리보기 브라우저의 넣었던 데이터는 지우고(하이라이트 색 설정만 원래 노랑으로) 서버를 멈춤.
 - 검증: `tsc` 통과, 장면별 절반 크기 렌더 후 프레임 확인 — 고친 것: 편집 확대 때 왼쪽 탐색이 걸림(배율 2 · x 고정), 재배치 중 박스가 겹쳐 글자가 비침(움직이는 요소를 위로 · 흰 바탕), 화면 전환 filter가 고정 위치 팝업의 기준이 되어 과제 내용 팝업이 밀림(전환이 끝나면 filter 제거). 전체 렌더 `out/ips-motion.mp4` **2:12**(7902프레임), 장면 경계(인트로 → 9, 9 → 10 → 11 → 12 → 13) 이어짐 확인. 커밋 안 함.
 - 후속(같은 날, 사용자 지시): 사용 장면 9~12에서 확대를 쓰지 않는다 — 늘 앱 창 전체(1440×810을 4/3배로 화면에 꽉 차게, `AppScreen.tsx`의 `WHOLE`)라 커서가 화면 밖으로 나가지 않는다. 보여야 할 곳은 페이지 스크롤로: 9번은 입력이 늘면 100까지(과목 버튼 188 · 툴바 271 · 정리하기 858이 머리줄 69 아래 한 화면에 — 실측), 10 · 11번은 탐색으로 넘어가기 전 맨 위로 되돌리던 스크롤을 없앰. 왼쪽 탐색은 Course Agent 묶음을 빼고(Findings · Future Item · Assignment Manage · Journaling · Archive만) 머리줄 아래에 고정(`position:sticky`) — 영상 속 화면만 바꿨고 앱은 그대로. 검증: `tsc`, 9~12 절반 크기 구간 렌더 프레임 12장, 전체 렌더 `out/ips-motion.mp4` 2:12 후 원본 크기 프레임 확인. 커밋 안 함.
+
+## 2026-09-27 · Claude Code · 실제 저널 Git 허용, IPS 영상 파일을 저장소에서 내려받게
+- 사용자 결정: 실제 저널은 Git에 넣어도 된다 → `AGENTS.md` 규칙 변경("API 키 · 토큰 · 비밀번호 같은 비밀값은 넣지 않는다. 실제 저널과 본인 데이터는 넣어도 된다"). 영상의 실제 데이터 `video/ips-motion/data/`(real.json — 저널 9편 · Findings 별표/숨김 · Future Item 보드 · 3주차 제출 대상 · 과제 공지 · Gmail 연결 주소 · 닉네임, app.json — 앱 CSS)도 저장소에 넣음(`.gitignore`에서 `data/` 뺌) — wrangler 로그인 없이 어느 PC에서나 렌더 가능. Gmail 토큰 열은 원래 가져오지 않는다(파일에 비밀값 없음 확인). 앞 항목의 "9번 입력 문장이 규칙과 부딪히면 data로 옮길 것"은 이 결정으로 해소.
+- 영상 파일: 사용자 선택 "저장소에 파일로만" — `video/ips-motion/ips-motion.mp4`(본편 2:12, 13.9MB)를 커밋. 받기: https://github.com/yongzu/Phi_Brain/raw/main/video/ips-motion/ips-motion.mp4 . 다시 렌더한 뒤 `npm run share`로 이 파일을 갱신한다. IPS 페이지(배포)는 그대로.
+- 변경: `AGENTS.md`, `video/ips-motion/.gitignore` · `README.md`(받기 링크 · 명령) · `package.json`(`share`) · `src/app/real.ts` · `tools/pull-real-data.mjs`(주석), 새 파일 `ips-motion.mp4` · `data/`. `ips/HANDOFF.md` · `tools/ips-capture`의 "내려받은 JSON은 저장소에 넣지 않는다"는 캡처 절차 설명이라 그대로 둠.

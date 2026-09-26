@@ -3,12 +3,15 @@
 IPS 페이지(`ips/`)의 핵심만 담은 약 2분 12초 모션 영상(로고 인트로 두 번 포함). 1920×1080 · 60fps · 무음(소리는 편집에서 추가 예정).
 배포 폴더(`design/` + `ips/`)에 들어가지 않는다.
 
+**영상 파일 받기:** 저장소의 [`video/ips-motion/ips-motion.mp4`](ips-motion.mp4) — GitHub에서 파일을 열고 다운로드 버튼, 또는 바로 받기 https://github.com/yongzu/Phi_Brain/raw/main/video/ips-motion/ips-motion.mp4
+
 ```bash
 cd video/ips-motion
 npm install          # 처음 한 번
-npm run pull         # 실제 Phi Brain 데이터 · 앱 CSS → data/ (git 제외, 9~12번에 필요)
+npm run pull         # 실제 데이터 · 앱 CSS를 새로 받을 때만 → data/ (저장소에 있음, wrangler 로그인 필요)
 npm run studio       # 브라우저 미리보기 + 타임라인
 npm run render       # out/ips-motion.mp4
+npm run share        # out/ips-motion.mp4 → ips-motion.mp4(저장소에 올려 내려받는 파일)
 ```
 
 - 장면 파일: `src/scenes/S01Question.tsx` … 한 장면 = 한 파일, 길이는 각 파일의 `*_DURATION`(초 단위 `sec()`).
@@ -52,7 +55,7 @@ npm run render       # out/ips-motion.mp4
 
 ## 사용 장면(9~12) — 실제 앱 화면 · 실제 데이터
 
-- **실제 데이터**: `npm run pull` → `tools/pull-real-data.mjs`가 D1 원격 DB `phi-brain`을 읽기 전용으로 조회해 `data/real.json`에 저장(저널 · Findings 별표/숨김 · Future Item 보드 · 3주차 제출 대상 · 과제 공지 · Gmail 연결 주소 · 닉네임, Gmail 토큰 열은 읽지 않음). wrangler가 사용자 Cloudflare 계정으로 로그인돼 있어야 한다. `data/`는 git 제외 — 실제 저널은 Git에 넣지 않는다(AGENTS.md). 이 파일이 없으면 본편을 렌더할 수 없다.
+- **실제 데이터**: `npm run pull` → `tools/pull-real-data.mjs`가 D1 원격 DB `phi-brain`을 읽기 전용으로 조회해 `data/real.json`에 저장(저널 · Findings 별표/숨김 · Future Item 보드 · 3주차 제출 대상 · 과제 공지 · Gmail 연결 주소 · 닉네임, Gmail 토큰 열은 읽지 않음). wrangler가 사용자 Cloudflare 계정으로 로그인돼 있어야 한다. `data/`는 저장소에 함께 둔다(실제 저널 허용 — 사용자 결정 2026-09-27) — 그래서 pull 없이도 바로 렌더할 수 있고, 데이터를 새로 받을 때만 `npm run pull`.
 - **앱의 실제 CSS**: `tools/sync-app.mjs`가 `design/style-kit/theme.css` + `design/prototypes/phi-brain.css`를 그림자 DOM용으로 옮겨 `data/app.json`에 저장(`:root` → `:host`, `html` · `body` → `.phi-app`, `100vw/vh` → 앱 창 크기, 이미지 → data URI, `:hover`는 `[data-hover]` 짝 추가, 전환 · 애니메이션은 끔). 앱 CSS가 바뀌면 `npm run pull`만 다시.
 - **그리는 방법**: `src/app/AppScreen.tsx` — 앱 마크업을 1440×810 "앱 창"에 그리고 화면(1920×1080)에 꽉 차게(4/3배) 담는다. 확대는 쓰지 않는다(`WHOLE` — 사용자 지시, 커서가 늘 화면 안). 보여야 할 곳은 페이지 스크롤로 맞춘다(카메라 기능은 AppScreen에 남아 있음). 커서는 앱의 실제 커서 그림(`design/prototypes/cursor-arrow · pointer · text.svg`)을 앱 크기 그대로, 버튼 위에서는 앱의 호버 모양. 순서가 바뀌는 것(Findings 별표, Future 박스 별표)은 같은 키끼리 전 자리 → 새 자리로 옮기고(FLIP), 완료한 항목은 접히며 사라진다.
 - **마크업**: 앱 템플릿을 옮겨 왔다 — `src/app/shell.ts`(머리줄 · 탐색 · 저널 작성칸 · 토스트, home.html), `findings.ts`(journal.js의 Finding 자르기 · 정렬 · 박스), `future.ts`(future.js의 주차 · 박스 · 항목), `assignment.ts`(assignment.js의 표 · 과제 내용 팝업, 공지 정리는 `design/prototypes/assignment-notice.js`를 그대로 import). 영상 속 "오늘"은 2026-09-27 15:00으로 고정.

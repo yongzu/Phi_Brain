@@ -1,5 +1,5 @@
-// 실제 Phi Brain 데이터와 앱 CSS — 둘 다 git 제외 data/ 폴더(npm run pull로 만든다).
-// 실제 저널은 Git에 넣지 않는다(AGENTS.md). 이 폴더가 없으면 사용 장면(9~12)을 렌더할 수 없다.
+// 실제 Phi Brain 데이터와 앱 CSS — data/ 폴더(npm run pull로 새로 받는다). 저장소에 함께 둔다(실제 저널 허용 — 사용자 결정 2026-09-27),
+// 그래서 wrangler 로그인 없이도 어느 PC에서나 본편을 렌더할 수 있다.
 import REAL from '../../data/real.json';
 import APP from '../../data/app.json';
 

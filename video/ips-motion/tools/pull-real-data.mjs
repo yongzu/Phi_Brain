@@ -1,5 +1,5 @@
 // 실제 Phi Brain 데이터(D1 원격 DB "phi-brain")를 읽기 전용으로 가져와 data/real.json에 저장한다.
-// data/는 git 제외 — 실제 저널은 Git에 넣지 않는다(AGENTS.md). 사용 장면 9~13이 이 파일을 읽는다.
+// data/는 저장소에 함께 둔다(실제 저널 허용 — 사용자 결정 2026-09-27). 사용 장면 9~12가 이 파일을 읽는다.
 // 실행: node tools/pull-real-data.mjs   (wrangler가 사용자 Cloudflare 계정으로 로그인되어 있어야 함)
 // Gmail 연결 정보는 연결 여부 · 주소만(토큰 열은 읽지 않음).
 import { execSync } from 'node:child_process';
