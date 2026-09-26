@@ -257,7 +257,7 @@ function renderPanel(i) {
         <dl class="panel__facts">
           <div><dt class="typo-label color-tertiary">출처</dt><dd class="typo-body">${esc(p.cite)}</dd></div>
           <div><dt class="typo-label color-tertiary">대상·방법</dt><dd class="typo-body">${esc(p.method)}</dd></div>
-          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'A' ? 'A · 다시 봐야 하는 이유' : 'B · 다시 보기 어려운 이유'}</dd></div>
+          <div><dt class="typo-label color-tertiary">Discover 역할</dt><dd class="typo-body">${p.group === 'A' ? '문제 1 · 왜 중요한가' : '문제 1 · 왜 생기는가'}</dd></div>
         </dl>
       </aside>
       <div class="panel__content">
@@ -328,13 +328,13 @@ const PHASES = [
     label: '01 · 발산 · 지금 단계',
     name: 'Discover',
     lead: '불편을 넓게 관찰하고, 나만의 문제가 아닌지 근거로 확인한다.',
-    items: ['문제상황: 저널 활용 A · 저널링 B · 과제 제출 C', '서비스 블루프린트: 기록이 쌓이고 흩어지는 자리', '정량 조사: 논문 5편', '정성 조사: 동료 학습자 6명 인터뷰', '제출 데이터: 과제 93.9% · 셀프 피드백 56.0%'],
+    items: ['핵심 문제: 학습 성찰 1 · 행동 수행 2 · 현황 파악 3', '서비스 블루프린트: 세 문제가 생기는 자리', '정량 조사: 논문 5편', '정성 조사: 동료 학습자 6명 인터뷰', '제출 데이터: 과제 93.9% · 셀프 피드백 56.0%'],
   },
   {
     label: '02 · 수렴 · 다음 단계',
     name: 'Define',
     lead: 'Discover에서 모은 현상을 하나의 진짜 문제로 좁힌다.',
-    items: ['인터뷰와 하루 기록 시나리오 정리', '반복되는 불편의 우선순위 정하기', '5 Whys로 근본 원인 좁히기', '인사이트 문장과 HMW 질문 확정'],
+    items: ['문제 1 "왜 다시 보지 않는가"를 5 Whys로 좁히기', '인사이트 문장과 HMW 질문 확정', '문제 2·3이 문제 1과 이어지는 방식 정리'],
   },
   {
     label: '03 · 발산',
@@ -421,40 +421,41 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tip.hid
 window.addEventListener('scroll', () => { if (!tip.hidden) hideTip(); }, { passive: true });
 
 // ---------- Qualitative research: 동료 학습자 인터뷰 6명 ----------
-// INTERVIEW_QA: { q: '질문', a: '정리한 답변(**굵게**)', quote: '인용(선택)' }
+// INTERVIEW_QA: { problem: 문제 번호, q: '질문', a: '정리한 답변(**굵게**)', quote: '인용(선택)' }
 const INTERVIEW_COUNT = 6;
 const INTERVIEW_QA = [
   {
+    "problem": 1,
     "q": "저널링을 매일 작성하시나요? 작성 시간은?",
     "a": "**매일 쓰려 하지만 미루거나 건너뛰게 되는 경우도 있다.** 작성 내용에 대한 고민, 공개된 공간에 기록하는 부담, 세션 직후의 시간 부족이 이유였다. 작성 시간은 응답자에 따라 10~30분이었다.",
     "quote": "안 한 지 일주일이 넘었다"
   },
   {
-    "q": "지난 저널을 얼마나 자주 보시나요?",
-    "a": "일반적으로 주 1회 정도 다시 보는 것으로 파악됐으나, 일주일 이상 보지 않거나 과제 전 한 번 확인한 뒤 다시 보지 않는 사례도 있었다. **매일 다시 보는 응답자는 없었다.**",
-    "quote": ""
-  },
-  {
-    "q": "다시 볼 때 무엇을 찾으려고 하나요?",
-    "a": "저널을 심심풀이로 훑거나 아카이빙 기록으로만 남기는 경우가 있었고, 일부는 주간 회고·인사이트 복기·내용 추가를 위해 다시 봤다. 다만 **디스코드의 날짜별 수직 구조와 하이라이트 부재 때문에 특정 내용을 찾아보는 용도로는 활용하기 어려웠다.**",
+    "problem": 1,
+    "q": "지난 저널을 얼마나 자주, 무엇을 찾으려고 보나요?",
+    "a": "주 1회 정도 다시 보는 경우가 일반적이었고, 일주일 이상 보지 않거나 과제 전 한 번 확인한 뒤 다시 보지 않는 사례도 있었다. **매일 다시 보는 응답자는 없었다.** 볼 때도 심심풀이로 훑거나 아카이빙 기록으로만 남기는 경우가 있었고, 일부만 주간 회고·인사이트 복기·내용 추가를 위해 봤다. **날짜별 수직 구조와 하이라이트 부재 때문에 특정 내용을 찾아보는 용도로는 활용하기 어려웠다.**",
     "quote": "부분적으로 읽기 어렵다"
   },
   {
+    "problem": 1,
     "q": "Findings는 어디에 정리하나요?",
     "a": "**Findings와 수업 기록은 노션·옵시디언·피그마·맥북 메모 등에 정리했다.** 학습적으로 다시 볼 내용은 옵시디언 페이지에 하이라이트해 두는 등, 각자의 방식이 이미 자리 잡고 있었다.",
     "quote": ""
   },
   {
+    "problem": 2,
     "q": "Future Item은 어떻게 관리하나요?",
     "a": "**Future Item은 다이어리·메모 앱·문서·일정 관리 도구에서 별도로 관리했다.** 저널에는 진행도만 적거나, 아예 기록하지 않는 사례도 있었다.",
     "quote": ""
   },
   {
+    "problem": 2,
     "q": "과제나 셀프 피드백을 놓친 적이 있나요?",
     "a": "**과제를 놓친 경험은 드물었지만, 셀프 피드백을 놓친 사례는 반복해서 나타났다.** 세션 직후 바로 작성하지 못하고 다음 날로 밀렸을 때, 접근 링크를 다시 찾는 과정이 불편해 잊는 경우가 있었다.",
     "quote": "0주차 이후 한 번도 못 했다"
   },
   {
+    "problem": 3,
     "q": "제출한 걸 어떻게 확인하시나요?",
     "a": "해야 할 과제는 LMS·캘린더·문서 등에서 확인했다. 제출 직후에는 기억에 의존하고 완료 여부를 따로 확인하지 않는 사례가 반복해서 나타났다. **과목과 제출물이 쌓이면 제출 여부가 헷갈려 제출 스프레드시트를 다시 확인했다.**",
     "quote": ""
@@ -466,7 +467,7 @@ document.querySelector('[data-interview-status]').textContent = `${INTERVIEW_COU
 const strong = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 document.querySelector('[data-interview-qa]').innerHTML = INTERVIEW_QA
   .map((item, i) => `<article class="qa" data-r>
-      <span class="typo-label color-tertiary">질문 ${pad(i + 1)}</span>
+      <span class="typo-label color-tertiary">질문 ${pad(i + 1)} · 문제 ${item.problem}</span>
       <h3 class="qa__q typo-title">${esc(item.q)}</h3>
       <p class="qa__body typo-body color-secondary">${strong(item.a)}</p>
       ${item.quote ? `<p class="qa__quote typo-body color-tertiary">&ldquo;${esc(item.quote)}&rdquo;</p>` : ''}
