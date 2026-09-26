@@ -51,7 +51,7 @@ const D_SCALE = 1.12; // 가운데로 오면서 살짝 커짐
 const Item: React.FC<{ g: Group; k: number; dark: boolean; rule?: number }> = ({ g, k, dark, rule = 1 }) => (
   <div style={{ position: 'relative', width: ITEM_W, height: ITEM_H, display: 'grid', gridTemplateColumns: '44px 1fr', gap: 12, padding: '18px 0 16px' }}>
     <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 2, background: dark ? C.onInk3 : C.rule, opacity: rule }} />
-    <span style={{ height: 30, borderRadius: 10, background: dark ? C.onInk3 : C.soft, color: dark ? C.white : C.ink, fontSize: 17, fontWeight: 700, lineHeight: '30px', textAlign: 'center' }}>{g.key}{k + 1}</span>
+    <span style={{ height: 30, color: dark ? C.white : C.ink, fontSize: 17, fontWeight: 700, lineHeight: '30px' }}>{g.key}{k + 1}</span>
     <p style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.45, letterSpacing: '-0.02em', color: dark ? C.white : C.ink }}>{g.items[k]}</p>
   </div>
 );
@@ -113,7 +113,7 @@ export const S07Ideas: React.FC = () => {
         <div style={leaving}>
           {/* 핵심 HMW */}
           <Reveal at={sec(0.2)} style={{ position: 'absolute', left: LEFT, top: HMW_Y, width: ROW_W }}>
-            <div style={{ height: HMW_H, padding: '48px 56px', borderRadius: 36, background: C.soft }}>
+            <div style={{ height: HMW_H, padding: '48px 0' }}>{/* 회색 박스 바탕은 없앴다(사용자 지시) */}
               <Reveal at={sec(0.4)}><div style={{ marginBottom: 20 }}><Tag size={30}>핵심 HMW · 문제 1</Tag></div></Reveal>
               <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.035em', color: C.ink }}>
                 <Reveal at={sec(0.6)} dur={sec(0.9)} y={28}>어떻게 하면 Phi 학습자가 저널에 쓴 Findings를 다시 꺼내 보고,</Reveal>

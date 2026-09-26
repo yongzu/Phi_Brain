@@ -41,7 +41,7 @@ export const S04Whys: React.FC = () => (
         <p style={{ marginBottom: 28, fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em', color: C.ink }}>저널을 다시 보지 않아 학습 성찰이 일어나지 않는다</p>
       </Reveal>
       <Reveal at={sec(0.4)}>
-        <div style={{ display: 'grid', gridTemplateColumns: '150px 560px 1fr', columnGap: 32, padding: '22px 32px', borderRadius: 18, background: C.soft, fontSize: 24, fontWeight: 700, color: C.secondary }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '150px 560px 1fr', columnGap: 32, padding: '22px 32px', borderBottom: `2px solid ${C.rule}`, fontSize: 24, fontWeight: 700, color: C.secondary }}>
           <span>단계</span><span>질문</span><span>답</span>
         </div>
       </Reveal>

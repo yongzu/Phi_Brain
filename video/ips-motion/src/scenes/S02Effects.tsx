@@ -1,6 +1,7 @@
 // 2 · 저널링의 효과 (0:13–0:19) — 화살표 없이 한 문장으로 잇는다(IPS 히어로 문구와 같은 흐름):
 //   [Findings]를 나의 디자인에 적용하고, / [Future Item]을 구체적인 행동으로 수행합니다.
-//   키워드 박스가 먼저 서고, 뒤 문장이 박스 오른쪽 끝에서 빠져나오듯 밀려 나온다.
+//   키워드(설명 포함)가 먼저 서고, 뒤 문장이 키워드 오른쪽 끝에서 빠져나오듯 밀려 나온다. 회색 박스는 없앴다(사용자 지시) —
+//   키워드 칸을 오른쪽 정렬해 "Findings를 …"처럼 이어 읽히게.
 import React from 'react';
 import { AbsoluteFill } from 'remotion';
 import { Reveal, Scene, useProgress } from '../motion';
@@ -31,12 +32,12 @@ export const S02Effects: React.FC = () => (
           Phi의 학습 성찰 기록, 저널링의 효과는 두 가지입니다.
         </p>
       </Reveal>
-      {/* 두 줄이 같은 칸을 쓰게 한 격자 — 박스 폭이 같아 뒤 문장이 같은 자리에서 시작한다 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', alignItems: 'center', columnGap: 20, rowGap: 40 }}>
+      {/* 두 줄이 같은 칸을 쓰게 한 격자 — 뒤 문장이 같은 자리에서 시작하고, 키워드와 첫 줄 글자선이 맞는다 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', alignItems: 'baseline', columnGap: 10, rowGap: 48 }}>
         {ROWS.map((r) => (
           <React.Fragment key={r.name}>
             <Reveal at={r.at}>
-              <div style={{ padding: '30px 36px', borderRadius: 24, background: C.soft }}>
+              <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', color: C.ink }}>{r.name}</p>
                 <p style={{ marginTop: 6, fontSize: 26, color: C.secondary }}>{r.note}</p>
               </div>

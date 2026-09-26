@@ -16,7 +16,7 @@ export const S03Problem: React.FC = () => (
   <Scene duration={S03_DURATION}>
     <AbsoluteFill style={{ justifyContent: 'center', padding: '0 140px' }}>
       <Reveal at={0} y={40}>
-        <div style={{ padding: '64px 64px 52px', borderRadius: 40, background: C.soft }}>
+        <div style={{ padding: '64px 64px 52px' }}>{/* 회색 카드 바탕은 없앴다(사용자 지시) — 흰 바탕에 구분선만 */}
           {/* head */}
           <div style={{ textAlign: 'center', paddingBottom: 48 }}>
             <Reveal at={sec(0.5)}>
