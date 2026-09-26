@@ -132,7 +132,7 @@ body{word-break:keep-all;overflow-wrap:break-word}
 .tab1{font-weight:700;color:var(--ink);letter-spacing:-.16px}
 /* 맨 위 Future Item과 맨 아래 Assignment Manage만 한 단계 크게 — 예전 Journaling 탭이 쓰던 크기
    (사용자 지시 2026-09-18: 가장 중요한 두 기능). General/Course 그룹 머리글은 기본 크기 그대로 */
-.nav-tab[data-view="future"],.nav-tab[data-view="assignment"]{font-size:12pt}
+.nav-tab[data-view="findings"],.nav-tab[data-view="future"],.nav-tab[data-view="assignment"]{font-size:12pt}
 .tab2{color:var(--gray);margin-left:var(--tab2-indent)}
 /* 묶음(Course Agent) 안이 아니라 사이드바에 바로 놓인 tab2는 들여쓰지 않는다 —
    위에 머리글이 없으니 대표 탭과 같은 왼쪽 선에 맞춘다(사용자 지시 2026-09-18: Management 삭제) */

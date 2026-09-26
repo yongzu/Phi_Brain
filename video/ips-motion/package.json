@@ -1,0 +1,22 @@
+{
+  "name": "phi-brain-ips-motion",
+  "private": true,
+  "description": "IPS 모션 요약 영상 (Remotion). Studio: npm run studio / 렌더: npm run render",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render IpsMotion out/ips-motion.mp4",
+    "still": "remotion still IpsMotion out/still.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.529",
+    "@remotion/fonts": "4.0.529",
+    "pretendard": "1.3.9",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

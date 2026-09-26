@@ -1314,9 +1314,9 @@
   // ---- view switch (only the built views; other nav tabs stay inert) ----
   const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive'), findings: $('#view-findings') };
   const navTabs = $$('.side-nav [data-view]');
-  let currentView = 'future'; // 첫 화면(사용자 지시 2026-09-18)
+  let currentView = 'findings'; // 첫 화면(사용자 지시 2026-09-26: Future Item → Findings)
   function show(name, { filter: f } = {}) {
-    if (!views[name]) name = 'future';
+    if (!views[name]) name = 'findings';
     currentView = name;
     closeMenu(false);
     closeRowDuePopover();
@@ -1359,7 +1359,7 @@
     const h = location.hash;
     const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment'
       : h.startsWith('#journal-archive') ? 'journal-archive' : h.startsWith('#findings') ? 'findings'
-      : h.startsWith('#journal') ? 'journal' : 'future'; // 해시가 없으면 Future Item
+      : h.startsWith('#journal') ? 'journal' : 'findings'; // 해시가 없으면 Findings
     show(name, { filter: filterFromHash(h) });
   };
   addEventListener('hashchange', route);

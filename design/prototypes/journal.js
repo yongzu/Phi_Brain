@@ -1714,7 +1714,7 @@
   // 화면 순서로 정렬 + 내용 없는 과목(딥링크로 들어온 빈 과목 포함)은 뺀다
   function applyFindingsFilters(fs, box) {
     findingsFavOnly = fs.includes(FAV_FILTER) && starredCards(box).length > 0; // 별표가 없으면 All로 돌아간다
-    findingsFilters = findingsFavOnly ? [] : findingsKeys(box).filter(k => fs.includes(k));
+    findingsFilters = findingsFavOnly ? [] : findingsKeys(box).filter(k => fs.includes(k)).slice(0, 1); // 한 번에 한 과목만(사용자 지시 2026-09-26)
     renderFindingsFilters(box);
     renderFindingsList(box);
     if (window.PhiBrain.getCurrentView() === 'findings') history.replaceState(null, '', findingsHashFor());
@@ -1722,17 +1722,16 @@
   function renderFindings() {
     applyFindingsFilters(findingsFilterFromHash(location.hash), findingsByBox());
   }
-  // pill 클릭: All은 선택 해제, 과목은 켜고 끄기(마지막 하나를 끄면 All). 박스는 .findings-list
-  // 2열 그리드 그대로라 몇 개를 골라도 한 줄 최대 2개
+  // pill 클릭: 한 번에 하나만 켜진다(사용자 지시 2026-09-26 — 예전엔 과목 여러 개를 함께 골랐다).
+  // All은 선택 해제, 과목·즐겨찾기는 누르면 그것만, 켜진 것을 다시 누르면 All로
   findingsFiltersEl.addEventListener('click', e => {
     const b = e.target.closest('[data-findings-filter]');
     if (!b) return;
     const k = b.dataset.findingsFilter;
     const next = k === 'all' ? []
-      : k === FAV_FILTER ? (findingsFavOnly ? [] : [FAV_FILTER])            // 다시 누르면 All로
-      : findingsFavOnly ? [k]                                              // 즐겨찾기 보기에서 과목을 고르면 그 과목만
-      : findingsFilters.includes(k) ? findingsFilters.filter(x => x !== k)
-      : [...findingsFilters, k];
+      : k === FAV_FILTER ? (findingsFavOnly ? [] : [FAV_FILTER])
+      : findingsFilters.includes(k) ? []
+      : [k];
     applyFindingsFilters(next, findingsByBox());
     findingsFiltersEl.querySelector(`[data-findings-filter="${k}"]`)?.focus();
   });

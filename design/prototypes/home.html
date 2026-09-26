@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20260922-11">
+<link rel="stylesheet" href="phi-brain.css?v=20260926-1">
 </head>
 <body>
 
@@ -54,15 +54,15 @@
 
 <div class="app-body">
 <nav class="side-nav" aria-label="주요 탐색">
-  <!-- 사용자 지시 2026-09-18: 가장 중요한 두 기능(Future Item·Assignment Manage)을 맨 위·맨 아래 대표 탭으로 -->
+  <!-- 사용자 지시 2026-09-18: 가장 중요한 기능을 대표 탭으로. 2026-09-26: Findings를 맨 위(첫 화면), Future Item과 같은 층위로 -->
   <div class="nav-group">
-    <button type="button" class="nav-tab tab1 active" aria-current="page" data-view="future">Future Item</button>
+    <button type="button" class="nav-tab tab1 active" aria-current="page" data-view="findings">Findings</button>
+    <button type="button" class="nav-tab tab1" data-view="future">Future Item</button>
     <button type="button" class="nav-tab tab1" data-view="assignment">Assignment Manage</button>
   </div>
   <!-- Management 묶음 삭제(사용자 지시 2026-09-18) — 세 탭이 대표 탭과 같은 왼쪽 선에 바로 선다 -->
   <div class="nav-group">
     <button type="button" class="nav-tab tab2" data-view="journal">Journaling</button>
-    <button type="button" class="nav-tab tab2" data-view="findings">Findings</button>
     <button type="button" class="nav-tab tab2" data-view="journal-archive">Archive</button>
   </div>
   <details class="nav-group nav-accordion" open>
@@ -470,11 +470,11 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20260922-1"></script>
+<script src="future.js?v=20260926-1"></script>
 <script src="auth.js?v=20260917-2"></script>
 <script src="future-sync.js?v=3"></script>
 <script src="journal-store.js?v=5"></script>
-<script src="journal.js?v=20260922-12"></script>
+<script src="journal.js?v=20260926-1"></script>
 <script src="assignment-notice.js?v=20260919-1"></script>
 <script src="assignment.js?v=20260919-6"></script>
 </body>
