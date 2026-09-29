@@ -1,6 +1,6 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-27 (실제 저널 Git 허용 · IPS 영상 파일 저장소에) / Claude Code
+최종 갱신: 2026-09-29 (Findings 박스 여백) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
@@ -1715,3 +1715,8 @@ EWA 회고 페이지 구현 및 배포 완료: https://yongzu.github.io/Phi_Brai
 - 영상 파일: 사용자 선택 "저장소에 파일로만" — `video/ips-motion/ips-motion.mp4`(본편 2:12, 13.9MB)를 커밋. 받기: https://github.com/yongzu/Phi_Brain/raw/main/video/ips-motion/ips-motion.mp4 . 다시 렌더한 뒤 `npm run share`로 이 파일을 갱신한다. IPS 페이지(배포)는 그대로.
 - 변경: `AGENTS.md`, `video/ips-motion/.gitignore` · `README.md`(받기 링크 · 명령) · `package.json`(`share`) · `src/app/real.ts` · `tools/pull-real-data.mjs`(주석), 새 파일 `ips-motion.mp4` · `data/`. `ips/HANDOFF.md` · `tools/ips-capture`의 "내려받은 JSON은 저장소에 넣지 않는다"는 캡처 절차 설명이라 그대로 둠.
 - 후속(같은 날, 사용자 지시): 영상의 회색 박스(연한 회색 바탕 `C.soft` · 잉크 위 `onInk3` 채움)를 모두 없앰 — 2번 Findings · Future Item 키워드 박스(키워드 칸을 오른쪽 정렬해 "Findings를 …"로 이어 읽히게, 글자선 맞춤), 3번 "가장 중요한 문제" 카드 바탕(흰 바탕 + 구분선), 4번 5 Whys 표 머리 줄(바탕 대신 아래 구분선), 7번 핵심 HMW 박스와 A1~D2 번호 박스(글자만). A~C 카드 · 라벨의 흰 바탕 + 회색 테두리와 사용 장면 9~12의 앱 화면(실제 앱 CSS)은 그대로. 전체 렌더 후 `npm run share`로 `video/ips-motion/ips-motion.mp4` 갱신(2:12). 커밋 안 함.
+
+## 2026-09-29 · Claude Code · Findings 박스 여백·폭
+- 사용자: Findings 박스가 여백이 부족해 답답하다. width와 여백을 알아서 조절해 가독성을 높인다.
+- `phi-brain.css`: Finding 박스만(`.findings-list .fi-box`) 안쪽 여백 10/14/8 → 18/24/20px(560px 이하 14/16/16), 머리줄 → 본문 8 → 12px, 본문 블록(문단·목록) 사이 0 → 8px(`.editor.findings-body>*+*`), 박스 사이 16 → 20px. 본문 섹션 700 → 760px — 여백을 넓힌 만큼 늘려 본문 한 줄 폭은 606 → 646px로 비슷하게. Future Item 박스는 그대로. 캐시 css 20260929-1.
+- 검증(로컬, 가짜 테스트 저널 IPS 3·BI 1): 1440px 셸 760·박스 696·본문 646px·박스 사이 20px·목록 위 8px, 가로 넘침 없음. 375px 박스 311px·여백 14/16/16·머리줄 넘침 없음. 테스트 데이터 삭제. 사용자가 localhost:5500에서 로그인해 여백 확인 → 커밋·푸시(Pages 배포).
