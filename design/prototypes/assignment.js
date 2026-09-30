@@ -157,6 +157,9 @@
   // 확인메일이 언제 왔느냐로 갈리는 세 가지(사용자 지시 2026-09-16):
   //   마감 안 → '제출 확인' / 마감은 넘겼지만 지각 마감 안 → '지각 제출' / 지각 마감도 넘김 → '미제출'(안 낸 것과 같게 친다).
   // 지각 마감이 없는 과제는 마감만 보고 지각까지만 가른다. 마감을 붙여넣지 않은 과목은 견줄 기준이 없어 예전처럼 '제출 확인'.
+  // 과제 내용의 마감은 과제 마감이다 — 셀프피드백 칸에는 쓰지 않는다(셀프피드백 마감은 따로 알 수 없어 늘 '제출 확인').
+  // 예전엔 셀프피드백도 과제 지각 마감과 견줘, 과제 마감 뒤에 낸 3주차 셀프피드백이 '미제출'로 보였다(2026-10-01 사용자 제보)
+  const noteFor = (kind, note) => (kind === 'assignment' ? note : null);
   function lateness(cell, note) {
     if (cell.status !== 'confirmed_mail' || !cell.confirmedAt || !note?.dueAt) return null;
     const at = Date.parse(cell.confirmedAt);
@@ -215,9 +218,7 @@
     lastMatrix = matrix;
     renderWeekLabel(matrix.week);
     // 서버는 마감을 모르고 세므로, 지각 마감까지 넘겨 '미제출'이 된 칸은 여기서 뺀다
-    const missed = matrix.rows.reduce((n, r) => n
-      + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0)
-      + (lateness(r.selfFeedback, r.note) === 'missed' ? 1 : 0), 0);
+    const missed = matrix.rows.reduce((n, r) => n + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0), 0);
     progressEl.textContent = `완료 ${matrix.progress.done - missed} / ${matrix.progress.total}`;
     // 즐겨찾기한 과제는 표 맨 위로, 누른 순서대로 — 다른 주차 것도 늘 함께(사용자 지시 2026-09-19).
     // 나머지는 이번 주 과목들, 원래 과목 순서. 같은 과목이 다른 주차 즐겨찾기로 위에도 한 줄 더 있을 수 있다(WK 박스로 구분)
@@ -241,9 +242,11 @@
         </span></td>
         ${renderCell(row.code, `${row.code} 과제`, row.assignment, row.note)}
         ${renderNoteCell(row)}
-        ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback, row.note)}
+        ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback, noteFor('self_feedback', row.note))}
       </tr>`;
     }).join('');
+    // 오른쪽 TO-DO 열(assignment-todo.js)도 같은 때 새로 읽는다 — 제출 상태·과제 내용이 바뀌었을 수 있다
+    document.dispatchEvent(new CustomEvent('phibrain:assignment-rendered'));
   }
 
   // ---- 과제 즐겨찾기(사용자 지시 2026-09-19): 당장 할 과제를 표 맨 위에 둔다 ----
@@ -442,7 +445,7 @@
     const kindLabel = d.kind === 'assignment' ? '과제' : '셀프피드백';
     const latest = d.evidence[d.evidence.length - 1];
     // 표와 같은 기준으로 "지각 제출" — 첫 확인메일(evidence[0], 수신 시각 오름차순)과 그 주 과제 내용의 마감을 견준다
-    const note = rowOf(d.courseId, d.weekNo)?.note;
+    const note = noteFor(d.kind, rowOf(d.courseId, d.weekNo)?.note);
     const asCell = { status: d.status, confirmedAt: d.evidence[0]?.received_at || null };
     const statusLabel = cellLabel(asCell, note);
     const statusKey = cellStatusKey(asCell, note);

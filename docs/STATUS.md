@@ -1,11 +1,33 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-09-29 (Findings 박스 여백) / Claude Code
+최종 갱신: 2026-10-01 (Assignment Manage 셀프피드백 표시 수정 · TO-DO 열) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 셀프피드백 "미제출" 오표시 수정 · 오른쪽 TO-DO 열 (2026-10-01, 사용자 제보·요구사항 · Claude Code) — **푸시·Worker 배포 완료(버전 48e469d2)**
+
+- **원인(제보: 3주차 셀프피드백 AOR·BI·IPS를 냈는데 반영 안 됨):** 원격 D1에는 세 확인메일이 10/1 08:10~08:27 KST에 제대로 들어와 있었다
+  (`submission_evidence`, 마지막 동기화 08:29, 오류 없음). 화면 `assignment.js`의 `lateness()`가 셀프피드백 칸까지 **그 주 과제 공지의 지각 마감**
+  (AOR·BI 9/29, IPS 9/28)과 견줘 "미제출"(회색 빈 점)으로 바꾸고, 완료 수에서도 뺐다.
+  → `noteFor(kind, note)`: 과제 칸만 마감과 견준다. 셀프피드백 칸·상세 팝업은 늘 "제출 확인". `assignment.js?v=20261001-1`.
+- **TO-DO 열(사용자 확정: 위치 = 표 오른쪽 열, 셀프피드백 마감 = 과제 지각 마감, 우선순위 = 드래그 순서 + 항목별 메모):**
+  - Worker `src/assignment/todo.js` + `index.js` 경로: `GET /api/assignment/todo`(공지에 마감이 있는 과목×주차의 과제·셀프피드백 + 상태 + prefs),
+    `PUT /api/assignment/todo/prefs`({ order, memos } — `settings` 테이블 `assignment_todo` 한 줄, 마이그레이션 없음). 키 `과목:주차:a|s`.
+  - 화면 `assignment-todo.js`(새 파일) + `home.html`의 `<aside id="am-todo">` + `phi-brain.css`(1600px 이상 두 열 · shell 1394px, 그 아래는 표 아래 480px).
+    표가 다시 그려질 때 `phibrain:assignment-rendered` 이벤트로 같이 새로 읽는다. 로그아웃이면 로그인 안내.
+  - 상자는 LMS 화면의 회색 채움 대신 Future Item 박스와 같은 흰 바탕 + 가는 테두리, "지난 마감"은 빨강 대신 검정 굵게(4톤 팔레트 유지).
+- 검증: `worker` `node --test` 94/94(새 `test/todo.test.js` 3개). 로컬 `tools/dev-server.js`(5500) + 가짜 세션·`fetch` 스텁 임시 페이지(확인 후 삭제) —
+  실제 DB 값으로 3주차 표 셀프피드백 3칸 "제출 확인"·완료 6/6, 1800px에서 표 990px + 틈 40px + TO-DO 300px, 
+  메모 저장(앞뒤 공백 정리), Alt+↑ 두 번·끌어 놓기로 순서 저장, 다른 묶음으로는 못 놓음, 로그아웃 시 안내 문구.
+- 후속(같은 날, 사용자 지시): 전체·할 일·완료 탭을 없애고 **할 일(미제출)만** 보여준다(`assignment-todo.js?v=20261001-2`, `phi-brain.css?v=20261001-2`).
+  제출 확인된 항목은 목록에서 빠진다. 확인: 탭 0개, 제출한 항목 제외, 메모 항목 표시.
+- **배포(사용자 지시):** Worker `wrangler deploy` → 버전 `48e469d2`(마이그레이션 없음 — `settings` 테이블 재사용). 실서버 health `{ok:true}`,
+  세션 없이 `/api/assignment/todo` 401. 화면은 main 푸시로 Pages 배포.
+- **남은 일:** 실제 로그인 상태에서 TO-DO 열 채워짐·메모/순서 저장을 사용자 화면에서 확인(에이전트는 Google 로그인을 할 수 없어 스텁으로만 확인).
+  로컬 설정 `.claude/launch.json`(미추적)은 미리보기용.
 
 ### IPS 과제 페이지: Discover 확장 (2026-09-20, 사용자 지시 · Claude Code)
 

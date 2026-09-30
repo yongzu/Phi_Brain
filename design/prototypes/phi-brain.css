@@ -634,7 +634,51 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .am-links{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:4px}
 .am-detail-actions{display:flex;flex-wrap:wrap;gap:6px}
 
+/* 이번 주 할 일(TO-DO) 열(사용자 요구사항 2026-10-01) — 넓은 화면은 표 오른쪽 300px 열, 좁으면 표 아래.
+   표(990px) + 틈 40px + 300px이 다 들어가는 1600px부터 두 열(그 사이에선 표가 900px까지 비율대로 줄어든다).
+   상자는 Future Item 박스와 같은 흰 바탕 + 가는 테두리(새 색 없음) — 날짜 열의 세로 구분선이 보이도록 */
+@media (min-width:1600px){
+  .shell:has(.view-assignment:not([hidden])){max-width:1394px}
+  .view-assignment:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:40px;align-items:start}
+  .view-assignment>.am-todo{margin-top:0}
+}
+.am-todo{margin-top:48px;max-width:480px}
+.am-todo-hint{margin-top:14px}
+.am-todo-empty{margin:18px 0 0;color:var(--gray)}
+.am-todo-label{margin:20px 0 8px;color:var(--gray)}
+.am-todo-label.is-past{color:var(--ink);font-weight:700} /* 지난 마감만 검정 굵게 — 빨강 대신(4톤 팔레트) */
+.am-todo-list{list-style:none;margin:0;padding:4px 14px;border:1px solid var(--line);border-radius:var(--radius);corner-shape:squircle}
+.am-todo-item{position:relative;display:flex;align-items:flex-start;gap:12px;padding:10px 0}
+.am-todo-item+.am-todo-item{border-top:1px solid var(--line)}
+.am-todo-item[draggable="true"]{cursor:grab}
+.am-todo-item[draggable="true"]:active{cursor:grabbing}
+.am-todo-item:focus-visible{outline:1px solid var(--gray);outline-offset:2px;border-radius:var(--radius-sm)}
+.am-todo-item.is-drag-src{opacity:.4}
+/* 놓일 자리 = 항목 사이의 가로 선(Future Item 박스의 세로 선과 같은 방식) */
+.am-todo-item.drop-before::before,.am-todo-item.drop-after::after{content:"";position:absolute;left:0;right:0;height:2px;border-radius:2px;background:var(--ink)}
+.am-todo-item.drop-before::before{top:-1px}
+.am-todo-item.drop-after::after{bottom:-1px}
+/* ⠿ 손잡이: 평소엔 테두리 색, 항목에 올리면 회색 — 상자 안 여백(14px) 자리에 */
+.am-todo-grip{position:absolute;left:-12px;top:50%;transform:translateY(-50%);color:var(--line);font-size:.9em;letter-spacing:-2px;transition:color 140ms}
+.am-todo-item:hover .am-todo-grip,.am-todo-item:focus-visible .am-todo-grip{color:var(--gray)}
+.am-todo-date{flex:0 0 52px;display:flex;flex-direction:column;align-items:center;padding:2px 12px 2px 0;border-right:1px solid var(--line);color:var(--gray);font-variant-numeric:tabular-nums;line-height:1.35}
+.am-todo-date b{color:var(--ink);font-size:12pt}
+.am-todo-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.am-todo-course{color:var(--gray)}
+.am-todo-title{color:var(--ink);font-weight:700;text-decoration:underline dotted var(--gray);text-underline-offset:3px;overflow-wrap:anywhere}
+a.am-todo-title:hover{text-decoration-style:solid;text-decoration-color:var(--ink)}
+/* 한 줄 메모: 마감 배지(.fi-due)와 같은 옅은 채움 상자, 누르면 고친다 */
+.am-todo-memo{margin-top:4px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--fill);color:var(--ink);text-align:left;overflow-wrap:anywhere}
+.am-todo-memo:hover{background:var(--line)}
+.am-todo-memo-input{width:100%;margin-top:4px;padding:3px 6px;border:0;border-radius:var(--radius-sm);background:var(--fill);color:var(--ink);font:inherit}
+.am-todo-memo-input:focus-visible{outline:0}
+/* "메모" 버튼은 항목에 올리거나 포커스했을 때만(터치 화면은 늘) */
+.am-todo-memo-btn{flex:0 0 auto;margin:-2px calc(-1 * var(--tab-pad-x)) 0 0;opacity:0;transition:opacity 140ms,background 140ms,color 140ms}
+.am-todo-item:hover .am-todo-memo-btn,.am-todo-item:focus-within .am-todo-memo-btn{opacity:1}
+@media (hover:none){.am-todo-memo-btn{opacity:1}}
+
 @media(max-width:640px){
+  .am-todo{max-width:none}
   .am-table,.am-table thead,.am-table tbody,.am-table tr,.am-table td{display:block}
   .am-table thead{display:none}
   .am-table tr{padding:8px 0;border-bottom:1px solid var(--line)}
