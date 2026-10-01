@@ -1,11 +1,34 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-10-01 (TO-DO 셀프피드백 = 세션 기준 · TF·VT Figma 보드 링크) / Claude Code
+최종 갱신: 2026-10-01 (셀프피드백 마감 규칙 · 상단 안내 문구 제거 · Assignment Manage 제목·메모) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 셀프피드백 마감 규칙 · 상단 안내 문구 제거 · Assignment Manage 제목 20px · 메모 칸 (2026-10-01, 사용자 지시 · Claude Code)
+
+- **셀프피드백 마감 = 다음 주 세션 전날 23:59**(`todo.js`: 세션 날 + 6일). 공지 지각 마감·"마감 미정" 둘 다 없앰 — 셀프피드백 쿼리에서 공지 조인 제거,
+  화면 `assignment-todo.js?v=20261001-4`의 마감 미정 분기 제거(마감이 늘 있다).
+- **상단 안내 문구 제거:** `home.html`의 `.prototype-note`("디자인 프로토타입 — AI 정리는…")와 CSS 규칙. 모든 화면이 공유하던 한 줄이라 모든 페이지에서 사라짐.
+- **제목:** `#am-heading{font-size:20px}`(다른 화면 제목은 그대로).
+- **메모:** `home.html` 제목 아래 `textarea#am-memo` + 새 파일 `assignment-memo.js?v=20261001-1`(입력 0.6초 뒤·포커스 잃을 때·페이지 떠날 때 저장, 글에 맞춰 높이 늘어남,
+  실패 시 다시 시도 토스트). Worker `GET/PUT /api/assignment/memo`(`todo.js`의 `getPageMemo`/`savePageMemo`, settings `assignment_memo`, 5000자, 빈 글은 삭제, 마이그레이션 없음).
+  로그아웃이면 `localStorage phi-brain:assignment-memo`. `phi-brain.css?v=20261001-4`.
+- 검증: `worker` `node --test` 96/96(셀프피드백 마감 기대값 갱신, 메모 API 테스트 추가). 로컬 5511: 안내 문구 없음, 제목 20px, 메모가 제목과 주차 줄 사이,
+  4줄 입력 → 높이 37→101px·이 브라우저에 저장·새로고침 후 유지(화면 전환 때 높이 다시 잼), 세션·fetch 스텁으로 PUT 저장 확인. 테스트 저장값은 지움.
+- **남은 일:** 커밋·푸시와 Worker 배포 전(메모 서버 저장·셀프피드백 마감은 배포해야 반영).
+
+### Assignment Manage: 별표 왼쪽 ⠿로 줄 순서 바꾸기 (2026-10-01, 사용자 지시 · Claude Code)
+
+- `assignment.js?v=20261001-2`: 줄마다 별표 왼쪽에 `button.am-grip`(⠿, `data-am-grip`), 줄에 `data-am-group="fav|rest"`.
+  ⠿를 누를 때만 그 줄이 `draggable`(줄 전체를 늘 끌게 하면 글자 선택·버튼이 끌기로 바뀜). 같은 묶음 안에서만 놓을 수 있고, 놓을 자리는 줄 위/아래 2px 선.
+  키보드: ⠿에서 ↑·↓. 즐겨찾기 묶음 = `favorites` 배열 순서, 나머지 = 과목 코드 순서 `phi-brain:assignment-order`(localStorage, 모든 주차 공통).
+  옮긴 뒤 줄이 새 자리로 미끄러짐(별표와 같은 FLIP), 포커스는 옮긴 줄의 ⠿.
+- `phi-brain.css?v=20261001-3`: `.am-grip`은 칸 왼쪽 여백(12px) 안에 절대 위치 — 첫 열 폭(322px) 그대로. 평소 `--line`, 줄 호버 `--gray`(Future Item·TO-DO 손잡이와 같음).
+- 검증(로컬 5511, 읽기 전용 표): 키보드 ↑로 BI↔AOR, 끌어서 WI를 맨 위로 → 저장값·새로고침 뒤 유지, 즐겨찾기(TF·VT) 묶음 안 ↑ → favorites 순서 바뀜,
+  나머지 줄을 즐겨찾기 줄 위로 끌면 놓을 자리 표시 없음, 끝난 뒤 draggable 남지 않음. 테스트 저장값은 지움. 커밋·푸시 전.
 
 ### Assignment Manage TO-DO: 셀프피드백은 세션 요일 기준 (2026-10-01, 사용자 지시 · Claude Code) — **푸시(042c976)·Worker 배포 완료(버전 c36f58d3)**
 

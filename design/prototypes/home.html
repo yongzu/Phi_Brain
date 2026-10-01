@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20261001-2">
+<link rel="stylesheet" href="phi-brain.css?v=20261001-4">
 </head>
 <body>
 
@@ -85,8 +85,6 @@
 </nav>
 
 <main class="shell">
-
-  <p class="prototype-note">디자인 프로토타입 — AI 정리는 아직 연결되지 않았어요. 작성한 내용은 로그인하면 서버에, 로그인하지 않으면 이 브라우저에 저장돼요.</p>
 
   <div class="view view-journal" id="view-journal">
   <!-- 1. context: date, optional title, optional courses -->
@@ -303,6 +301,8 @@
       <header class="journal-head">
         <h1 class="journal-heading" id="am-heading">Assignment Manage</h1>
       </header>
+      <!-- 메모 한 칸(사용자 지시 2026-10-01): 제목과 주차 사이. 로그인하면 서버, 아니면 이 브라우저(assignment-memo.js) -->
+      <textarea class="am-memo" id="am-memo" rows="1" aria-label="메모" placeholder="메모"></textarea>
       <div class="am-toolbar">
         <div class="am-week-nav">
           <button type="button" class="pill" id="am-week-prev" aria-label="이전 주">‹</button>
@@ -486,7 +486,8 @@
 <script src="journal-store.js?v=5"></script>
 <script src="journal.js?v=20260926-1"></script>
 <script src="assignment-notice.js?v=20260919-1"></script>
-<script src="assignment.js?v=20261001-1"></script>
-<script src="assignment-todo.js?v=20261001-3"></script>
+<script src="assignment.js?v=20261001-2"></script>
+<script src="assignment-todo.js?v=20261001-4"></script>
+<script src="assignment-memo.js?v=20261001-1"></script>
 </body>
 </html>

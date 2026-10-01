@@ -6,8 +6,10 @@
 // items: 과제는 과제 공지(assignment_notes)에 마감이 있는 과목 × 주차마다 하나.
 // 셀프피드백은 세션이 만든다(사용자 확정 2026-10-01) — 공지와 상관없이 매주 세션 요일(SESSION_DAY)이 되면
 // 그 주(학기 달력 주차)의 항목이 생긴다. 최근 SESSION_WINDOW_DAYS일 안의 세션만. SI(한 달에 한 번)·PC(세션 없음)·
-// 나머지 과목은 만들지 않는다. 마감은 그 주 과제 공지의 지각 마감(없으면 과제 마감) — LMS의 셀프피드백 마감이
-// 지각 마감과 같았다. 공지가 없으면 null(화면에서 "마감 미정"). 이 날짜는 할 일 목록에만 쓰고 제출 상태 판정에는 쓰지 않는다.
+// 나머지 과목은 만들지 않는다. 마감은 다음 주 세션 전날 23:59(세션 날 + 6일, 사용자 지시 2026-10-01 — 예전의 "공지 지각 마감,
+// 없으면 마감 미정"을 대체). 이 날짜는 할 일 목록에만 쓰고 제출 상태 판정에는 쓰지 않는다.
+//   GET /api/assignment/memo         → { memo }        Assignment Manage 머리의 메모 한 칸(사용자 지시 2026-10-01)
+//   PUT /api/assignment/memo  { memo } → { ok, memo }  settings 테이블의 한 줄
 // prefs: 사용자가 끌어서 정한 순서(key 목록)와 항목별 한 줄 메모 — settings 테이블의 한 줄(JSON).
 import { BadRequest } from '../journals.js';
 import { resolveStatus } from './service.js';
@@ -56,13 +58,12 @@ export async function getTodo(db, now = Date.now()) {
   const today = kstToday(now), from = addDays(today, 1 - SESSION_WINDOW_DAYS);
   const ids = Object.keys(SESSION_DAY);
   const { results: feedbacks } = await db.prepare(`
-    SELECT t.course_id, c.code, c.name, c.self_feedback_url, w.week_no, w.start_date, n.due_at, n.late_due_at,
+    SELECT t.course_id, c.code, c.name, c.self_feedback_url, w.week_no, w.start_date,
       t.id target_id, m.status manual_status,
       (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id) evidence_count
     FROM submission_targets t
     JOIN courses c ON c.id = t.course_id
     JOIN weeks w ON w.id = t.week_id
-    LEFT JOIN assignment_notes n ON n.course_id = t.course_id AND n.week_no = w.week_no
     LEFT JOIN manual_status m ON m.target_id = t.id
     WHERE t.kind = 'self_feedback' AND t.course_id IN (${ids.map(() => '?').join(',')}) AND w.start_date BETWEEN ? AND ?
   `).bind(...ids, addDays(from, -6), today).all();
@@ -72,7 +73,7 @@ export async function getTodo(db, now = Date.now()) {
     items.push({
       key: todoKey(r.course_id, r.week_no, 'self_feedback'), targetId: r.target_id,
       courseId: r.course_id, code: r.code, name: r.name, weekNo: r.week_no, kind: 'self_feedback', sessionDate,
-      dueAt: r.late_due_at || r.due_at || null, status: status(r), url: r.self_feedback_url,
+      dueAt: `${addDays(sessionDate, 6)}T23:59`, status: status(r), url: r.self_feedback_url,
     });
   }
   items.sort((a, b) => a.weekNo - b.weekNo || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind));
@@ -101,4 +102,27 @@ export async function saveTodoPrefs(db, body) {
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
     .bind(PREFS_KEY, JSON.stringify(prefs), new Date().toISOString()).run();
   return { ok: true, prefs };
+}
+
+// ---- Assignment Manage 메모(사용자 지시 2026-10-01): 페이지 머리의 여러 줄 메모 한 칸 ----
+const MEMO_KEY = 'assignment_memo';
+export const PAGE_MEMO_MAX = 5000;
+
+export async function getPageMemo(db) {
+  const row = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(MEMO_KEY).first();
+  return { memo: row ? row.value : '' };
+}
+
+export async function savePageMemo(db, body) {
+  if (!body || typeof body.memo !== 'string') throw new BadRequest('bad_body');
+  const memo = body.memo.replace(/\r\n?/g, '\n');
+  if ([...memo].length > PAGE_MEMO_MAX) throw new BadRequest('memo_too_long');
+  if (memo.trim()) {
+    await db.prepare(`INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+      .bind(MEMO_KEY, memo, new Date().toISOString()).run();
+  } else {
+    await db.prepare('DELETE FROM settings WHERE key = ?').bind(MEMO_KEY).run();
+  }
+  return { ok: true, memo: memo.trim() ? memo : '' };
 }

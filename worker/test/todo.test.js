@@ -29,7 +29,7 @@ test('TO-DO is locked without a session', async () => {
 // 한국 시각 → epoch ms
 const kst = at => Date.parse(`${at}+09:00`);
 
-test('TO-DO items: assignments from notes with a due; self-feedback from the weekly session days, due = late due or null', async () => {
+test('TO-DO items: assignments from notes with a due; self-feedback from the weekly session days, due = day before next session 23:59', async () => {
   const { env, call } = await setup();
   assert.deepEqual((await call('GET', '/api/assignment/todo')).body.prefs, { order: [], memos: {} });
 
@@ -45,21 +45,21 @@ test('TO-DO items: assignments from notes with a due; self-feedback from the wee
   // 10/1(목) 정오: 최근 14일(9/18~10/1) 세션 — 3주차(9/21~) 전부, 4주차(9/28~)는 목요일 TF·VT까지. 2주차 목(9/17)은 지남
   const { items } = await getTodo(env.DB, kst('2026-10-01T12:00:00'));
   assert.deepEqual(items.map(i => [i.key, i.dueAt, i.status]), [
-    ['al:3:s', null, 'unconfirmed'], // 공지가 없으면 마감 미정
-    ['aor:3:s', null, 'unconfirmed'],
+    ['al:3:s', '2026-09-28T23:59', 'unconfirmed'], // 셀프피드백 마감 = 다음 주 세션(화 9/29) 전날 23:59 — 공지와 무관
+    ['aor:3:s', '2026-09-29T23:59', 'unconfirmed'],
     ['bi:3:a', '2026-09-28T23:59', 'unconfirmed'],
-    ['bi:3:s', '2026-09-29T23:59', 'confirmed_mail'], // 셀프피드백 마감 = 과제 지각 마감
-    ['ips:3:s', null, 'unconfirmed'],
-    ['tf:3:s', null, 'unconfirmed'],
-    ['vt:3:s', null, 'unconfirmed'],
-    ['al:4:s', null, 'unconfirmed'], // 공지는 있지만 마감이 없다
-    ['aor:4:s', null, 'unconfirmed'],
-    ['bi:4:s', null, 'unconfirmed'],
-    ['ips:4:s', null, 'unconfirmed'],
+    ['bi:3:s', '2026-09-29T23:59', 'confirmed_mail'],
+    ['ips:3:s', '2026-09-28T23:59', 'unconfirmed'],
+    ['tf:3:s', '2026-09-30T23:59', 'unconfirmed'],
+    ['vt:3:s', '2026-09-30T23:59', 'unconfirmed'],
+    ['al:4:s', '2026-10-05T23:59', 'unconfirmed'],
+    ['aor:4:s', '2026-10-06T23:59', 'unconfirmed'],
+    ['bi:4:s', '2026-10-06T23:59', 'unconfirmed'],
+    ['ips:4:s', '2026-10-05T23:59', 'unconfirmed'],
     ['pc:4:a', '2026-10-04T23:59', 'unconfirmed'], // PC·SI는 과제만 — 셀프피드백 없음
     ['si:4:a', '2026-10-04T23:59', 'unconfirmed'],
-    ['tf:4:s', null, 'unconfirmed'],
-    ['vt:4:s', null, 'unconfirmed'],
+    ['tf:4:s', '2026-10-07T23:59', 'unconfirmed'],
+    ['vt:4:s', '2026-10-07T23:59', 'unconfirmed'],
   ]);
   const bi = items.find(i => i.key === 'bi:3:s');
   assert.equal(bi.code, 'BI');
@@ -92,4 +92,17 @@ test('TO-DO prefs: order and one-line memos saved, trimmed, empty memos dropped,
   assert.equal((await call('PUT', '/api/assignment/todo/prefs', { order: [], memos: { 'bi:3:a': '가'.repeat(200) } })).status, 200);
   assert.equal((await call('PUT', '/api/assignment/todo/prefs', { order: 'x', memos: {} })).status, 400);
   assert.equal((await call('PUT', '/api/assignment/todo/prefs', null)).status, 400);
+});
+
+test('Assignment Manage page memo: locked without a session, multi-line saved, blank clears, too long refused', async () => {
+  const { call } = await setup();
+  assert.equal((await call('GET', '/api/assignment/memo', undefined, { auth: false })).status, 401);
+  assert.equal((await call('PUT', '/api/assignment/memo', { memo: 'x' }, { auth: false })).status, 401);
+  assert.deepEqual((await call('GET', '/api/assignment/memo')).body, { memo: '' });
+  assert.deepEqual((await call('PUT', '/api/assignment/memo', { memo: 'TF 레퍼런스\r\n  VT 스케치 3장' })).body, { ok: true, memo: 'TF 레퍼런스\n  VT 스케치 3장' });
+  assert.deepEqual((await call('GET', '/api/assignment/memo')).body, { memo: 'TF 레퍼런스\n  VT 스케치 3장' });
+  assert.deepEqual((await call('PUT', '/api/assignment/memo', { memo: '  \n ' })).body, { ok: true, memo: '' });
+  assert.deepEqual((await call('GET', '/api/assignment/memo')).body, { memo: '' });
+  assert.equal((await call('PUT', '/api/assignment/memo', { memo: '가'.repeat(5001) })).status, 400);
+  assert.equal((await call('PUT', '/api/assignment/memo', { memo: 3 })).status, 400);
 });

@@ -9,7 +9,7 @@ import { encryptToken, decryptToken, signState, verifyState, safeReturnTo } from
 import * as svc from './assignment/service.js';
 import { runSyncBatch, SyncError, DEFAULT_BATCH } from './assignment/sync.js';
 import { notesApi } from './assignment/notes.js';
-import { getTodo, saveTodoPrefs } from './assignment/todo.js';
+import { getTodo, saveTodoPrefs, getPageMemo, savePageMemo } from './assignment/todo.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
@@ -99,6 +99,9 @@ async function assignmentApi(request, env, url, json, session) {
   // 이번 주 할 일(TO-DO) 열 — 항목 + 끌어서 정한 순서·메모
   if (path === '/todo' && method === 'GET') return json(200, await getTodo(db));
   if (path === '/todo/prefs' && method === 'PUT') return json(200, await saveTodoPrefs(db, await request.json().catch(() => null)));
+  // 페이지 머리 메모 한 칸
+  if (path === '/memo' && method === 'GET') return json(200, await getPageMemo(db));
+  if (path === '/memo' && method === 'PUT') return json(200, await savePageMemo(db, await request.json().catch(() => null)));
   const noteRes = await notesApi(request, env, path, url, json); // 과제 공지 붙여넣기
   if (noteRes) return noteRes;
   if (path === '/connection' && method === 'GET') {

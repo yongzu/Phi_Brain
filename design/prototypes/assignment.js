@@ -228,11 +228,12 @@
     tableRows = [...current, ...pinnedRows.filter(r => r.week !== week)];
     const byKey = new Map(tableRows.map(r => [favKey(r.code, r.week), r]));
     const favRows = favorites.map(k => byKey.get(k)).filter(Boolean);
-    const rest = current.filter(r => !favorites.includes(favKey(r.code, week)));
+    const rest = current.filter(r => !favorites.includes(favKey(r.code, week))).sort((a, b) => orderRank(a.code) - orderRank(b.code));
     tbody.innerHTML = [...favRows, ...rest].map((row, i) => {
       const isFav = i < favRows.length, other = row.week !== week;
-      return `<tr data-am-row="${esc(favKey(row.code, row.week))}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
+      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : 'rest'}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
         <td><span class="am-cell">
+          <button type="button" class="am-grip" data-am-grip aria-label="${esc(row.code)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
           <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" data-am-week="${row.week}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
           <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
           <span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>
@@ -290,6 +291,91 @@
     tbody.querySelector(`[data-am-row="${CSS.escape(key)}"] .am-fav`)?.focus({ preventScroll: true }); // 다른 주차 줄을 풀면 줄이 사라져 포커스할 곳이 없다
     placeDetail(); // 열린 팝업이 있으면 옮겨 간 칸을 따라간다
   }
+
+  // ---- 줄 순서 바꾸기(사용자 지시 2026-10-01): 별표 왼쪽 ⠿를 끌어(또는 ⠿에서 ↑·↓) 같은 묶음 안 순서를 바꾼다 ----
+  // 즐겨찾기 묶음은 favorites 배열 순서를, 나머지는 과목 순서(과목 코드 목록 — 모든 주차에 같이 적용)를 바꾼다.
+  // 묶음을 넘나들지는 않는다(즐겨찾기 여부는 별표로). 즐겨찾기처럼 이 기기(브라우저)에만 저장.
+  const ORDER_KEY = 'phi-brain:assignment-order';
+  let courseOrder = (() => { try { const v = JSON.parse(localStorage.getItem(ORDER_KEY)); return Array.isArray(v) ? v.filter(c => typeof c === 'string') : []; } catch { return []; } })();
+  const orderRank = code => { const i = courseOrder.indexOf(code); return i < 0 ? Infinity : i; };
+  const groupRows = group => [...tbody.querySelectorAll(`tr[data-am-group="${group}"]`)];
+  // 한 묶음의 새 줄 순서(data-am-row 키 목록)를 저장하고 다시 그린다 — 줄이 새 자리로 미끄러져 간다
+  function applyRowOrder(group, keys, focusKey) {
+    if (group === 'fav') {
+      favorites = [...keys, ...favorites.filter(k => !keys.includes(k))];
+      saveFavorites();
+    } else {
+      const codes = keys.map(k => k.split(':')[0]);
+      courseOrder = [...codes, ...courseOrder.filter(c => !codes.includes(c))];
+      try { localStorage.setItem(ORDER_KEY, JSON.stringify(courseOrder)); } catch {}
+    }
+    const before = new Map([...tbody.rows].map(tr => [tr.dataset.amRow, tr.getBoundingClientRect().top]));
+    render(lastMatrix);
+    if (!reduceMotion.matches) {
+      [...tbody.rows].forEach(tr => {
+        const dy = before.get(tr.dataset.amRow) - tr.getBoundingClientRect().top;
+        if (dy) tr.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      });
+    }
+    if (focusKey) tbody.querySelector(`[data-am-row="${CSS.escape(focusKey)}"] [data-am-grip]`)?.focus({ preventScroll: true });
+    placeDetail();
+  }
+  let dragRow = null;
+  const clearRowDrop = () => tbody.querySelectorAll('.drop-before,.drop-after').forEach(tr => tr.classList.remove('drop-before', 'drop-after'));
+  // ⠿를 누를 때만 줄을 끌 수 있게 — 줄 전체가 늘 draggable이면 글자 선택·버튼 클릭이 끌기로 바뀐다
+  tbody.addEventListener('pointerdown', e => {
+    const grip = e.target.closest('[data-am-grip]');
+    if (grip) grip.closest('tr').draggable = true;
+  });
+  tbody.addEventListener('pointerup', () => { if (!dragRow) tbody.querySelectorAll('tr[draggable="true"]').forEach(tr => { tr.draggable = false; }); });
+  tbody.addEventListener('dragstart', e => {
+    const tr = e.target.closest?.('tr[draggable="true"]');
+    if (!tr) return;
+    dragRow = tr;
+    tr.classList.add('is-drag-src');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tr.dataset.amRow);
+    closeLinkMenu();
+  });
+  tbody.addEventListener('dragover', e => {
+    if (!dragRow) return;
+    const tr = e.target.closest('tr');
+    if (!tr || tr.dataset.amGroup !== dragRow.dataset.amGroup) { clearRowDrop(); return; } // 다른 묶음으로는 못 옮긴다
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const r = tr.getBoundingClientRect();
+    clearRowDrop();
+    if (tr !== dragRow) tr.classList.add(e.clientY > r.top + r.height / 2 ? 'drop-after' : 'drop-before');
+  });
+  tbody.addEventListener('drop', e => {
+    const target = tbody.querySelector('.drop-before,.drop-after');
+    if (!dragRow || !target) return;
+    e.preventDefault();
+    const key = dragRow.dataset.amRow, group = dragRow.dataset.amGroup;
+    const keys = groupRows(group).map(tr => tr.dataset.amRow).filter(k => k !== key);
+    keys.splice(keys.indexOf(target.dataset.amRow) + (target.classList.contains('drop-after') ? 1 : 0), 0, key);
+    dragRow.classList.remove('is-drag-src');
+    dragRow = null;
+    clearRowDrop();
+    applyRowOrder(group, keys, key);
+  });
+  tbody.addEventListener('dragend', () => {
+    if (dragRow) { dragRow.classList.remove('is-drag-src'); dragRow.draggable = false; }
+    dragRow = null;
+    clearRowDrop();
+  });
+  // 키보드: ⠿에 포커스하고 ↑·↓(Alt 함께도 됨)
+  tbody.addEventListener('keydown', e => {
+    const grip = e.target.closest('[data-am-grip]');
+    if (!grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const tr = grip.closest('tr'), group = tr.dataset.amGroup;
+    const keys = groupRows(group).map(r => r.dataset.amRow);
+    const i = keys.indexOf(tr.dataset.amRow), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+    if (j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    applyRowOrder(group, keys, tr.dataset.amRow);
+  });
 
   async function loadWeek(weekNo) {
     adoptLegacyFavorites(weekNo);
