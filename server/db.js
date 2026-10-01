@@ -46,9 +46,10 @@ const COURSE_SEED = [
 // other spellings resolve to the same course id — never create a separate course for them
 const COURSE_ALIASES = { ewa: ['eai'] };
 // board / submission-form shortcuts — shared by the DB seed and the public status file (snapshot.js)
-// 보드 주소가 go.phi.design 단축주소가 아닌 과목은 여기에 적어 둔다(사용자 지시 2026-09-17: VT는 Figma 보드 직접 링크)
+// 보드 주소가 go.phi.design 단축주소가 아닌 과목은 여기에 적어 둔다(사용자 지시 2026-09-17: VT는 Figma 보드 직접 링크, 2026-10-01: TF 추가·VT 주소 교체)
 const BOARD_URL = {
-  vt: 'https://www.figma.com/board/eAeCinqhdU8SMb0aEi8MRM/-1%EA%B8%B0-B--Visual-Translation?node-id=0-1',
+  tf: 'https://www.figma.com/board/rqI2rIYxv8BOimYbzT9FDn/-1%EA%B8%B0-B--Typography-as-Foundation',
+  vt: 'https://www.figma.com/board/eAeCinqhdU8SMb0aEi8MRM/-1%EA%B8%B0-B--Visual-Translation',
 };
 const courseLinks = id => ({
   boardUrl: BOARD_URL[id] || `https://go.phi.design/${id}/board`,

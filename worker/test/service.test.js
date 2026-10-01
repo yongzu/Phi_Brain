@@ -16,8 +16,9 @@ test('the migration seeds 12 courses × weeks 0~16 × 2 kinds, with week dates m
   assert.deepEqual([weeks[0].week_no, weeks[0].start_date, weeks[0].end_date], [0, '2026-08-31', '2026-09-06']);
   assert.deepEqual([weeks[1].start_date, weeks[16].end_date], ['2026-09-07', '2026-12-27']);
   assert.equal((await db.prepare(`SELECT board_url FROM courses WHERE id = 'bi'`).first()).board_url, 'https://go.phi.design/bi/board');
-  // VT만 Figma 보드 직접 링크(0006 마이그레이션, 사용자 지시 2026-09-17)
-  assert.match((await db.prepare(`SELECT board_url FROM courses WHERE id = 'vt'`).first()).board_url, /^https:\/\/www\.figma\.com\/board\/eAeCinqhdU8SMb0aEi8MRM\//);
+  // TF·VT는 Figma 보드 직접 링크(0006·0009 마이그레이션, 사용자 지시 2026-09-17 · 2026-10-01)
+  assert.equal((await db.prepare(`SELECT board_url FROM courses WHERE id = 'tf'`).first()).board_url, 'https://www.figma.com/board/rqI2rIYxv8BOimYbzT9FDn/-1%EA%B8%B0-B--Typography-as-Foundation');
+  assert.equal((await db.prepare(`SELECT board_url FROM courses WHERE id = 'vt'`).first()).board_url, 'https://www.figma.com/board/eAeCinqhdU8SMb0aEi8MRM/-1%EA%B8%B0-B--Visual-Translation');
   assert.equal(currentWeekNo(weeks, '2026-09-14'), 2);
   assert.equal(currentWeekNo(weeks, '2026-01-01'), 0);
   assert.equal(currentWeekNo(weeks, '2027-06-01'), 16);

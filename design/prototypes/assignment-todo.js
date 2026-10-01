@@ -1,9 +1,9 @@
 /*
   Assignment Manage — 오른쪽 TO-DO 열(사용자 요구사항 2026-10-01).
 
-  이번 주에 무엇을 내야 하는지 마감 순으로 쌓는다. 항목은 과제 공지(과제 내용 칸)에 마감이 있는
-  과목 × 주차마다 과제·셀프피드백 둘 — 서버 GET /api/assignment/todo(worker/src/assignment/todo.js).
-  셀프피드백 마감은 공지에 없어 과제 지각 마감으로 둔다(사용자 확정). 아직 안 낸 것만 보여준다 —
+  이번 주에 무엇을 내야 하는지 마감 순으로 쌓는다 — 서버 GET /api/assignment/todo(worker/src/assignment/todo.js).
+  과제는 과제 공지(과제 내용 칸)에 마감이 있는 과목 × 주차마다, 셀프피드백은 매주 세션 요일이 되면(공지와 무관,
+  사용자 확정 2026-10-01). 셀프피드백 마감은 그 주 과제 지각 마감, 공지가 없으면 "마감 미정"(이번 주 맨 아래). 아직 안 낸 것만 보여준다 —
   전체·완료 탭은 두지 않는다(사용자 지시 2026-10-01). 제출 상태는 표와 같은 메일 확인이라 내면 목록에서 저절로 빠진다.
 
   우선순위(사용자 확정 "드래그 순서 + 항목별 메모"): 항목을 끌어 같은 묶음 안 순서를 바꾸고
@@ -34,7 +34,9 @@
   let dragKey = null;
   let pendingRender = false;
 
+  const dueMs = item => (item.dueAt ? kstMs(item.dueAt) : Infinity); // 마감 미정은 맨 뒤
   function groupOf(item, now) {
+    if (!item.dueAt) return 'week';
     const due = kstMs(item.dueAt);
     if (due < now) return now - due <= WINDOW ? 'past' : null;
     return due - now <= WINDOW ? 'week' : 'later';
@@ -45,7 +47,7 @@
     return i < 0 ? Infinity : i;
   }
   // 끌어서 정한 순서가 먼저, 아직 안 건드린 항목은 마감 → 과목 → 과제·셀프피드백 순
-  const byPriority = (a, b) => rank(a) - rank(b) || kstMs(a.dueAt) - kstMs(b.dueAt) || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind);
+  const byPriority = (a, b) => rank(a) - rank(b) || (dueMs(a) - dueMs(b) || 0) || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind);
 
   function setHint(text) { hintEl.textContent = text || ''; hintEl.hidden = !text; }
 
@@ -69,17 +71,25 @@
   }
 
   function renderItem(it) {
-    const [y, m, d] = it.dueAt.slice(0, 10).split('-').map(Number);
-    const dow = DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+    let dateCell, dueText;
+    if (it.dueAt) {
+      const [y, m, d] = it.dueAt.slice(0, 10).split('-').map(Number);
+      const dow = DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+      dueText = `${m}월 ${d}일 ${dow} 마감`;
+      dateCell = `<span class="am-todo-date" title="${m}월 ${d}일 ${dow} ${esc(it.dueAt.slice(11))}"><b>${String(d).padStart(2, '0')}</b><span>${dow}</span></span>`;
+    } else {
+      dueText = '마감 미정';
+      dateCell = '<span class="am-todo-date" title="과제 내용에 공지를 붙여넣으면 마감이 채워져요"><span>마감</span><b>미정</b></span>';
+    }
     const title = `${it.code} ${it.weekNo}주차 ${KIND_LABEL[it.kind] || ''}`;
     const href = safeHref(it.url);
     const memo = prefs.memos[it.key] || '';
     const memoPart = editingKey === it.key
       ? `<input type="text" class="am-todo-memo-input" maxlength="200" value="${esc(memo)}" aria-label="${esc(title)} 메모" placeholder="먼저 할 것, 순서 이유 등 한 줄">`
       : memo ? `<button type="button" class="am-todo-memo" data-todo-memo title="눌러서 메모 고치기">${esc(memo)}</button>` : '';
-    return `<li class="am-todo-item" data-key="${esc(it.key)}" draggable="true" tabindex="0" aria-label="${esc(`${m}월 ${d}일 ${dow} 마감, ${it.name}, ${title}`)}">
+    return `<li class="am-todo-item" data-key="${esc(it.key)}" draggable="true" tabindex="0" aria-label="${esc(`${dueText}, ${it.name}, ${title}`)}">
       <span class="am-todo-grip" aria-hidden="true">⠿</span>
-      <span class="am-todo-date" title="${m}월 ${d}일 ${dow} ${esc(it.dueAt.slice(11))}"><b>${String(d).padStart(2, '0')}</b><span>${dow}</span></span>
+      ${dateCell}
       <span class="am-todo-body">
         <span class="am-todo-course">${esc(it.name)}</span>
         ${href ? `<a class="am-todo-title" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)} 제출폼 열기" draggable="false">${esc(title)}</a>` : `<span class="am-todo-title">${esc(title)}</span>`}
