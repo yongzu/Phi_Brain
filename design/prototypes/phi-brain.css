@@ -524,7 +524,7 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 /* ---------- Assignment Manage ---------- */
 /* a table, not a card list — this screen tracks a grid (course × kind), so it reads as one */
 /* 제목과 주차 사이 메모 한 칸(사용자 지시 2026-10-01): 과제 내용 "추가" 입력칸과 같은 면(--fill)·테두리 없음, 글이 늘면 칸도 늘어난다 */
-.am-memo{display:block;width:100%;margin-top:14px;min-height:2.6em;resize:none;overflow:hidden;font:inherit;line-height:1.6;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:8px 12px}
+.am-memo{display:block;width:100%;margin-top:14px;min-height:calc(5 * (1.6em + 16px));resize:none;overflow:hidden;font:inherit;line-height:1.6;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:8px 12px}
 .am-memo::placeholder{color:var(--gray)}
 .am-memo:focus-visible{outline:0}
 .am-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:14px}
@@ -681,8 +681,10 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 /* ⠿ 손잡이: 평소엔 테두리 색, 항목에 올리면 회색 — 상자 안 여백(14px) 자리에 */
 .am-todo-grip{position:absolute;left:-12px;top:50%;transform:translateY(-50%);color:var(--line);font-size:.9em;letter-spacing:-2px;transition:color 140ms}
 .am-todo-item:hover .am-todo-grip,.am-todo-item:focus-visible .am-todo-grip{color:var(--gray)}
-.am-todo-date{flex:0 0 52px;display:flex;flex-direction:column;align-items:center;padding:2px 12px 2px 0;border-right:1px solid var(--line);color:var(--gray);font-variant-numeric:tabular-nums;line-height:1.35}
-.am-todo-date b{color:var(--ink);font-size:12pt}
+/* 마감 = Future Item 마감 배지(.fi-due)와 같은 상자, 기록(과목·제목·메모) 아래(사용자 지시 2026-10-01 — 왼쪽 날짜 칸을 대체).
+   지난 마감 묶음에서는 Future Item의 지난 마감처럼 검정 */
+.am-todo-due{margin:4px 0 0;cursor:default}
+.am-todo-group[data-group="past"] .am-todo-due{color:var(--ink)}
 .am-todo-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .am-todo-course{color:var(--gray)}
 .am-todo-title{color:var(--ink);font-weight:700;text-decoration:underline dotted var(--gray);text-underline-offset:3px;overflow-wrap:anywhere}

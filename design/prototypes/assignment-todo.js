@@ -79,11 +79,11 @@
       : memo ? `<button type="button" class="am-todo-memo" data-todo-memo title="눌러서 메모 고치기">${esc(memo)}</button>` : '';
     return `<li class="am-todo-item" data-key="${esc(it.key)}" draggable="true" tabindex="0" aria-label="${esc(`${m}월 ${d}일 ${dow} 마감, ${it.name}, ${title}`)}">
       <span class="am-todo-grip" aria-hidden="true">⠿</span>
-      <span class="am-todo-date" title="${m}월 ${d}일 ${dow} ${esc(it.dueAt.slice(11))}"><b>${String(d).padStart(2, '0')}</b><span>${dow}</span></span>
       <span class="am-todo-body">
         <span class="am-todo-course">${esc(it.name)}</span>
         ${href ? `<a class="am-todo-title" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)} 제출폼 열기" draggable="false">${esc(title)}</a>` : `<span class="am-todo-title">${esc(title)}</span>`}
         ${memoPart}
+        <span class="fi-due am-todo-due" title="${m}월 ${d}일 ${dow}">마감 ${m}월 ${d}일 ${esc(it.dueAt.slice(11, 16))}</span>
       </span>
       ${memo || editingKey === it.key ? '' : `<button type="button" class="pill am-todo-memo-btn" data-todo-memo aria-label="${esc(title)} 메모 달기">메모</button>`}
     </li>`;
