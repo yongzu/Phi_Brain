@@ -7,7 +7,7 @@
 
 ## 현재 단계
 
-### Assignment Manage TO-DO: 셀프피드백은 세션 요일 기준 (2026-10-01, 사용자 지시 · Claude Code)
+### Assignment Manage TO-DO: 셀프피드백은 세션 요일 기준 (2026-10-01, 사용자 지시 · Claude Code) — **푸시(042c976)·Worker 배포 완료(버전 c36f58d3)**
 
 - 요구(사용자): 셀프피드백은 세션 뒤에 내는 것 — SI는 월 1회라 필요 없음, 매주 세션은 화 AL·IPS / 수 BI·AOR / 목 TF·VT, PC는 세션 없음(과제만, 수동 입력).
   과제 공지는 세션 직후 바로 안 나오므로 셀프피드백을 공지와 떼어 냄. 휴강·예외 기록·주차 밀림은 범위에서 뺌(사용자 결정).
@@ -17,7 +17,8 @@
 - 화면 `assignment-todo.js?v=20261001-3`: 마감 없는 항목은 날짜 칸 "마감 / 미정", "이번 주" 묶음, 정렬 맨 뒤(끌어서 옮기면 그 순서). aria-label "마감 미정, …".
 - 검증: `worker` `node --test` 95/95(todo 테스트 갱신 + 세션 당일 0시 진입·14일 뒤 빠짐 경계 테스트). 로컬 5511에서 세션·`fetch` 스텁으로
   이번 주 묶음 = 마감순 3개 + 마감 미정 2개(맨 아래), 콘솔 오류는 Google 로그인 관련만.
-- **남은 일:** Worker 재배포(`wrangler deploy`) 전 — 배포해야 실제 화면에 반영. 커밋·푸시 전.
+- 배포(사용자 지시): `wrangler deploy` → 버전 `c36f58d3`, health `{ok:true}`, 세션 없이 `/api/assignment/todo` 401. Pages에 새 `assignment-todo.js` 확인.
+- **남은 일:** 실제 로그인 화면에서 셀프피드백 항목·마감 미정 표시를 사용자가 확인.
 
 ### TF·VT 보드 링크: Figma 보드 직접 링크 (2026-10-01, 사용자 지시 · Claude Code)
 
@@ -27,8 +28,8 @@
 - 고친 곳: `server/db.js` `BOARD_URL`(tf 추가·vt 교체), `design/prototypes/data/assignment-status.json`(읽기 전용 화면),
   `worker/migrations/0009_tf_vt_board_url.sql`(신규, 서버 DB UPDATE), `worker/test/service.test.js`(tf·vt 값 검사).
 - 검증: `worker` `node --test` 94/94. 로컬 5511 읽기 전용 표에서 TF·VT ↗가 새 주소, BI는 그대로.
-- **남은 일: 원격 D1에 0009 미적용** — 에이전트 실행이 권한에서 막힘. 사용자가 `cd worker && npx wrangler@4.131.1 d1 migrations apply phi-brain --remote`
-  로 적용해야 로그인 상태 화면도 새 링크가 된다. 커밋·푸시 전.
+- 적용함(사용자 지시): `d1 migrations apply phi-brain --remote` → `0009_tf_vt_board_url.sql` ✅(첫 시도 7403, 그대로 다시 실행해 통과 — 0006 때와 같음).
+  확인 쿼리: tf·vt는 Figma 주소, bi는 `go.phi.design/bi/board` 그대로. 커밋 042c976.
 
 ### Assignment Manage: 셀프피드백 "미제출" 오표시 수정 · 오른쪽 TO-DO 열 (2026-10-01, 사용자 제보·요구사항 · Claude Code) — **푸시·Worker 배포 완료(버전 48e469d2)**
 
