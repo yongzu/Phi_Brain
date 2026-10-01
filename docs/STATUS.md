@@ -7,6 +7,18 @@
 
 ## 현재 단계
 
+### 개인 할 일: 마감 · TO-DO 열에 표시 (2026-10-02, 사용자 지시 · Claude Code) — **푸시·원격 D1 0011(첫 시도 API 오류, 재실행 통과)·Worker 배포 완료(dfa607d6)**
+
+- Worker: `migrations/0011_personal_task_due.sql`(`personal_tasks.due_at`), `tasks.js` POST/PUT에 `dueAt`('YYYY-MM-DDTHH:MM' 한국 시각, null·'' = 없음).
+  `todo.js getTodo`가 끝내지 않은 개인 할 일을 `kind:'personal'`, `key:'t:<id>'`, `title`(이름), `dueAt`(없으면 null)로 붙인다. prefs 키 정규식에 `t:<uuid>` 허용(순서·메모 그대로).
+  테스트 1개 추가 — 전체 102/102.
+- 화면 `assignment-tasks.js?v=20261002-2`: 추가 줄 = 이름 + 마감(`datetime-local`, 선택). 자세히보기에 마감 칸. 표의 과제 내용 칸에 과목 줄과 같은 마감 배지
+  (`.fi-due.am-note-due`, 미완료로 지나면 검정). 추가·체크·수정·삭제·되돌리기 때 `phibrain:assignment-tasks-changed`를 보낸다.
+- `assignment-todo.js?v=20261002-1`: 개인 할 일 = 과목 줄 "개인 할 일" + 이름, 링크 없음. 묶음에 **마감 없음**(맨 아래) 추가. 개인 할 일의 지난 마감은
+  7일 뒤에도 끝낼 때까지 남는다(과목 항목만 7일). 위 이벤트로 다시 읽는다. `phi-brain.css?v=20261002-2`(`.am-task-add-form`·`.am-task-due-field`).
+- 검증(로컬, 세션·API 스텁 임시 페이지 — 삭제함): 지난 마감 개인 할 일 → 표 배지 검정·TO-DO 지난 마감, 마감 넣어 추가 → 이번 주(과목 항목과 마감순),
+  마감 없이 추가 → 마감 없음 묶음, 자세히보기에서 마감 지우기 → 마감 없음으로 이동, 체크 → TO-DO에서 빠짐. 1100px 추가 줄 한 줄·스크롤 0.
+
 ### Assignment Manage: 개인 할 일 줄 (2026-10-02, 사용자 지시 · Claude Code) — **푸시·원격 D1 0010·Worker 배포 완료(f99cf6e0)**
 
 - 요구(사용자): Assignment 탭에 과목이 아닌 개인 할 일을 추가. 메일 확인 없이 직접 체크, 이름 + 자세히보기로 내용.

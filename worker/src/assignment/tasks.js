@@ -2,8 +2,9 @@
 // 메일 확인 없이 직접 체크한다. 이름 + 자세히보기 내용.
 //
 //   GET    /api/assignment/tasks          → { tasks }
-//   POST   /api/assignment/tasks          { name, weekNo, detail? } → { ok, task }
-//   PUT    /api/assignment/tasks/:id      { name?, detail?, done?, doneWeek? } → { ok, task }
+//   POST   /api/assignment/tasks          { name, weekNo, detail?, dueAt? } → { ok, task }
+//   PUT    /api/assignment/tasks/:id      { name?, detail?, dueAt?, done?, doneWeek? } → { ok, task }
+// dueAt = 마감(한국 시각 'YYYY-MM-DDTHH:MM', null·'' = 마감 없음, 2026-10-02). 끝내지 않은 할 일은 TO-DO 열에도 나온다(todo.js).
 //   DELETE /api/assignment/tasks/:id      → { ok }
 //
 // 어느 주차 표에 보이나(화면이 거른다): 만든 주(weekNo)부터, 끝내지 않았으면 그 뒤 모든 주차,
@@ -15,7 +16,7 @@ export const TASK_DETAIL_MAX = 20000;
 const TASKS_MAX = 500;
 
 const toTask = r => ({
-  id: r.id, name: r.name, detail: r.detail, weekNo: r.week_no, done: !!r.done, doneWeek: r.done_week,
+  id: r.id, name: r.name, detail: r.detail, dueAt: r.due_at || null, weekNo: r.week_no, done: !!r.done, doneWeek: r.done_week,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 const week = v => {
@@ -35,6 +36,13 @@ const detail = v => {
   return s.trim() ? s : '';
 };
 
+const DUE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const due = v => {
+  if (v == null || v === '') return null;
+  if (typeof v !== 'string' || !DUE_RE.test(v)) throw new BadRequest('bad_due');
+  return v;
+};
+
 export async function listTasks(db) {
   const { results } = await db.prepare('SELECT * FROM personal_tasks ORDER BY created_at, rowid').all();
   return { tasks: results.map(toTask) };
@@ -44,12 +52,12 @@ const getRow = (db, id) => db.prepare('SELECT * FROM personal_tasks WHERE id = ?
 
 export async function createTask(db, body) {
   if (!body) throw new BadRequest('bad_body');
-  const n = name(body.name), w = week(body.weekNo), d = body.detail == null ? '' : detail(body.detail);
+  const n = name(body.name), w = week(body.weekNo), d = body.detail == null ? '' : detail(body.detail), at = due(body.dueAt);
   const { c } = await db.prepare('SELECT count(*) c FROM personal_tasks').first();
   if (c >= TASKS_MAX) throw new BadRequest('too_many_tasks');
   const id = crypto.randomUUID(), now = new Date().toISOString();
-  await db.prepare(`INSERT INTO personal_tasks (id, name, detail, week_no, done, done_week, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 0, NULL, ?, ?)`).bind(id, n, d, w, now, now).run();
+  await db.prepare(`INSERT INTO personal_tasks (id, name, detail, due_at, week_no, done, done_week, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)`).bind(id, n, d, at, w, now, now).run();
   return { ok: true, task: toTask(await getRow(db, id)) };
 }
 
@@ -57,17 +65,18 @@ export async function updateTask(db, id, body) {
   if (!body || typeof body !== 'object') throw new BadRequest('bad_body');
   const row = await getRow(db, id);
   if (!row) return null;
-  const next = { name: row.name, detail: row.detail, done: row.done, doneWeek: row.done_week };
+  const next = { name: row.name, detail: row.detail, dueAt: row.due_at, done: row.done, doneWeek: row.done_week };
   if ('name' in body) next.name = name(body.name);
   if ('detail' in body) next.detail = detail(body.detail);
+  if ('dueAt' in body) next.dueAt = due(body.dueAt);
   if ('done' in body) {
     if (typeof body.done !== 'boolean') throw new BadRequest('bad_done');
     next.done = body.done ? 1 : 0;
     // 체크한 표의 주차 — 만든 주보다 앞일 수는 없다
     next.doneWeek = body.done ? Math.max(row.week_no, body.doneWeek == null ? row.week_no : week(body.doneWeek)) : null;
   }
-  await db.prepare('UPDATE personal_tasks SET name = ?, detail = ?, done = ?, done_week = ?, updated_at = ? WHERE id = ?')
-    .bind(next.name, next.detail, next.done, next.doneWeek, new Date().toISOString(), id).run();
+  await db.prepare('UPDATE personal_tasks SET name = ?, detail = ?, due_at = ?, done = ?, done_week = ?, updated_at = ? WHERE id = ?')
+    .bind(next.name, next.detail, next.dueAt, next.done, next.doneWeek, new Date().toISOString(), id).run();
   return { ok: true, task: toTask(await getRow(db, id)) };
 }
 

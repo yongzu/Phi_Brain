@@ -52,6 +52,32 @@ test('personal tasks: add, rename, write detail, check with the table week, unch
   assert.equal((await call('PUT', `/api/assignment/tasks/${t.id}`, { done: true })).status, 404);
 });
 
+test('personal tasks: optional due date, cleared with null; unfinished ones show in the TO-DO with prefs keys', async () => {
+  const call = await client();
+  const a = (await call('POST', '/api/assignment/tasks', { name: '서류 제출', weekNo: 4, dueAt: '2026-10-05T18:00' })).body.task;
+  const b = (await call('POST', '/api/assignment/tasks', { name: '마감 없는 일', weekNo: 4 })).body.task;
+  assert.equal(a.dueAt, '2026-10-05T18:00');
+  assert.equal(b.dueAt, null);
+  assert.equal((await call('POST', '/api/assignment/tasks', { name: 'x', weekNo: 4, dueAt: '10/5' })).status, 400);
+
+  let todo = (await call('GET', '/api/assignment/todo')).body;
+  const mine = todo.items.filter(i => i.kind === 'personal');
+  assert.deepEqual(mine.map(i => [i.key, i.title, i.dueAt, i.status]), [
+    [`t:${a.id}`, '서류 제출', '2026-10-05T18:00', 'unconfirmed'],
+    [`t:${b.id}`, '마감 없는 일', null, 'unconfirmed'],
+  ]);
+
+  await call('PUT', `/api/assignment/tasks/${a.id}`, { dueAt: null });
+  await call('PUT', `/api/assignment/tasks/${b.id}`, { done: true, doneWeek: 4 }); // 끝낸 일은 TO-DO에서 빠진다
+  todo = (await call('GET', '/api/assignment/todo')).body;
+  assert.deepEqual(todo.items.filter(i => i.kind === 'personal').map(i => [i.taskId, i.dueAt]), [[a.id, null]]);
+
+  // TO-DO의 순서·메모도 개인 할 일 키를 받는다
+  const saved = await call('PUT', '/api/assignment/todo/prefs', { order: [`t:${a.id}`], memos: { [`t:${a.id}`]: '오전에' } });
+  assert.equal(saved.status, 200);
+  assert.equal((await call('PUT', '/api/assignment/todo/prefs', { order: ['t:nope'], memos: {} })).status, 400);
+});
+
 test('personal tasks: bad input refused', async () => {
   const call = await client();
   assert.equal((await call('POST', '/api/assignment/tasks', { name: '  ', weekNo: 4 })).status, 400);

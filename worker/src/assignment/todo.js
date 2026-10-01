@@ -8,6 +8,8 @@
 // 그 주(학기 달력 주차)의 항목이 생긴다. 최근 SESSION_WINDOW_DAYS일 안의 세션만. SI(한 달에 한 번)·PC(세션 없음)·
 // 나머지 과목은 만들지 않는다. 마감은 다음 주 세션 전날 23:59(세션 날 + 6일, 사용자 지시 2026-10-01 — 예전의 "공지 지각 마감,
 // 없으면 마감 미정"을 대체). 이 날짜는 할 일 목록에만 쓰고 제출 상태 판정에는 쓰지 않는다.
+// 개인 할 일(personal_tasks, tasks.js)은 끝내지 않은 것 전부 — kind 'personal', key 't:<id>', 마감은 적은 것(없으면 null)
+// (사용자 지시 2026-10-02).
 //   GET /api/assignment/memo         → { memo }        Assignment Manage 머리의 메모 한 칸(사용자 지시 2026-10-01)
 //   PUT /api/assignment/memo  { memo } → { ok, memo }  settings 테이블의 한 줄
 // prefs: 사용자가 끌어서 정한 순서(key 목록)와 항목별 한 줄 메모 — settings 테이블의 한 줄(JSON).
@@ -16,7 +18,7 @@ import { resolveStatus } from './service.js';
 import { getCourseStates } from './course-state.js';
 
 const PREFS_KEY = 'assignment_todo';
-export const TODO_KEY_RE = /^[a-z]{2,4}:\d{1,2}:[as]$/; // 과목:주차:a(과제)|s(셀프피드백)
+export const TODO_KEY_RE = /^(?:[a-z]{2,4}:\d{1,2}:[as]|t:[0-9a-f-]{36})$/; // 과목:주차:a(과제)|s(셀프피드백), t:개인 할 일 id
 export const MEMO_MAX = 200;
 const LIST_MAX = 500;
 
@@ -80,6 +82,13 @@ export async function getTodo(db, now = Date.now()) {
   // 수강기간 아님·완강 과목은 할 일에 넣지 않는다(사용자 지시 2026-10-01)
   const states = await getCourseStates(db);
   const active = items.filter(it => !states[it.courseId]);
+  const { results: personal } = await db.prepare('SELECT * FROM personal_tasks WHERE done = 0 ORDER BY created_at, rowid').all();
+  for (const t of personal) {
+    active.push({
+      key: `t:${t.id}`, taskId: t.id, courseId: null, code: '개인', name: '개인 할 일', title: t.name,
+      weekNo: t.week_no, kind: 'personal', dueAt: t.due_at || null, status: 'unconfirmed', url: null,
+    });
+  }
   active.sort((a, b) => a.weekNo - b.weekNo || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind));
   return { items: active, prefs: await getTodoPrefs(db) };
 }

@@ -9,6 +9,10 @@
   우선순위(사용자 확정 "드래그 순서 + 항목별 메모"): 항목을 끌어 같은 묶음 안 순서를 바꾸고
   (키보드: Alt+↑/↓), 항목마다 한 줄 메모를 단다. 둘 다 서버에 저장(PUT /api/assignment/todo/prefs).
   로그인해야 보인다 — 공개 상태 파일에는 공지·마감이 없다.
+
+  개인 할 일(사용자 지시 2026-10-02, assignment-tasks.js): 끝내지 않은 것이 kind 'personal'로 같이 온다. 제목 = 할 일 이름,
+  제출폼 링크 없음. 마감을 안 적었으면 맨 아래 '마감 없음' 묶음. 지난 마감은 과목 항목처럼 7일 뒤 사라지지 않고 끝낼 때까지 남는다.
+  표에서 추가·체크·고치면 assignment-tasks.js가 phibrain:assignment-tasks-changed로 알려 다시 읽는다.
 */
 (() => {
   const $ = (s, root = document) => root.querySelector(s);
@@ -21,7 +25,7 @@
   const DAY = 864e5, WINDOW = 7 * DAY; // 지난 마감은 7일까지만, '이번 주' = 앞으로 7일
   const DOW = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const DONE = new Set(['confirmed_mail', 'confirmed_manual', 'not_applicable']);
-  const GROUPS = [['past', '지난 마감'], ['week', '이번 주'], ['later', '다음']];
+  const GROUPS = [['past', '지난 마감'], ['week', '이번 주'], ['later', '다음'], ['none', '마감 없음']];
   const KIND_LABEL = { assignment: '과제', self_feedback: '셀프피드백' };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const safeHref = url => (typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null);
@@ -34,9 +38,12 @@
   let dragKey = null;
   let pendingRender = false;
 
+  const isPersonal = item => item.kind === 'personal';
+  const dueMs = item => (item.dueAt ? kstMs(item.dueAt) : Infinity);
   function groupOf(item, now) {
+    if (!item.dueAt) return 'none';
     const due = kstMs(item.dueAt);
-    if (due < now) return now - due <= WINDOW ? 'past' : null;
+    if (due < now) return isPersonal(item) || now - due <= WINDOW ? 'past' : null;
     return due - now <= WINDOW ? 'week' : 'later';
   }
   const isDone = item => DONE.has(item.status);
@@ -45,7 +52,7 @@
     return i < 0 ? Infinity : i;
   }
   // 끌어서 정한 순서가 먼저, 아직 안 건드린 항목은 마감 → 과목 → 과제·셀프피드백 순
-  const byPriority = (a, b) => rank(a) - rank(b) || kstMs(a.dueAt) - kstMs(b.dueAt) || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind);
+  const byPriority = (a, b) => rank(a) - rank(b) || dueMs(a) - dueMs(b) || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind);
 
   function setHint(text) { hintEl.textContent = text || ''; hintEl.hidden = !text; }
 
@@ -69,21 +76,21 @@
   }
 
   function renderItem(it) {
-    const [y, m, d] = it.dueAt.slice(0, 10).split('-').map(Number);
-    const dow = DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
-    const title = `${it.code} ${it.weekNo}주차 ${KIND_LABEL[it.kind] || ''}`;
+    const [y, m, d] = (it.dueAt || '').slice(0, 10).split('-').map(Number);
+    const dow = it.dueAt ? DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()] : '';
+    const title = isPersonal(it) ? it.title : `${it.code} ${it.weekNo}주차 ${KIND_LABEL[it.kind] || ''}`;
     const href = safeHref(it.url);
     const memo = prefs.memos[it.key] || '';
     const memoPart = editingKey === it.key
       ? `<input type="text" class="am-todo-memo-input" maxlength="200" value="${esc(memo)}" aria-label="${esc(title)} 메모" placeholder="먼저 할 것, 순서 이유 등 한 줄">`
       : memo ? `<button type="button" class="am-todo-memo" data-todo-memo title="눌러서 메모 고치기">${esc(memo)}</button>` : '';
-    return `<li class="am-todo-item" data-key="${esc(it.key)}" draggable="true" tabindex="0" aria-label="${esc(`${m}월 ${d}일 ${dow} 마감, ${it.name}, ${title}`)}">
+    return `<li class="am-todo-item" data-key="${esc(it.key)}" draggable="true" tabindex="0" aria-label="${esc(`${it.dueAt ? `${m}월 ${d}일 ${dow} 마감` : '마감 없음'}, ${it.name}, ${title}`)}">
       <span class="am-todo-grip" aria-hidden="true">⠿</span>
       <span class="am-todo-body">
         <span class="am-todo-course">${esc(it.name)}</span>
         ${href ? `<a class="am-todo-title" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)} 제출폼 열기" draggable="false">${esc(title)}</a>` : `<span class="am-todo-title">${esc(title)}</span>`}
         ${memoPart}
-        <span class="fi-due am-todo-due" title="${m}월 ${d}일 ${dow}">마감 ${m}월 ${d}일 ${esc(it.dueAt.slice(11, 16))}</span>
+        ${it.dueAt ? `<span class="fi-due am-todo-due" title="${m}월 ${d}일 ${dow}">마감 ${m}월 ${d}일 ${esc(it.dueAt.slice(11, 16))}</span>` : ''}
       </span>
       ${memo || editingKey === it.key ? '' : `<button type="button" class="pill am-todo-memo-btn" data-todo-memo aria-label="${esc(title)} 메모 달기">메모</button>`}
     </li>`;
@@ -229,6 +236,7 @@
 
   // 표가 다시 그려질 때(주차 이동·새로고침·과제 내용 저장·직접 확인) 같이 새로 읽는다 — assignment.js가 알려 준다
   document.addEventListener('phibrain:assignment-rendered', scheduleLoad);
+  document.addEventListener('phibrain:assignment-tasks-changed', scheduleLoad);
   auth.onChange(scheduleLoad);
   addEventListener('focus', () => { if (pendingRender) render(); });
 })();
