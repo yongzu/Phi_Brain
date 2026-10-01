@@ -7,6 +7,19 @@
 
 ## 현재 단계
 
+### Assignment Manage 메모: 서식 툴바 · 흰 바탕 · 안내 문구 (2026-10-01, 사용자 지시 · Claude Code)
+
+- `home.html`: `textarea#am-memo` → `.am-memo-box`(흰 바탕 + `--line` 테두리) 안에 Future Item 작성칸과 같은 툴바(`.editor-tools.am-memo-tools`: B·I·U·S·하이라이트 3색·인용·코드)
+  + `div#am-memo.fi-rich[contenteditable]`. 안내 문구(placeholder, `data-placeholder`): "어떤 과제부터, 어떻게 해 볼까요? 이번 주 계획을 가볍게 적어 두세요."
+  (사용자 원문 "어떤과제부터할지, 어떻게할지 적어보세요!"를 다듬음).
+- `journal.js?v=20261001-1`: 서식 툴바·Ctrl+H·실행 취소 기록이 `#am-memo`도 맡는다(`rootForButton`의 `.am-memo-box`, `rootOfSelection`, `memoHistory`, 키·입력 리스너). 
+  `future.js?v=20261001-1`: `window.PhiBrain.rich = { cleanRich, richToText }`로 Future Item의 HTML 정리 규칙을 내보냄.
+- `assignment-memo.js?v=20261001-2`: 저장 값 = `cleanRich`로 정리한 HTML(글자가 없으면 빈 값). 바뀜은 `MutationObserver`로 잡는다(툴바 서식·실행 취소는 input 이벤트가 안 날 수 있어서).
+  예전 글자만의 메모는 줄마다 `<p>`로 읽는다. 붙여넣기는 글자만. Worker 메모 한도 5000 → 20000자(HTML이라).
+- `phi-brain.css?v=20261001-8`: `.am-memo-box`·`.am-memo-tools`·`.am-memo.is-empty::before`. 빈 칸 높이 187px 그대로(상자 234px = 툴바 포함).
+- 검증: `worker` `node --test` 98/98. 로컬 5511(로그아웃): 예전 메모 "옛 메모 1줄\n2줄" → 두 문단, 툴바 버튼 7 + 색 ▾, 굵게·Ctrl+H 하이라이트 → 이 브라우저에 HTML 저장,
+  Ctrl+Z 되돌림, 비우면 안내 문구·저장값 삭제, 상자 흰 바탕·#EDEDED 테두리. 커밋·푸시·Worker 배포 전.
+
 ### TO-DO 마감 배지 · 메모 칸 기본 높이 (2026-10-01, 사용자 지시 · Claude Code)
 
 - TO-DO 항목 왼쪽 날짜 칸(`.am-todo-date`, 일·요일)을 없애고 마감을 Future Item 마감 배지(`.fi-due` + `.am-todo-due`, "마감 10월 5일 23:59")로

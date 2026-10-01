@@ -110,7 +110,7 @@ export async function saveTodoPrefs(db, body) {
 
 // ---- Assignment Manage 메모(사용자 지시 2026-10-01): 페이지 머리의 여러 줄 메모 한 칸 ----
 const MEMO_KEY = 'assignment_memo';
-export const PAGE_MEMO_MAX = 5000;
+export const PAGE_MEMO_MAX = 20000; // 서식(HTML)으로 저장하므로 글자 수보다 넉넉히(2026-10-01, 5000 → 20000)
 
 export async function getPageMemo(db) {
   const row = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(MEMO_KEY).first();

@@ -1352,7 +1352,7 @@
     },
     useBackend(b) { backend = b || { save: persistState }; },
   };
-  window.PhiBrain = { COURSES, ALIASES, future, futureStore, show, getCurrentView: () => currentView, ui: { popIn, popOut, toast } };
+  window.PhiBrain = { COURSES, ALIASES, future, futureStore, show, getCurrentView: () => currentView, ui: { popIn, popOut, toast }, rich: { cleanRich, richToText } };
   // the hash is the address of a view/filter: first load, an edited URL, back/forward
   // (our own replaceState calls don't fire hashchange, so this never loops)
   const route = () => {

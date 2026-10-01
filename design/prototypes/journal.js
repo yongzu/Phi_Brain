@@ -406,14 +406,16 @@
   // 툴바 버튼 → 그 툴바가 서식을 거는 에디터
   // Future Item 작성칸(#fi-input)도 같은 툴바·단축키·실행 취소를 쓴다(사용자 지시 2026-09-22)
   const fiInput = document.getElementById('fi-input');
-  const rootForButton = btn => btn.closest('.findings-card')?.querySelector('.findings-edit') || (btn.closest('.fi-composer') && fiInput) || editor;
+  // Assignment Manage 메모 칸(#am-memo)도 같은 툴바·단축키·실행 취소(사용자 지시 2026-10-01). 저장은 assignment-memo.js
+  const amMemo = document.getElementById('am-memo');
+  const rootForButton = btn => btn.closest('.findings-card')?.querySelector('.findings-edit') || (btn.closest('.fi-composer') && fiInput) || (btn.closest('.am-memo-box') && amMemo) || editor;
   // 선택(캐럿)이 들어있는 에디터 — 둘 다 아니면 null
   const rootOfSelection = () => {
     const s = getSelection();
     if (!s.rangeCount) return null;
     const el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
     if (editor.contains(el)) return editor;
-    return el?.closest('.findings-edit, #fi-input') || null;
+    return el?.closest('.findings-edit, #fi-input, #am-memo') || null;
   };
 
   function toggleQuote() {
@@ -520,12 +522,13 @@
     return { html: root.innerHTML, a, b };
   }
   const newHistory = root => ({ stack: [snapshot(root)], i: 0, typing: false, t: 0 });
-  let editorHistory = null, findingsHistory = null, composerHistory = null;
+  let editorHistory = null, findingsHistory = null, composerHistory = null, memoHistory = null;
   const historyOf = root => (root === editor ? (editorHistory ||= newHistory(editor))
     : root === fiInput ? (composerHistory ||= newHistory(fiInput))
+    : root === amMemo ? (memoHistory ||= newHistory(amMemo))
     : root ? (findingsHistory ||= newHistory(root)) : null);
   // Findings 수정 칸이면 편집 중 초안도 같이 맞춘다
-  const syncDraft = root => { if (root !== editor && root !== fiInput) findingsDraft = root.innerHTML; };
+  const syncDraft = root => { if (root !== editor && root !== fiInput && root !== amMemo) findingsDraft = root.innerHTML; };
   // 바뀌기 직전 캐럿을 지금 칸에 적어 둔다 — 되돌리면 그 자리로 돌아가게
   function noteCaret(root) {
     const h = historyOf(root);
@@ -753,6 +756,13 @@
     fiInput.addEventListener('input', e => { if (isTypingInput(e.inputType)) scrubTypingStyles(fiInput); recordEdit(fiInput, isTypingInput(e.inputType)); });
     fiInput.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
     fiInput.addEventListener('phibrain:composer-reset', () => { composerHistory = newHistory(fiInput); });
+  }
+  if (amMemo) {
+    amMemo.addEventListener('keydown', e => richKeydown(e, amMemo));
+    amMemo.addEventListener('beforeinput', e => richBeforeInput(e, amMemo));
+    amMemo.addEventListener('input', e => { if (isTypingInput(e.inputType)) scrubTypingStyles(amMemo); recordEdit(amMemo, isTypingInput(e.inputType)); });
+    amMemo.addEventListener('focus', () => document.execCommand('defaultParagraphSeparator', false, 'p'));
+    amMemo.addEventListener('phibrain:memo-loaded', () => { memoHistory = newHistory(amMemo); }); // 서버·브라우저에서 새로 불러오면 기록도 새로
   }
   // paste as plain text so Discord/Notion styling doesn't leak in. Findings 수정 에디터는
   // 한 과목의 Finding 조각이라 4F 소제목·과목 박스를 새로 만들지 않고 줄과 **굵게**만 살린다

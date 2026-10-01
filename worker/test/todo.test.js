@@ -103,6 +103,6 @@ test('Assignment Manage page memo: locked without a session, multi-line saved, b
   assert.deepEqual((await call('GET', '/api/assignment/memo')).body, { memo: 'TF 레퍼런스\n  VT 스케치 3장' });
   assert.deepEqual((await call('PUT', '/api/assignment/memo', { memo: '  \n ' })).body, { ok: true, memo: '' });
   assert.deepEqual((await call('GET', '/api/assignment/memo')).body, { memo: '' });
-  assert.equal((await call('PUT', '/api/assignment/memo', { memo: '가'.repeat(5001) })).status, 400);
+  assert.equal((await call('PUT', '/api/assignment/memo', { memo: '가'.repeat(20001) })).status, 400);
   assert.equal((await call('PUT', '/api/assignment/memo', { memo: 3 })).status, 400);
 });
