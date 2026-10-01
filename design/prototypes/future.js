@@ -132,7 +132,12 @@
   const hasFormatting = html => /<(b|strong|i|em|u|s|strike|mark|code|blockquote)\b/i.test(html);
   const saneDue = v => (typeof v === 'string' && v) ? v : null;
 
-  const sane = item => { const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) }; return isKey(keyOf(normalized)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null }; }; // unknown course → 임시, text kept
+  // 저널 줄 앞의 "1. "·"1) " 번호는 떼고 담는다 — 박스가 1, 2, 3… 번호를 따로 붙여 "1. 1. …"로 겹쳐 보였다(사용자 제보 2026-10-01).
+  // "3.5점" 같은 소수는 번호가 아니다(Findings 넘버링과 같은 규칙). 저널에서 온 항목만 — 원문 줄(source.text)은 그대로라
+  // 다시 등록할 때 중복 확인은 예전처럼 원문으로 한다. 이미 들어간 항목도 불러올 때 같이 정리된다.
+  const stripLeadNum = t => (typeof t === 'string' ? t.replace(/^\s*\d{1,3}[.)](?!\d)\s*/, '') : t);
+  const textOf = item => (item.source ? stripLeadNum(item.text) : item.text);
+  const sane = item => { const normalized = { ...item, text: textOf(item), courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) }; return isKey(keyOf(normalized)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null }; }; // unknown course → 임시, text kept
   // sane custom-box list: only well-shaped {id,name} entries, deduped by id
   const saneCustomBoxes = list => Array.isArray(list)
     ? [...new Map(list.filter(b => b && typeof b.id === 'string' && typeof b.name === 'string' && b.name.trim())
@@ -147,7 +152,7 @@
       // key set instead of the shared isKey()/BOX_KEYS to avoid the order dependency.
       const knownKeys = new Set(['general', ...COURSES.map(c => `course:${c[0]}`), ...customBoxes.map(b => `custom:${b.id}`)]);
       const saneWithKeys = item => {
-        const normalized = { ...item, courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) };
+        const normalized = { ...item, text: textOf(item), courseId: ALIASES[item.courseId] || item.courseId, dueAt: saneDue(item.dueAt) };
         const key = normalized.scope === 'course' ? `course:${normalized.courseId}` : normalized.scope === 'custom' ? `custom:${normalized.customId}` : normalized.scope;
         return (key === 'unassigned' || knownKeys.has(key)) ? normalized : { ...normalized, scope: 'unassigned', courseId: null, customId: null };
       };
@@ -1302,7 +1307,7 @@
         entries.forEach((e, n) => {
           if (s.items.some(i => i.source?.journalDate === date && i.source?.text === e.text)) return;
           const code = ALIASES[e.course] || e.course;
-          s.items.push(newItem(e.text, code === 'general' ? 'general' : code && BOX_KEYS.includes(`course:${code}`) ? `course:${code}` : 'unassigned',
+          s.items.push(newItem(stripLeadNum(e.text), code === 'general' ? 'general' : code && BOX_KEYS.includes(`course:${code}`) ? `course:${code}` : 'unassigned',
             { journalDate: date, text: e.text }, now - n)); // keep the journal's line order: first line on top
           added++;
         });
