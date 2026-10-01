@@ -18,7 +18,8 @@
   예전 글자만의 메모는 줄마다 `<p>`로 읽는다. 붙여넣기는 글자만. Worker 메모 한도 5000 → 20000자(HTML이라).
 - `phi-brain.css?v=20261001-8`: `.am-memo-box`·`.am-memo-tools`·`.am-memo.is-empty::before`. 빈 칸 높이 187px 그대로(상자 234px = 툴바 포함).
 - 검증: `worker` `node --test` 98/98. 로컬 5511(로그아웃): 예전 메모 "옛 메모 1줄\n2줄" → 두 문단, 툴바 버튼 7 + 색 ▾, 굵게·Ctrl+H 하이라이트 → 이 브라우저에 HTML 저장,
-  Ctrl+Z 되돌림, 비우면 안내 문구·저장값 삭제, 상자 흰 바탕·#EDEDED 테두리. 커밋·푸시·Worker 배포 전.
+  Ctrl+Z 되돌림, 비우면 안내 문구·저장값 삭제, 상자 흰 바탕·#EDEDED 테두리.
+- 배포(사용자 지시): 커밋 b5bb7b1 푸시, Worker `wrangler deploy` → 버전 `42ba05b0`, health {ok:true}, Pages에 새 assignment-memo.js 확인.
 
 ### TO-DO 마감 배지 · 메모 칸 기본 높이 (2026-10-01, 사용자 지시 · Claude Code)
 
