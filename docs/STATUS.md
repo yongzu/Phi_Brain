@@ -7,7 +7,7 @@
 
 ## 현재 단계
 
-### Assignment Manage: 과목 이름 메뉴 — 수강기간 아님 · 완강 · 휴강 (2026-10-01, 사용자 지시 · Claude Code)
+### Assignment Manage: 과목 이름 메뉴 — 수강기간 아님 · 완강 · 휴강 (2026-10-01, 사용자 지시 · Claude Code) — **푸시(b053bab)·Worker 배포 완료(944987d0)**
 
 - 같은 날 먼저 만든 "스킵" 버튼(Figma ↗ 오른쪽, 과제·셀프피드백 둘 다 해당 없음)은 푸시 전에 이 메뉴로 대체했다.
 - Worker: 새 `src/assignment/course-state.js`(settings `assignment_course_states` = `{ ewa: 'completed', … }`, `GET /course-states`, `PUT /course-states/:id { state }`,
@@ -20,7 +20,8 @@
   그 자리를 쓴다 — 가장 긴 줄 여유 33px). `.am-state-tag`, `.am-course-name[aria-expanded]`.
 - 검증: `worker` `node --test` 98/98(새 `test/course-state.test.js` 2개 — 저장·전환·해제·잘못된 값, 행 표시·완료 수 24 → 20·TO-DO 제외).
   로컬 5511 세션·API 스텁: 메뉴 첫 항목 포커스, 확인 문구·취소 시 요청 없음, EWA 완강·IAE 수강기간 아님 → 맨 아래 회색·상태 글자·토스트, TF 휴강 → 셀프피드백만 해당 없음·`휴강` 글자,
-  BI(셀프피드백 메일 확인) 휴강 비활성, 켜진 항목은 "…해제". 실제 서버로는 확인 못 함. 커밋·푸시·Worker 배포 전.
+  BI(셀프피드백 메일 확인) 휴강 비활성, 켜진 항목은 "…해제". 실제 서버로는 확인 못 함.
+- 배포(사용자 지시): 커밋 b053bab 푸시, Worker `wrangler deploy` → 버전 `944987d0`, health {ok:true}, 세션 없이 `/api/assignment/course-states` 401, Pages에 새 assignment.js 확인.
 
 ### 셀프피드백 마감 규칙 · 상단 안내 문구 제거 · Assignment Manage 제목 20px · 메모 칸 (2026-10-01, 사용자 지시 · Claude Code)
 
