@@ -9,7 +9,8 @@
   assignment.js가 표를 다 그릴 때마다 보내는 phibrain:assignment-rendered를 받아, 과목 줄(수강기간 아님·완강 줄 앞)
   뒤에 끼워 넣는다. 완료 수(완료 N / M)는 제출 현황이라 개인 할 일은 세지 않는다.
 
-  마감(사용자 지시 2026-10-02): 추가 줄과 자세히보기에서 날짜·시간을 적을 수 있다(선택, 비우면 마감 없음). 표에는 과목 줄의
+  마감(사용자 지시 2026-10-02): 추가 줄과 자세히보기에서 날짜·시간을 적을 수 있다(선택, 비우면 마감 없음).
+  고르는 칸은 Future Item 작성칸의 마감과 똑같은 것(● 마감 → 달력 · 오전/오후·시·분, due-picker.js — 같은 날 사용자 지시로 브라우저 기본 칸을 대체). 표에는 과목 줄의
   과제 마감과 같은 배지로, 끝내지 않은 할 일은 오른쪽 TO-DO 열에도 나온다 — 바뀔 때마다 phibrain:assignment-tasks-changed로 알린다.
 */
 (() => {
@@ -30,6 +31,7 @@
   let tasks = null; // null = 아직 안 불러옴
   let week = null, live = false;
   let adding = false; // "+ 할 일 추가" 줄이 입력칸으로 바뀐 상태
+  let addDue = null; // 추가 줄에서 고른 마감('YYYY-MM-DDTHH:MM') — 다시 그려도 남게
   let open = null; // 자세히보기 팝업: { id, name, detail } — 고치는 중인 값
 
   // 자세히보기 팝업 — 과제 내용 팝업과 같은 모양(.am-detail.is-note), 따로 둔다
@@ -74,7 +76,7 @@
   }
   const addRowHtml = () => `<tr class="am-task-add-row" data-am-group="task-add"><td colspan="4">${adding
     ? `<span class="am-task-add-form"><input type="text" class="am-task-add-input" maxlength="${NAME_MAX}" placeholder="할 일 이름 — Enter로 추가, Esc로 취소" aria-label="새 할 일 이름">
-        <label class="am-task-due-field">마감<input type="datetime-local" class="am-task-add-due" aria-label="새 할 일 마감(선택)"></label></span>`
+        <span class="am-task-add-due-slot"></span></span>`
     : '<button type="button" class="pill pill-start am-task-add" data-task-add>+ 할 일 추가</button>'}</td></tr>`;
 
   function draw() {
@@ -84,6 +86,8 @@
     // 과목 줄 뒤, 수강기간 아님·완강(회색) 줄 앞
     const firstOff = tbody.querySelector('tr.is-off');
     firstOff ? firstOff.insertAdjacentHTML('beforebegin', html) : tbody.insertAdjacentHTML('beforeend', html);
+    const slot = tbody.querySelector('.am-task-add-due-slot');
+    if (slot) slot.append(window.PhiBrain.duePicker({ value: addDue, onChange: v => { addDue = v; } }).el);
     if (adding) tbody.querySelector('.am-task-add-input')?.focus({ preventScroll: true });
     placePop();
   }
@@ -94,7 +98,7 @@
     if (live && tasks === null) await load();
     draw();
   });
-  auth.onChange(() => { tasks = null; adding = false; closePop(false); });
+  auth.onChange(() => { tasks = null; adding = false; addDue = null; closePop(false); });
 
   // ---- 추가 ----
   async function create(name, dueAt) {
@@ -181,7 +185,7 @@
       <button type="button" class="am-detail-close" data-task-pop="close" aria-label="닫기">✕</button>
       <input type="text" class="am-task-title-input" maxlength="${NAME_MAX}" value="${esc(open.name)}" aria-label="할 일 이름">
       <p class="am-task-meta">개인 할 일 · ${t.weekNo}주차에 추가${t.done ? ` · ${t.doneWeek ?? t.weekNo}주차에 완료` : ''}</p>
-      <label class="am-task-due-field am-task-pop-due">마감<input type="datetime-local" class="am-task-due-input" value="${esc(open.dueAt)}" aria-label="마감(선택 — 비우면 마감 없음)"></label>
+      <div class="am-task-pop-due"></div>
       <textarea class="am-note-input" aria-label="할 일 내용" placeholder="무엇을, 어떻게 할지 적어 두세요">${esc(open.detail)}</textarea>
       <div class="am-detail-actions am-task-actions">
         ${open.confirmDelete
@@ -191,6 +195,7 @@
           : `<button type="button" class="pill pill-start" data-task-pop="delete">삭제</button>
              <button type="button" class="btn-primary" data-task-pop="save">저장</button>`}
       </div>`;
+    pop.querySelector('.am-task-pop-due').append(window.PhiBrain.duePicker({ value: open.dueAt || null, onChange: v => { if (open) open.dueAt = v || ''; } }).el);
   }
   const changed = () => {
     const t = open && tasks.find(x => x.id === open.id);
@@ -219,10 +224,8 @@
     if (!open) return;
     if (e.target.matches('.am-task-title-input')) open.name = e.target.value;
     if (e.target.matches('.am-note-input')) open.detail = e.target.value;
-    if (e.target.matches('.am-task-due-input')) open.dueAt = e.target.value;
   };
   pop.addEventListener('input', onField);
-  pop.addEventListener('change', onField); // 날짜·시간 칸은 고른 뒤 change만 오는 경우가 있다
   pop.addEventListener('click', e => {
     const act = e.target.closest('[data-task-pop]')?.dataset.taskPop;
     if (!act || !open) return;
@@ -251,7 +254,7 @@
     const check = e.target.closest('[data-task-check]');
     const openBtn = e.target.closest('[data-task-open]');
     const add = e.target.closest('[data-task-add]');
-    if (!check && !openBtn && !add && !e.target.closest('.am-task-row,.am-task-add-row')) return;
+    if (!check && !openBtn && !add) return; // 추가 줄의 마감 고르기 등은 그대로 흘려보낸다
     e.stopPropagation();
     if (check) toggle(check.dataset.taskCheck);
     else if (openBtn) open?.id === openBtn.dataset.taskOpen ? closePop() : (closePop(), openPop(openBtn.dataset.taskOpen));
@@ -259,29 +262,29 @@
   }, true);
   tbody.addEventListener('dblclick', e => { if (e.target.closest('.am-task-row')) e.stopPropagation(); }, true);
   tbody.addEventListener('keydown', e => {
-    if (!e.target.closest('.am-task-add-input,.am-task-add-due')) return;
-    const input = tbody.querySelector('.am-task-add-input'), dueInput = tbody.querySelector('.am-task-add-due');
+    const input = e.target.closest('.am-task-add-input');
+    if (!input) return;
     if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
       const name = input.value.replace(/\s+/g, ' ').trim();
-      if (!name) { input.focus(); return; }
-      const dueAt = dueInput.value;
-      input.value = ''; dueInput.value = '';
-      create(name, dueAt); // 입력칸은 열어 둔다 — 여러 개를 이어서 적을 수 있게
+      if (!name) return;
+      const dueAt = addDue;
+      input.value = ''; addDue = null;
+      create(name, dueAt); // 입력칸은 열어 둔다 — 여러 개를 이어서 적을 수 있게(마감은 다시 비움)
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      adding = false;
+      adding = false; addDue = null;
       draw();
       tbody.querySelector('[data-task-add]')?.focus();
     }
   });
   tbody.addEventListener('focusout', e => {
-    if (!e.target.matches?.('.am-task-add-input,.am-task-add-due')) return;
+    if (!e.target.closest?.('.am-task-add-form')) return;
     // 이름·마감을 다 비운 채 추가 줄 밖으로 가면 버튼으로 되돌린다(다시 그리는 중의 잠깐 사라짐·마감 칸으로 옮겨 가는 것은 무시)
     setTimeout(() => {
       const form = tbody.querySelector('.am-task-add-form');
       if (!adding || !form || form.contains(document.activeElement)) return;
-      if (form.querySelector('.am-task-add-input').value.trim() || form.querySelector('.am-task-add-due').value) return;
+      if (form.querySelector('.am-task-add-input').value.trim() || addDue) return;
       adding = false; draw();
     }, 0);
   });

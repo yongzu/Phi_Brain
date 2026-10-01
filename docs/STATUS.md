@@ -7,6 +7,19 @@
 
 ## 현재 단계
 
+### 개인 할 일 마감 칸을 Future Item 마감과 같게 (2026-10-02, 사용자 지시 · Claude Code) — **푸시 완료(화면만, Worker 배포 불필요)**
+
+- 사용자 지적: 브라우저 기본 날짜·시간 칸(`datetime-local`)이 Future Item의 마감과 달라 통일성을 해친다.
+- 새 파일 `due-picker.js?v=20261002-1`: `window.PhiBrain.duePicker({ value, onChange })` — Future Item 작성칸과 같은 마크업·CSS
+  (`.fi-due-row` · `.fi-check` "● 마감" → `.date-field` 날짜 pill + `.datepicker` 달력, 시간 pill + `.tp-panel` 오전/오후·시·분, 지우기·지금·오늘).
+  동작도 같다 — 켜면 오늘 · 오후 11:59, 날짜만 고르면 11:59, 한 열을 골라도 시간 창은 열려 있음. 인스턴스 여러 개, 창은 `position:fixed`로 단추 옆(팝업 스크롤에 잘리지 않게),
+  Esc는 창만 닫는다. `future.js`는 자기 id에 묶여 있어 건드리지 않았다(두 벌 — 마감 UI를 바꾸면 둘 다).
+- `assignment-tasks.js?v=20261002-3`: 추가 줄·자세히보기의 `datetime-local`을 이 컴포넌트로. 표 클릭 캡처가 추가 줄의 클릭까지 막던 것을 체크·자세히보기·추가 단추만으로 좁힘.
+  `phi-brain.css?v=20261002-3`: `.am-task-due-field` 삭제.
+- 검증(로컬 스텁 임시 페이지 — 삭제함): 화면에 `datetime-local` 0개, 켜기 → "마감 10월 2일 ▾ 오후 11:59 ▾", 달력에서 5일·시간 오후 6:00 → 추가 시 `2026-10-05T18:00`,
+  추가 뒤 마감 칸 초기화, 바깥 클릭으로 시간 창 닫힘, 자세히보기에서 기존 마감 표시·달력 다음 달 7일 → 저장 `2026-10-07T18:00`, 체크 끄고 저장 → null,
+  달력 창 Esc → 창만 닫히고 팝업 유지. 날짜 pill·체크 원의 글자 크기·색·여백·모서리가 Future Item과 같은 값.
+
 ### 개인 할 일: 마감 · TO-DO 열에 표시 (2026-10-02, 사용자 지시 · Claude Code) — **푸시·원격 D1 0011(첫 시도 API 오류, 재실행 통과)·Worker 배포 완료(dfa607d6)**
 
 - Worker: `migrations/0011_personal_task_due.sql`(`personal_tasks.due_at`), `tasks.js` POST/PUT에 `dueAt`('YYYY-MM-DDTHH:MM' 한국 시각, null·'' = 없음).

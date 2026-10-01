@@ -661,11 +661,9 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .am-task-row.is-done .am-task-name{color:var(--gray);text-decoration:line-through}
 .am-task-add-row td{padding-top:6px}
 .am-task-add{margin-left:calc(27px - var(--tab-pad-x))}
-/* 추가 줄 = 이름 + 마감(선택, 2026-10-02). 마감 칸은 과제 공지의 마감 입력(.am-note-fields input)과 같은 옅은 채움 */
+/* 추가 줄 = 이름 + 마감(선택, 2026-10-02). 마감은 Future Item 작성칸과 같은 ● 마감 · 날짜 · 시간(due-picker.js, .fi-due-row 그대로) */
 .am-task-add-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;margin-left:27px}
-.am-task-due-field{display:inline-flex;align-items:center;gap:8px;color:var(--gray)}
-.am-task-due-field input{font:inherit;color:var(--ink);background:var(--fill);border:0;border-radius:var(--radius-sm);padding:3px 6px;min-width:0}
-.am-task-pop-due{margin:0 0 10px}
+.am-task-pop-due{margin:0 0 10px;min-height:31px} /* 마감 줄 — 끄면 체크만, 켜면 날짜·시간 pill(높이 그대로) */
 .am-task-add-input{width:min(360px,100%);padding:4px 0;border:0;border-bottom:1px solid var(--gray);background:none;color:var(--ink);font:inherit}
 .am-task-add-input:focus-visible{outline:0}
 /* 자세히보기 팝업: 맨 위 이름 입력(제목처럼), 그 아래 회색 한 줄, 내용 칸, 아래 삭제 · 저장 */
