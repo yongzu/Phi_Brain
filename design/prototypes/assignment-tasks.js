@@ -1,0 +1,264 @@
+/*
+  Assignment Manage — 개인 할 일 줄(사용자 지시 2026-10-02).
+
+  과목이 아닌 개인적인 할 일을 표에 줄로 더한다. 메일 확인은 하지 않고 직접 체크한다
+  (Assignment 칸 = 완료 / 미완료 버튼). 이름 + "자세히보기"로 내용을 적는다. Self-Feedback 칸은 비운다.
+  서버 /api/assignment/tasks(worker/src/assignment/tasks.js) — 로그인해야 보인다(읽기 전용 표에는 없음).
+
+  어느 주차 표에 보이나: 만든 주부터, 끝내지 않았으면 그 뒤 모든 주차(이월), 끝냈으면 체크한 표의 주차까지.
+  assignment.js가 표를 다 그릴 때마다 보내는 phibrain:assignment-rendered를 받아, 과목 줄(수강기간 아님·완강 줄 앞)
+  뒤에 끼워 넣는다. 완료 수(완료 N / M)는 제출 현황이라 개인 할 일은 세지 않는다.
+*/
+(() => {
+  const $ = (s, root = document) => root.querySelector(s);
+  const tbody = $('#am-tbody');
+  if (!tbody) return;
+  const auth = window.PhiBrain.auth;
+  const { ui: { popIn, popOut, toast } } = window.PhiBrain;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const NAME_MAX = 100;
+
+  let tasks = null; // null = 아직 안 불러옴
+  let week = null, live = false;
+  let adding = false; // "+ 할 일 추가" 줄이 입력칸으로 바뀐 상태
+  let open = null; // 자세히보기 팝업: { id, name, detail } — 고치는 중인 값
+
+  // 자세히보기 팝업 — 과제 내용 팝업과 같은 모양(.am-detail.is-note), 따로 둔다
+  const pop = document.createElement('div');
+  pop.className = 'am-detail is-note am-task-detail';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', '할 일 자세히보기');
+  pop.hidden = true;
+  $('#view-assignment').append(pop);
+
+  const api = (path, opts) => auth.fetch(`/api/assignment/tasks${path}`, opts);
+  const jsonOpts = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  async function load() {
+    if (!auth.session) { tasks = null; return; }
+    try {
+      const res = await api('');
+      if (res.ok) tasks = (await res.json()).tasks || [];
+    } catch {}
+  }
+
+  const visibleIn = (t, w) => t.weekNo <= w && (!t.done || (t.doneWeek ?? t.weekNo) >= w);
+
+  function rowHtml(t) {
+    const doneLabel = t.done ? '완료' : '미완료';
+    return `<tr data-am-row="task:${esc(t.id)}" data-am-group="task" class="am-task-row${t.done ? ' is-done' : ''}">
+      <td><span class="am-cell">
+        <span class="am-task-name" title="${esc(t.name)}">${esc(t.name)}</span>
+        <span class="am-week-tag">개인</span>
+      </span></td>
+      <td><span class="am-cell">
+        <button type="button" class="am-status am-task-check${t.done ? ' is-confirmed' : ''}" data-task-check="${esc(t.id)}" aria-pressed="${t.done}" aria-label="${esc(t.name)} — ${doneLabel}, 눌러서 ${t.done ? '미완료로' : '완료로'}">
+          <span class="am-dot am-dot-${t.done ? 'confirmed_manual' : 'unconfirmed'}" aria-hidden="true"></span><span>${doneLabel}</span>
+        </button>
+      </span></td>
+      <td><span class="am-note-cell">
+        <button type="button" class="am-note-btn${t.detail ? ' is-set' : ''}" data-task-open="${esc(t.id)}" aria-haspopup="dialog" aria-label="${esc(t.name)} 자세히보기">자세히보기</button>
+      </span></td>
+      <td></td>
+    </tr>`;
+  }
+  const addRowHtml = () => `<tr class="am-task-add-row" data-am-group="task-add"><td colspan="4">${adding
+    ? `<input type="text" class="am-task-add-input" maxlength="${NAME_MAX}" placeholder="할 일 이름 — Enter로 추가, Esc로 취소" aria-label="새 할 일 이름">`
+    : '<button type="button" class="pill pill-start am-task-add" data-task-add>+ 할 일 추가</button>'}</td></tr>`;
+
+  function draw() {
+    tbody.querySelectorAll('.am-task-row,.am-task-add-row').forEach(tr => tr.remove());
+    if (!live || tasks === null || week == null) return;
+    const html = tasks.filter(t => visibleIn(t, week)).map(rowHtml).join('') + addRowHtml();
+    // 과목 줄 뒤, 수강기간 아님·완강(회색) 줄 앞
+    const firstOff = tbody.querySelector('tr.is-off');
+    firstOff ? firstOff.insertAdjacentHTML('beforebegin', html) : tbody.insertAdjacentHTML('beforeend', html);
+    if (adding) tbody.querySelector('.am-task-add-input')?.focus({ preventScroll: true });
+    placePop();
+  }
+
+  document.addEventListener('phibrain:assignment-rendered', async e => {
+    week = e.detail?.week ?? null;
+    live = !!e.detail?.live;
+    if (live && tasks === null) await load();
+    draw();
+  });
+  auth.onChange(() => { tasks = null; adding = false; closePop(false); });
+
+  // ---- 추가 ----
+  async function create(name) {
+    const w = week;
+    let res = null;
+    try { res = await api('', jsonOpts('POST', { name, weekNo: w })); } catch {}
+    if (!res?.ok) { toast('할 일을 추가하지 못했어요', null, 'error'); return; }
+    tasks.push((await res.json()).task);
+    draw();
+  }
+
+  // ---- 체크 · 고치기 · 지우기 ----
+  async function update(id, patch, { quiet = false } = {}) {
+    let res = null;
+    try { res = await api(`/${id}`, jsonOpts('PUT', patch)); } catch {}
+    if (!res?.ok) { toast('저장하지 못했어요', { label: '다시 시도', run: () => update(id, patch, { quiet }) }, 'error'); return null; }
+    const { task } = await res.json();
+    tasks = tasks.map(t => (t.id === id ? task : t));
+    draw();
+    return task;
+  }
+  async function toggle(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    const task = await update(id, t.done ? { done: false } : { done: true, doneWeek: week });
+    if (task) tbody.querySelector(`[data-task-check="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+  }
+  async function remove(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    let res = null;
+    try { res = await api(`/${id}`, { method: 'DELETE' }); } catch {}
+    if (!res?.ok) { toast('삭제하지 못했어요', null, 'error'); return; }
+    tasks = tasks.filter(x => x.id !== id);
+    closePop(false);
+    draw();
+    toast(`'${t.name}' 할 일을 삭제했어요`, {
+      label: '되돌리기',
+      run: async () => {
+        let r = null;
+        try { r = await api('', jsonOpts('POST', { name: t.name, weekNo: t.weekNo, detail: t.detail })); } catch {}
+        if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
+        const back = (await r.json()).task;
+        tasks.push(back);
+        if (t.done) await update(back.id, { done: true, doneWeek: t.doneWeek }); // 완료였으면 완료로(새 id)
+        else draw();
+      },
+    }, '', true);
+  }
+
+  // ---- 자세히보기 팝업: 이름 + 내용. 저장하기(Ctrl+Enter), 닫으면 바뀐 내용은 저장 ----
+  const anchorOf = id => tbody.querySelector(`[data-task-open="${CSS.escape(id)}"]`);
+  function placePop() {
+    if (!open || pop.hidden) return;
+    if (matchMedia('(max-width:640px)').matches) { pop.style.top = pop.style.left = ''; return; } // 화면 아래 시트(CSS)
+    const a = anchorOf(open.id);
+    if (!a) return;
+    const r = a.getBoundingClientRect(), gap = 6, edge = 16, w = pop.offsetWidth, h = pop.offsetHeight;
+    let top = r.bottom + gap;
+    if (top + h > innerHeight - edge && r.top - gap - h >= edge) top = r.top - gap - h;
+    pop.style.top = `${Math.max(edge, Math.min(top, innerHeight - edge - h))}px`;
+    pop.style.left = `${Math.max(edge, Math.min(r.left, innerWidth - edge - w))}px`;
+  }
+  addEventListener('scroll', placePop, { passive: true, capture: true });
+  addEventListener('resize', placePop);
+
+  function openPop(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    open = { id, name: t.name, detail: t.detail, confirmDelete: false };
+    renderPop();
+    popIn(pop);
+    placePop();
+    const ta = pop.querySelector('.am-note-input');
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+  function renderPop() {
+    const t = tasks.find(x => x.id === open.id);
+    pop.innerHTML = `
+      <button type="button" class="am-detail-close" data-task-pop="close" aria-label="닫기">✕</button>
+      <input type="text" class="am-task-title-input" maxlength="${NAME_MAX}" value="${esc(open.name)}" aria-label="할 일 이름">
+      <p class="am-task-meta">개인 할 일 · ${t.weekNo}주차에 추가${t.done ? ` · ${t.doneWeek ?? t.weekNo}주차에 완료` : ''}</p>
+      <textarea class="am-note-input" aria-label="할 일 내용" placeholder="무엇을, 어떻게 할지 적어 두세요">${esc(open.detail)}</textarea>
+      <div class="am-detail-actions am-task-actions">
+        ${open.confirmDelete
+          ? `<span class="am-task-confirm">이 할 일을 삭제할까요?</span>
+             <button type="button" class="pill" data-task-pop="delete-yes"><b>삭제</b></button>
+             <button type="button" class="pill" data-task-pop="delete-no">취소</button>`
+          : `<button type="button" class="pill pill-start" data-task-pop="delete">삭제</button>
+             <button type="button" class="btn-primary" data-task-pop="save">저장</button>`}
+      </div>`;
+  }
+  const changed = () => {
+    const t = open && tasks.find(x => x.id === open.id);
+    return t && (open.name.replace(/\s+/g, ' ').trim() !== t.name || open.detail !== t.detail);
+  };
+  async function savePop({ close = true } = {}) {
+    if (!open) return;
+    const id = open.id, name = open.name.replace(/\s+/g, ' ').trim();
+    if (!name) { toast('이름을 적어 주세요', null, 'error'); pop.querySelector('.am-task-title-input')?.focus(); return; }
+    if (changed()) {
+      const task = await update(id, { name, detail: open.detail });
+      if (!task) return; // 실패 — 팝업과 적은 내용은 그대로
+      toast('저장했어요');
+    }
+    if (close) closePop(false);
+  }
+  function closePop(save = true) {
+    if (!open) return;
+    if (save && changed()) { savePop(); return; } // 닫을 때 바뀐 내용은 저장(잃지 않게)
+    const id = open.id;
+    open = null;
+    if (!pop.hidden && pop.dataset.open) popOut(pop);
+    anchorOf(id)?.focus({ preventScroll: true });
+  }
+  pop.addEventListener('input', e => {
+    if (!open) return;
+    if (e.target.matches('.am-task-title-input')) open.name = e.target.value;
+    if (e.target.matches('.am-note-input')) open.detail = e.target.value;
+  });
+  pop.addEventListener('click', e => {
+    const act = e.target.closest('[data-task-pop]')?.dataset.taskPop;
+    if (!act || !open) return;
+    if (act === 'close') closePop();
+    else if (act === 'save') savePop();
+    else if (act === 'delete' || act === 'delete-no') {
+      open.confirmDelete = act === 'delete';
+      renderPop();
+      pop.querySelector(`[data-task-pop="${act === 'delete' ? 'delete-no' : 'delete'}"]`)?.focus();
+    } else if (act === 'delete-yes') remove(open.id);
+  });
+  pop.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePop(); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); savePop(); }
+    else if (e.key === 'Enter' && e.target.matches('.am-task-title-input') && !e.isComposing) { e.preventDefault(); pop.querySelector('.am-note-input')?.focus(); }
+  });
+  // 팝업 밖을 누르면 닫는다(바뀐 내용은 저장) — 연 "자세히보기"를 다시 누르는 건 아래 click이 닫는다
+  document.addEventListener('pointerdown', e => {
+    if (!open || pop.hidden || pop.contains(e.target) || e.target.closest('.toast')) return;
+    if (anchorOf(open.id)?.contains(e.target)) return;
+    closePop();
+  });
+
+  // ---- 표 안 클릭 — assignment.js의 표 클릭(상태 칸 → 메일 상세)보다 먼저 받아 거기로 넘기지 않는다 ----
+  tbody.addEventListener('click', e => {
+    const check = e.target.closest('[data-task-check]');
+    const openBtn = e.target.closest('[data-task-open]');
+    const add = e.target.closest('[data-task-add]');
+    if (!check && !openBtn && !add && !e.target.closest('.am-task-row,.am-task-add-row')) return;
+    e.stopPropagation();
+    if (check) toggle(check.dataset.taskCheck);
+    else if (openBtn) open?.id === openBtn.dataset.taskOpen ? closePop() : (closePop(), openPop(openBtn.dataset.taskOpen));
+    else if (add) { adding = true; draw(); }
+  }, true);
+  tbody.addEventListener('dblclick', e => { if (e.target.closest('.am-task-row')) e.stopPropagation(); }, true);
+  tbody.addEventListener('keydown', e => {
+    const input = e.target.closest('.am-task-add-input');
+    if (!input) return;
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      const name = input.value.replace(/\s+/g, ' ').trim();
+      if (!name) return;
+      input.value = '';
+      create(name); // 입력칸은 열어 둔다 — 여러 개를 이어서 적을 수 있게
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      adding = false;
+      draw();
+      tbody.querySelector('[data-task-add]')?.focus();
+    }
+  });
+  tbody.addEventListener('focusout', e => {
+    if (!e.target.matches?.('.am-task-add-input') || e.target.value.trim()) return;
+    // 비운 채 다른 데로 가면 버튼으로 되돌린다(다시 그리는 중의 잠깐 사라짐은 무시)
+    setTimeout(() => { if (adding && !tbody.contains(document.activeElement)) { adding = false; draw(); } }, 0);
+  });
+})();

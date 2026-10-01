@@ -254,7 +254,8 @@
       </tr>`;
     }).join('');
     // 오른쪽 TO-DO 열(assignment-todo.js)도 같은 때 새로 읽는다 — 제출 상태·과제 내용이 바뀌었을 수 있다
-    document.dispatchEvent(new CustomEvent('phibrain:assignment-rendered'));
+    // 개인 할 일 줄(assignment-tasks.js)은 이 이벤트를 받아 표 아래쪽에 끼워 넣는다 — 보는 주차와 로그인(서버) 여부를 함께 준다
+    document.dispatchEvent(new CustomEvent('phibrain:assignment-rendered', { detail: { week, live: !snapshot } }));
   }
 
   // ---- 과제 즐겨찾기(사용자 지시 2026-09-19): 당장 할 과제를 표 맨 위에 둔다 ----

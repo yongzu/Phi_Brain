@@ -1,11 +1,37 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-10-01 (셀프피드백 마감 규칙 · 상단 안내 문구 제거 · Assignment Manage 제목·메모) / Claude Code
+최종 갱신: 2026-10-02 (Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 개인 할 일 줄 (2026-10-02, 사용자 지시 · Claude Code) — **푸시·원격 D1 0010·Worker 배포 완료(f99cf6e0)**
+
+- 요구(사용자): Assignment 탭에 과목이 아닌 개인 할 일을 추가. 메일 확인 없이 직접 체크, 이름 + 자세히보기로 내용.
+  (노트북에서 예전에 요청했다는 "과목이 아닌 해야 할 일 추가"는 저장소·서버·이 PC 세션 기록 어디에도 없었다 — 이번에 새로 만듦.)
+- Worker: `migrations/0010_personal_tasks.sql`(id·name·detail·week_no·done·done_week), `src/assignment/tasks.js` —
+  `GET/POST /api/assignment/tasks`, `PUT/DELETE /api/assignment/tasks/:id`(이름 100자 · 내용 20000자 · 주차 0~16 · 최대 500개). 테스트 `test/tasks.test.js` 3개, 전체 101/101.
+- 화면 새 파일 `assignment-tasks.js?v=20261002-1`: `assignment.js`가 표를 그릴 때마다 보내는 `phibrain:assignment-rendered`(이제 `{ week, live }`)를 받아
+  과목 줄 뒤(수강기간 아님·완강 줄 앞)에 줄을 끼워 넣는다. 4칸 = 이름 + "개인" 박스 / 완료·미완료 버튼(직접 체크) / 자세히보기 / 빈 칸. 맨 아래 "+ 할 일 추가"
+  (Enter로 추가, 입력칸은 열어 둬 이어서 추가, Esc 취소). 자세히보기 팝업 = 이름 입력 + 내용 + 삭제(확인 단계·되돌리기 토스트) · 저장(Ctrl+Enter), 닫을 때 바뀐 내용 저장.
+  보이는 주차: 만든 주부터, 미완료면 그 뒤 주차로 이월, 완료면 체크한 표의 주차까지. 완료 수(완료 N / M)에는 넣지 않는다. 로그인해야 보인다.
+  표 클릭은 캡처 단계에서 받아 `assignment.js`의 상태 칸 클릭(메일 상세)으로 넘어가지 않게 했다.
+- `phi-brain.css?v=20261002-1`: `.am-task-*`. 같이 고침 — 가로 스크롤 수정(아래)의 컨테이너 `.shell`이 사이드바가 위로 쌓이는 860px 이하 창에서 폭 0이 되던 것(`width:100%`),
+  그리고 960px 미만 격자 규칙이 640px 이하 세로 쌓기를 이기던 것(`@media (min-width:641px)` 안으로).
+- 검증(로컬, 세션·API 스텁 임시 페이지 — 확인 후 삭제): 4주차에 3주차 미완료 줄 이월·3주차 완료 줄 숨김, 추가(공백 정리), 체크 → 완료·doneWeek 4·메일 상세 안 열림,
+  팝업에서 이름·내용 저장, 3/4/5주차 이동별 표시, 삭제 확인 → 토스트 되돌리기로 복구. 이름이 과목명 글자와 같은 x(371px). 1100·1650·1920px 스크롤 0, 295px 세로 쌓기.
+
+### Assignment Manage: 표 아래 가로 스크롤 없앰 (2026-10-01, 사용자 지시 · Claude Code)
+
+- 원인: 표 `min-width:960px` + `section{overflow-x:auto}`. TO-DO 두 열 전환이 창 폭 `@media(min-width:1600px)`라 사이드바 폭을 몰라,
+  1600~1730px 창에서 표 칸이 960px 아래(예: 866px)로 줄어 표 안에 가로 스크롤이 생겼다. 1360px 아래 창도 같은 스크롤.
+- `phi-brain.css?v=20261001-9`: 스크롤·`min-width` 삭제. `.shell`을 컨테이너로 두고 **본문 칸 폭** 기준으로 —
+  1300px 이상(표 960 + 틈 40 + TO-DO 300)이면 두 열, 아니면 990px 가운데 한 열(TO-DO는 아래). 본문 칸이 960px 미만이면
+  줄마다 과목명을 윗줄 전체에, 아래 줄에 Assignment · 과제 내용 · Self-Feedback 3칸 격자(머리줄 Course 칸은 숨김). 640px 이하 세로 쌓기는 그대로.
+- 검증(로컬, 로그아웃 읽기 전용 표): 1100·1280·1650·1920px 창에서 표 칸 `scrollWidth = clientWidth`(스크롤 없음)·페이지 가로 넘침 0.
+  1650px = 한 열(표 990), 1920px = 두 열(표 990 + 40 + TO-DO), 1280px = 격자(901px)·넘치는 칸 0.
 
 ### Future Item: 저널 줄 번호 겹침 수정 (2026-10-01, 사용자 제보 · Claude Code)
 
