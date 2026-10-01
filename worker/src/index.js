@@ -10,6 +10,7 @@ import * as svc from './assignment/service.js';
 import { runSyncBatch, SyncError, DEFAULT_BATCH } from './assignment/sync.js';
 import { notesApi } from './assignment/notes.js';
 import { getTodo, saveTodoPrefs, getPageMemo, savePageMemo } from './assignment/todo.js';
+import { getCourseStates, setCourseState } from './assignment/course-state.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
@@ -99,6 +100,12 @@ async function assignmentApi(request, env, url, json, session) {
   // 이번 주 할 일(TO-DO) 열 — 항목 + 끌어서 정한 순서·메모
   if (path === '/todo' && method === 'GET') return json(200, await getTodo(db));
   if (path === '/todo/prefs' && method === 'PUT') return json(200, await saveTodoPrefs(db, await request.json().catch(() => null)));
+  // 과목 상태(수강기간 아님·완강) — 모든 주차 공통
+  if (path === '/course-states' && method === 'GET') return json(200, { states: await getCourseStates(db) });
+  if ((m = path.match(/^\/course-states\/([a-z]{2,4})$/)) && method === 'PUT') {
+    const body = await request.json().catch(() => null);
+    return json(200, await setCourseState(db, m[1], body && 'state' in body ? body.state : undefined));
+  }
   // 페이지 머리 메모 한 칸
   if (path === '/memo' && method === 'GET') return json(200, await getPageMemo(db));
   if (path === '/memo' && method === 'PUT') return json(200, await savePageMemo(db, await request.json().catch(() => null)));

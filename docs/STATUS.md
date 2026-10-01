@@ -7,6 +7,21 @@
 
 ## 현재 단계
 
+### Assignment Manage: 과목 이름 메뉴 — 수강기간 아님 · 완강 · 휴강 (2026-10-01, 사용자 지시 · Claude Code)
+
+- 같은 날 먼저 만든 "스킵" 버튼(Figma ↗ 오른쪽, 과제·셀프피드백 둘 다 해당 없음)은 푸시 전에 이 메뉴로 대체했다.
+- Worker: 새 `src/assignment/course-state.js`(settings `assignment_course_states` = `{ ewa: 'completed', … }`, `GET /course-states`, `PUT /course-states/:id { state }`,
+  null = 해제, 마이그레이션 없음). `getWeekMatrix`가 줄마다 `courseState`를 붙이고 완료 수에서 그 과목을 뺀다. `getTodo`도 그 과목 항목을 뺀다.
+- 화면 `assignment.js?v=20261001-4`: 과목 이름이 `button.am-course-name[data-am-course]` → `#am-link-menu`에 수강기간 아님 / 완강 / 휴강(이번 주 스킵),
+  고르면 같은 메뉴가 확인 단계(기본 포커스 취소). 휴강 = 그 주 셀프피드백 대상만 `POST /targets/:id/manual` `not_applicable`(해제는 `clear`, 되돌리기는 원래 상태 —
+  직접 확인이던 칸은 직접 확인), 셀프피드백이 메일 확인이면 비활성. 수강기간 아님·완강 줄은 맨 아래(수강기간 아님 → 완강, 각 묶음 안은 ⠿ 과목 순서)·`tr.is-off`
+  (과목명 회색, 나머지 칸 opacity .4, 별표 숨김), WK 박스 대신 상태 글자. 다른 주차 즐겨찾기 줄에서도 빠진다.
+- `phi-brain.css?v=20261001-6`: 첫 열 322 → **384px**, 과제 내용 열 31.11% → **25%**, 표 최소 폭 900 → **960px**(처음엔 스킵 버튼 자리로 넓혔고, 상태 글자·휴강 글자가
+  그 자리를 쓴다 — 가장 긴 줄 여유 33px). `.am-state-tag`, `.am-course-name[aria-expanded]`.
+- 검증: `worker` `node --test` 98/98(새 `test/course-state.test.js` 2개 — 저장·전환·해제·잘못된 값, 행 표시·완료 수 24 → 20·TO-DO 제외).
+  로컬 5511 세션·API 스텁: 메뉴 첫 항목 포커스, 확인 문구·취소 시 요청 없음, EWA 완강·IAE 수강기간 아님 → 맨 아래 회색·상태 글자·토스트, TF 휴강 → 셀프피드백만 해당 없음·`휴강` 글자,
+  BI(셀프피드백 메일 확인) 휴강 비활성, 켜진 항목은 "…해제". 실제 서버로는 확인 못 함. 커밋·푸시·Worker 배포 전.
+
 ### 셀프피드백 마감 규칙 · 상단 안내 문구 제거 · Assignment Manage 제목 20px · 메모 칸 (2026-10-01, 사용자 지시 · Claude Code)
 
 - **셀프피드백 마감 = 다음 주 세션 전날 23:59**(`todo.js`: 세션 날 + 6일). 공지 지각 마감·"마감 미정" 둘 다 없앰 — 셀프피드백 쿼리에서 공지 조인 제거,
@@ -18,7 +33,7 @@
   로그아웃이면 `localStorage phi-brain:assignment-memo`. `phi-brain.css?v=20261001-4`.
 - 검증: `worker` `node --test` 96/96(셀프피드백 마감 기대값 갱신, 메모 API 테스트 추가). 로컬 5511: 안내 문구 없음, 제목 20px, 메모가 제목과 주차 줄 사이,
   4줄 입력 → 높이 37→101px·이 브라우저에 저장·새로고침 후 유지(화면 전환 때 높이 다시 잼), 세션·fetch 스텁으로 PUT 저장 확인. 테스트 저장값은 지움.
-- **남은 일:** 커밋·푸시와 Worker 배포 전(메모 서버 저장·셀프피드백 마감은 배포해야 반영).
+- 배포(사용자 지시): 커밋 `aa0561e`(⠿ 순서 손잡이 포함) 푸시, Worker `wrangler deploy` → 버전 `8d6782d3`. health `{ok:true}`, 세션 없이 `/api/assignment/memo` 401.
 
 ### Assignment Manage: 별표 왼쪽 ⠿로 줄 순서 바꾸기 (2026-10-01, 사용자 지시 · Claude Code)
 

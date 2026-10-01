@@ -3,6 +3,7 @@
 import { matchEmail } from './matching.js';
 import { RECEIPTS_FROM, RECEIPTS_UNTIL } from './constants.js';
 import { toNote } from './notes.js';
+import { getCourseStates } from './course-state.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -65,8 +66,10 @@ export async function getWeekMatrix(db, weekNo) {
     cell.status = resolveStatus(r.manual_status, r.evidence_count);
     cell.confirmedAt = r.first_received_at || null;
   }
-  const rows = [...byCourse.values()];
-  const all = rows.flatMap(r => [r.assignment.status, r.selfFeedback.status]);
+  // 수강기간 아님·완강 과목(course-state.js)은 줄에 표시만 하고 완료 수에서 뺀다
+  const states = await getCourseStates(db);
+  const rows = [...byCourse.values()].map(r => ({ ...r, courseState: states[r.courseId] || null }));
+  const all = rows.filter(r => !r.courseState).flatMap(r => [r.assignment.status, r.selfFeedback.status]);
   const done = all.filter(s => s === 'confirmed_mail' || s === 'confirmed_manual').length;
   const total = all.filter(s => s !== 'not_applicable').length;
   return { week, rows, progress: { done, total } };

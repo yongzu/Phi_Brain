@@ -542,11 +542,11 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 /* 열 사이 간격 80px 통일(사용자 지시 2026-09-14) — 가장 넓은 내용 기준으로 잰 값:
    과목명 끝(IAE ↗) → Assignment ●, "직접 확인 ↗" 끝 → "자세히보기", "지각 마감 9월28일 23:59" 끝 → Self-Feedback ●, 마지막 ↗ 끝 → 표 오른쪽 끝이 모두 80px.
    표 990px에서 286 / 189 / 308 / 207. 창이 좁아 표가 줄면 비율대로 간격만 줄어든다(과목명 열은 고정). 두 자리 월(10월~)은 과제 내용 뒤 간격이 약 7px 줄어듦 */
-.am-table th:first-child,.am-table td:first-child{width:322px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로. 286 → 322(2026-09-19): 별표·WK 박스가 붙어 가장 긴 IAE·TF 줄이 넘치지 않게 — 그 줄의 뒤 간격은 80px보다 좁다 */
+.am-table th:first-child,.am-table td:first-child{width:384px} /* 고정 폭: 표 레이아웃에서 max()가 무시돼 px로. 286 → 322(2026-09-19): 별표·WK 박스가 붙어 가장 긴 IAE·TF 줄이 넘치지 않게 — 그 줄의 뒤 간격은 80px보다 좁다. 322 → 384(2026-10-01): ↗ 오른쪽 "스킵됨" 버튼까지 */
 /* 과제 내용 열(사용자 요구사항 2026-09-14): 제목 한 줄 + 마감 배지가 들어가 가장 넓게 */
 .am-table th:nth-child(2),.am-table td:nth-child(2){width:19.09%} /* 990px에서 189px */
 
-.am-table th:nth-child(3),.am-table td:nth-child(3){width:31.11%} /* 990px에서 308px, Self-Feedback은 남는 폭(207px) */
+.am-table th:nth-child(3),.am-table td:nth-child(3){width:25%} /* 990px에서 248px(31.11% → 25%, 2026-10-01: 첫 열을 넓힌 만큼), Self-Feedback은 남는 폭 */
 .am-table th{text-align:left;color:var(--gray);font-weight:400;padding:6px var(--tab-pad-x);border-bottom:1px solid var(--line)}
 /* the status button carries its own left padding (an extra --tab-pad-x) so its
    dot sits one --tab-pad-x further right than a plain header — match it here */
@@ -555,7 +555,7 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 /* 창이 좁아 네 열이 다 안 들어가면 열을 짜부라뜨리지 않고 표만 가로로 스크롤(과목명 280px + 상태 2열 + 과제 내용) — 640px 이하는 아래 세로 쌓기 */
 @media (min-width:641px){
   .view-assignment section{overflow-x:auto}
-  .am-table{min-width:900px} /* 이보다 좁으면 Assignment·Self-Feedback의 "제출 확인 ↗"(약 136px)가 안 들어가 표만 가로 스크롤 */
+  .am-table{min-width:960px} /* 900 → 960(2026-10-01, 첫 열 384px). 이보다 좁으면 Assignment·Self-Feedback의 "제출 확인 ↗"(약 136px)가 안 들어가 표만 가로 스크롤 */
 }
 .am-table td{padding:8px var(--tab-pad-x);border-bottom:1px solid var(--line);vertical-align:middle}
 .am-table tr:last-child td{border-bottom:none}
@@ -574,6 +574,13 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 .am-grip{position:absolute;left:calc(-1 * var(--tab-pad-x));top:50%;transform:translateY(-50%);width:var(--tab-pad-x);padding:4px 0;color:var(--line);font-size:.9em;letter-spacing:-2px;line-height:1;cursor:grab;transition:color 140ms}
 .am-table tr:hover .am-grip,.am-grip:focus-visible{color:var(--gray)}
 .am-table tr.is-drag-src{opacity:.4}
+/* 과목 이름 = 메뉴 버튼(수강기간 아님 · 완강 · 휴강, 사용자 지시 2026-10-01). 열린 동안은 호버 배경 유지.
+   수강기간 아님·완강 줄은 맨 아래·회색: 과목명 회색, 나머지 칸 흐리게, 별표는 숨김(즐겨찾기 묶음에 들지 않으므로) */
+.am-course-name[aria-expanded="true"]{background:var(--fill)}
+.am-table tr.is-off .am-course-name{color:var(--gray)}
+.am-table tr.is-off td:not(:first-child){opacity:.4}
+.am-fav.is-off{visibility:hidden}
+.am-state-tag{color:var(--ink)}
 .am-table tr.drop-before td{box-shadow:inset 0 2px 0 var(--ink)}
 .am-table tr.drop-after td{box-shadow:inset 0 -2px 0 var(--ink)}
 /* 과목명 옆 주차 박스 WK03 — 즐겨찾기는 이 주차의 과제에 붙는다(사용자 지시 2026-09-19). 새 색 없이 선·회색 */

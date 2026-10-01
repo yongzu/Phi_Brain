@@ -13,6 +13,7 @@
 // prefs: 사용자가 끌어서 정한 순서(key 목록)와 항목별 한 줄 메모 — settings 테이블의 한 줄(JSON).
 import { BadRequest } from '../journals.js';
 import { resolveStatus } from './service.js';
+import { getCourseStates } from './course-state.js';
 
 const PREFS_KEY = 'assignment_todo';
 export const TODO_KEY_RE = /^[a-z]{2,4}:\d{1,2}:[as]$/; // 과목:주차:a(과제)|s(셀프피드백)
@@ -76,8 +77,11 @@ export async function getTodo(db, now = Date.now()) {
       dueAt: `${addDays(sessionDate, 6)}T23:59`, status: status(r), url: r.self_feedback_url,
     });
   }
-  items.sort((a, b) => a.weekNo - b.weekNo || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind));
-  return { items, prefs: await getTodoPrefs(db) };
+  // 수강기간 아님·완강 과목은 할 일에 넣지 않는다(사용자 지시 2026-10-01)
+  const states = await getCourseStates(db);
+  const active = items.filter(it => !states[it.courseId]);
+  active.sort((a, b) => a.weekNo - b.weekNo || a.code.localeCompare(b.code) || a.kind.localeCompare(b.kind));
+  return { items: active, prefs: await getTodoPrefs(db) };
 }
 
 export function cleanPrefs(body) {

@@ -218,25 +218,32 @@
     lastMatrix = matrix;
     renderWeekLabel(matrix.week);
     // 서버는 마감을 모르고 세므로, 지각 마감까지 넘겨 '미제출'이 된 칸은 여기서 뺀다
-    const missed = matrix.rows.reduce((n, r) => n + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0), 0);
+    const missed = matrix.rows.filter(r => !r.courseState).reduce((n, r) => n + (lateness(r.assignment, r.note) === 'missed' ? 1 : 0), 0);
     progressEl.textContent = `완료 ${matrix.progress.done - missed} / ${matrix.progress.total}`;
     // 즐겨찾기한 과제는 표 맨 위로, 누른 순서대로 — 다른 주차 것도 늘 함께(사용자 지시 2026-09-19).
     // 나머지는 이번 주 과목들, 원래 과목 순서. 같은 과목이 다른 주차 즐겨찾기로 위에도 한 줄 더 있을 수 있다(WK 박스로 구분)
     const week = matrix.week.week_no;
     adoptLegacyFavorites(week);
     const current = matrix.rows.map(r => ({ ...r, week }));
-    tableRows = [...current, ...pinnedRows.filter(r => r.week !== week)];
+    // 수강기간 아님·완강 과목(과목 이름 메뉴)은 즐겨찾기와 상관없이 맨 아래·회색 — 수강기간 아님 → 완강 순(사용자 지시 2026-10-01)
+    tableRows = [...current, ...pinnedRows.filter(r => r.week !== week && !r.courseState)];
     const byKey = new Map(tableRows.map(r => [favKey(r.code, r.week), r]));
-    const favRows = favorites.map(k => byKey.get(k)).filter(Boolean);
-    const rest = current.filter(r => !favorites.includes(favKey(r.code, week))).sort((a, b) => orderRank(a.code) - orderRank(b.code));
-    tbody.innerHTML = [...favRows, ...rest].map((row, i) => {
-      const isFav = i < favRows.length, other = row.week !== week;
-      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : 'rest'}"${isFav && i === favRows.length - 1 && rest.length ? ' class="am-fav-last"' : ''}>
+    const favRows = favorites.map(k => byKey.get(k)).filter(r => r && !r.courseState);
+    const byOrder = (a, b) => orderRank(a.code) - orderRank(b.code);
+    const rest = current.filter(r => !r.courseState && !favorites.includes(favKey(r.code, week))).sort(byOrder);
+    const offRows = OFF_STATES.flatMap(st => current.filter(r => r.courseState === st).sort(byOrder));
+    const shown = [...favRows, ...rest, ...offRows];
+    tbody.innerHTML = shown.map((row, i) => {
+      const isFav = i < favRows.length, other = row.week !== week, off = row.courseState;
+      const cls = [isFav && i === favRows.length - 1 && i < shown.length - 1 ? 'am-fav-last' : '', off ? 'is-off' : ''].filter(Boolean).join(' ');
+      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : off ? `off-${off}` : 'rest'}"${cls ? ` class="${cls}"` : ''}>
         <td><span class="am-cell">
           <button type="button" class="am-grip" data-am-grip aria-label="${esc(row.code)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
-          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav="${esc(row.code)}" data-am-week="${row.week}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
-          <span class="am-course-name"><b>${esc(row.code)}</b>_${esc(row.name)}</span>
-          <span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>
+          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}${off ? ' is-off' : ''}"${off ? ' tabindex="-1" aria-hidden="true"' : ''} data-am-fav="${esc(row.code)}" data-am-week="${row.week}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
+          <button type="button" class="am-course-name" data-am-course="${esc(row.courseId)}" data-course-wk="${row.week}" aria-haspopup="menu" aria-expanded="false" title="수강기간 아님 · 완강 · 휴강"><b>${esc(row.code)}</b>_${esc(row.name)}</button>
+          ${off
+            ? `<span class="am-week-tag am-state-tag">${COURSE_STATE_LABEL[off]}</span>`
+            : `<span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>${isRest(row) ? '<span class="am-week-tag am-state-tag" title="이 주 세션 없음 — 셀프피드백 해당 없음">휴강</span>' : ''}`}
           ${safeHref(row.boardUrl)
             ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
@@ -595,6 +602,7 @@
     linkMenuAnchor.setAttribute('aria-expanded', 'false');
     if (focusBack) linkMenuAnchor.focus();
     linkMenuAnchor = null;
+    courseMenu = null;
     popOut(linkMenu);
   }
   async function openLinkMenu(btn) {
@@ -624,13 +632,127 @@
     draw(thread ? `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(thread)}` : null);
     if (hadFocus) linkMenu.querySelector('a.cm-item')?.focus(); // redraw replaced the focused item
   }
-  linkMenu.addEventListener('click', e => { if (e.target.closest('a.cm-item')) closeLinkMenu(); });
+  // ---- 과목 이름 메뉴(사용자 지시 2026-10-01): 수강기간 아님 · 완강 · 휴강(이번 주 스킵) ----
+  // 링크 메뉴와 같은 자리·모양. 항목을 고르면 같은 메뉴가 확인 단계로 바뀐다(기본 포커스 "취소").
+  //   수강기간 아님 · 완강 = 과목 단위, 모든 주차(서버 /course-states). 맨 아래·회색, 완료 수·TO-DO에서 빠짐. 과목 하나에 하나만.
+  //   휴강 = 과목 × 그 주차. 세션이 없었다는 기록 — 그 주 셀프피드백만 '해당 없음'(기존 /targets/:id/manual), 과제는 그대로.
+  //         셀프피드백이 이미 메일로 확인됐으면 고를 수 없다(해당 없음과 충돌).
+  const COURSE_STATE_LABEL = { inactive: '수강기간 아님', completed: '완강' };
+  const OFF_STATES = ['inactive', 'completed']; // 맨 아래 쌓는 순서
+  const isRest = row => row.selfFeedback.status === 'not_applicable'; // 휴강(그 주 셀프피드백 해당 없음)
+  let courseMenu = null; // { courseId, week, step: 'menu' | 'inactive' | 'completed' | 'rest' }
+
+  function placeMenu(btn) {
+    linkMenu.hidden = false;
+    const r = btn.getBoundingClientRect(), w = linkMenu.offsetWidth, h = linkMenu.offsetHeight, edge = 16;
+    let top = r.bottom + 6;
+    if (top + h > innerHeight - edge) top = r.top - 6 - h;
+    linkMenu.style.top = `${Math.max(edge, top)}px`;
+    linkMenu.style.left = `${Math.max(edge, Math.min(r.left, innerWidth - edge - w))}px`;
+  }
+  function drawCourseMenu() {
+    const row = rowOf(courseMenu.courseId, courseMenu.week);
+    if (!row) { closeLinkMenu(); return; }
+    const state = row.courseState || null, rest = isRest(row);
+    const weekWord = row.week === currentWeekNo ? '이번 주' : `${row.week}주차`;
+    const item = (act, label) => `<button type="button" class="cm-item" role="menuitem" data-course-act="${act}">${label}</button>`;
+    if (courseMenu.step === 'menu') {
+      const restItem = state ? '' // 수강기간 아님·완강 과목은 주차별 휴강이 의미 없다
+        : row.selfFeedback.status === 'confirmed_mail' && !rest
+        ? `<span class="cm-item" aria-disabled="true" title="이 주 셀프피드백은 이미 제출이 확인됐어요">휴강(${weekWord} 스킵)</span>`
+        : item('rest', rest ? '휴강 해제' : `휴강(${weekWord} 스킵)`);
+      linkMenu.innerHTML = item('inactive', state === 'inactive' ? '수강기간 아님 해제' : '수강기간 아님')
+        + item('completed', state === 'completed' ? '완강 해제' : '완강') + restItem;
+      linkMenu.querySelector('button.cm-item')?.focus({ preventScroll: true });
+      return;
+    }
+    const s = courseMenu.step;
+    const name = `${esc(row.code)}`;
+    let q, yes;
+    if (s === 'rest') {
+      q = rest ? `${name} ${row.week}주차 휴강을 해제할까요?` : `${name} ${row.week}주차를 휴강으로 둘까요?<br>셀프피드백만 '해당 없음'이 되고 과제는 그대로예요`;
+      yes = rest ? '해제' : '휴강';
+    } else if (state === s) {
+      q = `${name} ${COURSE_STATE_LABEL[s]}을 해제할까요?`; yes = '해제';
+    } else {
+      q = `${name} 과목을 ${COURSE_STATE_LABEL[s]}으로 둘까요?<br>모든 주차에서 맨 아래·회색이 되고 할 일에서 빠져요`; yes = COURSE_STATE_LABEL[s];
+    }
+    linkMenu.innerHTML = `<p class="cm-confirm">${q}</p>`
+      + `<button type="button" class="cm-item cm-danger" role="menuitem" data-course-act="confirm">${yes}</button>`
+      + '<button type="button" class="cm-item" role="menuitem" data-course-act="cancel">취소</button>';
+    linkMenu.querySelector('[data-course-act="cancel"]').focus({ preventScroll: true });
+  }
+  function openCourseMenu(btn) {
+    const courseId = btn.dataset.amCourse, week = Number(btn.dataset.courseWk);
+    const row = rowOf(courseId, week);
+    if (!row) return;
+    if (row.assignment.targetId == null) { toast('로그인하면 과목 상태를 바꿀 수 있어요'); return; } // 읽기 전용 표
+    closeDetail();
+    linkMenuAnchor = btn;
+    btn.setAttribute('aria-expanded', 'true');
+    courseMenu = { courseId, week, step: 'menu' };
+    drawCourseMenu();
+    placeMenu(btn);
+    popIn(linkMenu);
+    linkMenu.querySelector('button.cm-item')?.focus({ preventScroll: true }); // 보이게 된 뒤에야 포커스가 들어간다
+  }
+
+  const reloadTable = () => { if (currentWeekNo != null) loadWeek(currentWeekNo); };
+  async function putCourseState(courseId, state) {
+    const res = await api(`/course-states/${courseId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state }) });
+    return !!res?.ok;
+  }
+  async function postManual(targetId, action) {
+    const res = await api(`/targets/${targetId}/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+    return !!res?.ok;
+  }
+  // 확인 단계의 "예" — 되돌리기는 원래 상태로
+  async function applyCourseAct({ courseId, week, step }) {
+    const row = rowOf(courseId, week);
+    if (!row) return;
+    let ok, msg, undo;
+    if (step === 'rest') {
+      const cell = row.selfFeedback, on = !isRest(row);
+      const before = cell.status === 'confirmed_manual' ? 'confirmed_manual' : 'clear';
+      ok = await postManual(cell.targetId, on ? 'not_applicable' : 'clear');
+      msg = on ? `${row.code} ${row.week}주차를 휴강으로 뒀어요` : `${row.code} ${row.week}주차 휴강을 해제했어요`;
+      undo = () => postManual(cell.targetId, on ? before : 'not_applicable');
+    } else {
+      const before = row.courseState || null, next = before === step ? null : step;
+      ok = await putCourseState(courseId, next);
+      msg = next ? `${row.code} 과목을 ${COURSE_STATE_LABEL[next]}으로 뒀어요` : `${row.code} ${COURSE_STATE_LABEL[before]}을 해제했어요`;
+      undo = () => putCourseState(courseId, before);
+    }
+    reloadTable();
+    if (!ok) { toast('저장하지 못했어요', null, 'error'); return; }
+    toast(msg, {
+      label: '되돌리기',
+      run: async () => {
+        const back = await undo();
+        reloadTable();
+        if (!back) toast('되돌리지 못했어요', null, 'error');
+      },
+    });
+  }
+
+  linkMenu.addEventListener('click', e => {
+    const act = e.target.closest('[data-course-act]')?.dataset.courseAct;
+    if (act && courseMenu) {
+      if (act === 'cancel') { closeLinkMenu(true); return; }
+      if (act === 'confirm') { const target = courseMenu; closeLinkMenu(true); applyCourseAct(target); return; }
+      courseMenu.step = act; // 메뉴는 열어 둔 채 확인 단계로
+      drawCourseMenu();
+      if (linkMenuAnchor) placeMenu(linkMenuAnchor);
+      return;
+    }
+    if (e.target.closest('a.cm-item')) closeLinkMenu();
+  });
   linkMenu.addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); closeLinkMenu(true); return; }
     const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
-    const items = [...linkMenu.querySelectorAll('a.cm-item')], i = items.indexOf(document.activeElement);
+    const items = [...linkMenu.querySelectorAll('a.cm-item, button.cm-item')], i = items.indexOf(document.activeElement);
     items[(i + step + items.length) % items.length]?.focus();
   });
   document.addEventListener('pointerdown', e => {
@@ -644,6 +766,8 @@
     if (favBtn) { toggleAmFavorite(favBtn.dataset.amFav, Number(favBtn.dataset.amWeek)); return; }
     const linkBtn = e.target.closest('[data-link-target]');
     if (linkBtn) { linkMenuAnchor === linkBtn ? closeLinkMenu() : (closeLinkMenu(), openLinkMenu(linkBtn)); return; }
+    const courseBtn = e.target.closest('[data-am-course]');
+    if (courseBtn) { linkMenuAnchor === courseBtn ? closeLinkMenu() : (closeLinkMenu(), openCourseMenu(courseBtn)); return; }
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
     if (e.detail > 1 && e.target.closest('[data-note-course]')) return; // 더블클릭의 두 번째 클릭은 닫지 않는다 — 아래 dblclick이 전체보기로 연다
     if (btn) {
