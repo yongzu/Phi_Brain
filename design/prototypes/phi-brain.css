@@ -571,7 +571,9 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 /* 줄 순서 손잡이 ⠿(사용자 지시 2026-10-01): 별표 왼쪽, 칸 왼쪽 여백(--tab-pad-x) 안에 띄워 첫 열 폭(322px)을 늘리지 않는다.
    Future Item 박스·TO-DO 손잡이와 같이 평소 --line, 줄에 올리면 --gray. 끌 때 놓일 자리는 줄 위/아래 2px 검정 선 */
 .am-cell{position:relative}
-.am-grip{position:absolute;left:calc(-1 * var(--tab-pad-x));top:50%;transform:translateY(-50%);width:var(--tab-pad-x);padding:4px 0;color:var(--line);font-size:.9em;letter-spacing:-2px;line-height:1;cursor:grab;transition:color 140ms}
+/* 잡는 영역 28×36px(예전 12×20) — 칸 왼쪽 여백에서 표 밖 여백까지 걸치고, 점은 오른쪽에 붙여 별표와 8px 띄운다(사용자 지시 2026-10-02) */
+.am-grip{position:absolute;right:calc(100% + 2px);top:50%;transform:translateY(-50%);width:28px;height:36px;display:flex;align-items:center;justify-content:flex-end;padding:0 6px 0 0;color:var(--line);font-size:.9em;letter-spacing:-2px;line-height:1;cursor:grab;transition:color 140ms}
+.am-grip:active{cursor:grabbing}
 .am-table tr:hover .am-grip,.am-grip:focus-visible{color:var(--gray)}
 .am-table tr.is-drag-src{opacity:.4}
 /* 과목 이름 = 메뉴 버튼(수강기간 아님 · 완강 · 휴강, 사용자 지시 2026-10-01). 열린 동안은 호버 배경 유지.
@@ -887,4 +889,7 @@ a.am-todo-title:hover{text-decoration-style:solid;text-decoration-color:var(--in
      higher specificity than the generic rule above (class beats element,
      or it's a ::before pseudo-element the rule above can't reach) */
   .resume-row summary,.fi-done summary,.nav-accordion>summary,.fi-register,.editor ul.checklist>li::before,.fi-box-add:not(.is-editing){cursor:var(--phi-cursor-pointer),pointer}
+  /* 줄 순서 손잡이는 버튼이지만 끄는 것 — 위 버튼 규칙이 grab을 덮지 않게 */
+  button.am-grip{cursor:grab}
+  button.am-grip:active{cursor:grabbing}
 }

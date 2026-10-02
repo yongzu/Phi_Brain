@@ -345,20 +345,29 @@
     e.dataTransfer.setData('text/plain', tr.dataset.amRow);
     closeLinkMenu();
   });
-  tbody.addEventListener('dragover', e => {
+  // 끄는 동안은 문서 어디서든 받는다 — 같은 묶음 줄 위에서만 받으면 표 왼쪽 여백·머리줄·다른 묶음 위에서
+  // 브라우저가 금지(🚫) 커서를 띄웠다(사용자 제보 2026-10-02). 놓일 자리 = 포인터 높이에 맞는 같은 묶음 줄(묶음 위·아래로 나가면 처음·끝)
+  function dropSlot(y) {
+    const rows = groupRows(dragRow.dataset.amGroup);
+    for (const tr of rows) {
+      const r = tr.getBoundingClientRect();
+      if (y < r.bottom) return { tr, after: y > r.top + r.height / 2 };
+    }
+    return { tr: rows[rows.length - 1], after: true };
+  }
+  document.addEventListener('dragover', e => {
     if (!dragRow) return;
-    const tr = e.target.closest('tr');
-    if (!tr || tr.dataset.amGroup !== dragRow.dataset.amGroup) { clearRowDrop(); return; } // 다른 묶음으로는 못 옮긴다
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    const r = tr.getBoundingClientRect();
+    const { tr, after } = dropSlot(e.clientY);
     clearRowDrop();
-    if (tr !== dragRow) tr.classList.add(e.clientY > r.top + r.height / 2 ? 'drop-after' : 'drop-before');
+    if (tr !== dragRow) tr.classList.add(after ? 'drop-after' : 'drop-before');
   });
-  tbody.addEventListener('drop', e => {
+  document.addEventListener('drop', e => {
+    if (!dragRow) return;
+    e.preventDefault(); // 메모 칸 같은 입력칸에 끌던 줄 글자가 들어가지 않게
     const target = tbody.querySelector('.drop-before,.drop-after');
-    if (!dragRow || !target) return;
-    e.preventDefault();
+    if (!target) return;
     const key = dragRow.dataset.amRow, group = dragRow.dataset.amGroup;
     const keys = groupRows(group).map(tr => tr.dataset.amRow).filter(k => k !== key);
     keys.splice(keys.indexOf(target.dataset.amRow) + (target.classList.contains('drop-after') ? 1 : 0), 0, key);
