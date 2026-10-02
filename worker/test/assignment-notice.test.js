@@ -105,3 +105,43 @@ test('a line of only dashes (added between a notice and what was appended to it)
   assert.equal(html, '<ul class="am-note-list"><li>리서치 정리</li></ul><hr class="am-note-divider"><p>추가 공지</p><ul class="am-note-list"><li>1분 이내</li></ul>');
   assert.ok(!renderNotice('- 항목 -- 설명').includes('<hr'), 'dashes inside a line stay text');
 });
+
+// VT 4주차(2026-10-02 제보): "마감 기한:" 라벨 없이 ■ 마감 아래에 연·월·일로만 적힌 마감
+const NOTICE_4 = `4주차 과제 공지 드립니다. 
+
+이런 협업의 흐름을 고려해, 마감일과 상관없이 빠르게 움직여주길 바랍니다.
+
+
+■ 과제 
+마무리 촬영을 해봅시다! 
+
+■ 산출물
+
+촬영 결과물
+촬영 이미지 1-4장
+
+■ 마감 
+2026년 10월 7일(수) 23:59까지
+마감 기한 이후에는 제출할 수 없습니다. 
+
+■ 제출 방법 http://go.phi.design/vt/assignment `;
+
+test('notice 4: bare "2026년 10월 7일(수) 23:59까지" under ■ 마감 → deadline', () => {
+  const r = parseNotice(NOTICE_4);
+  assert.equal(r.dueAt, '2026-10-07T23:59');
+  assert.equal(r.lateDueAt, null);
+  assert.equal(r.weekdayMismatch, false);
+  assert.equal(r.week, 4);
+  assert.equal(r.course, 'VT');
+});
+
+test('deadline formats: 월·일 after the label, a written year, 지각 line in the 마감 section', () => {
+  assert.equal(parseNotice('마감 기한: 10월 7일(수) 18:00').dueAt, '2026-10-07T18:00');
+  assert.equal(parseNotice('마감 기한: 2027년 1월 5일').dueAt, '2027-01-05T23:59');
+  assert.equal(parseNotice('마감 기한: 10월 8일(수)').weekdayMismatch, true); // 2026-10-08 is a Thursday
+  const r = parseNotice('■ 마감\n10월 7일(수) 23:59까지\n지각 제출: 10월 8일(목) 23:59까지\n■ 제출 방법');
+  assert.equal(r.dueAt, '2026-10-07T23:59');
+  assert.equal(r.lateDueAt, '2026-10-08T23:59');
+  // a labeled deadline wins over a date elsewhere in the section
+  assert.equal(parseNotice('■ 마감\n공지일 9월 30일\n마감 기한: 10/7(수) 23:59').dueAt, '2026-10-07T23:59');
+});

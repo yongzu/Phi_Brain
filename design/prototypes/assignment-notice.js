@@ -25,23 +25,43 @@
   // this cohort runs 2026-08 … 2027-02: a month from August on is 2026, earlier months 2027
   const yearFor = month => (month >= 8 ? 2026 : 2027);
 
-  // "9/20(일) 23:59" right after a label → "2026-09-20T23:59" (+ whether the written weekday agrees)
-  const DATE_AFTER = String.raw`\s*[:：]?\s*(\d{1,2})\s*/\s*(\d{1,2})\s*(?:\(\s*([월화수목금토일])\s*\))?\s*(?:(\d{1,2})\s*:\s*(\d{2}))?`;
-  const DUE_RE = new RegExp(String.raw`(?<!지각\s*)마감\s*기한` + DATE_AFTER);
-  const LATE_RE = new RegExp(String.raw`지각\s*마감\s*기한` + DATE_AFTER);
+  // "9/20(일) 23:59", "10월 7일(수) 23:59", "2026년 10월 7일(수) 23:59" → "2026-09-20T23:59"
+  // (+ whether the written weekday agrees). A written year wins over the cohort's.
+  const DATE = String.raw`(?:(?:(?<y1>\d{4})\s*년\s*)?(?<m1>\d{1,2})\s*월\s*(?<d1>\d{1,2})\s*일|(?:(?<y2>\d{4})\s*/\s*)?(?<m2>\d{1,2})\s*/\s*(?<d2>\d{1,2}))`
+    + String.raw`\s*(?:\(\s*(?<dow>[월화수목금토일])\s*\))?\s*(?:(?<hh>\d{1,2})\s*:\s*(?<mi>\d{2}))?`;
+  const DUE_RE = new RegExp(String.raw`(?<!지각\s*)마감\s*기한\s*[:：]?\s*` + DATE);
+  const LATE_RE = new RegExp(String.raw`지각\s*마감\s*기한\s*[:：]?\s*` + DATE);
+  const DATE_RE = new RegExp(DATE);
   function toDue(m) {
     if (!m) return null;
-    const month = Number(m[1]), day = Number(m[2]);
+    const g = m.groups;
+    const month = Number(g.m1 ?? g.m2), day = Number(g.d1 ?? g.d2);
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-    const year = yearFor(month);
+    const written = g.y1 ?? g.y2;
+    const year = written ? Number(written) : yearFor(month);
     const date = new Date(year, month - 1, day);
     if (date.getMonth() !== month - 1) return null; // 2/30 and the like
-    const hh = m[4] != null ? Number(m[4]) : 23, mm = m[5] != null ? Number(m[5]) : 59; // no time → 23:59
+    const hh = g.hh != null ? Number(g.hh) : 23, mm = g.mi != null ? Number(g.mi) : 59; // no time → 23:59
     if (hh > 23 || mm > 59) return null;
     return {
       at: `${year}-${pad(month)}-${pad(day)}T${pad(hh)}:${pad(mm)}`,
-      weekdayMismatch: !!m[3] && DOW[date.getDay()] !== m[3],
+      weekdayMismatch: !!g.dow && DOW[date.getDay()] !== g.dow,
     };
+  }
+
+  // no "마감 기한:" label — a bare date in the ■ 마감 section ("2026년 10월 7일(수) 23:59까지").
+  // A line with 지각 gives the late deadline; the first other dated line gives the deadline.
+  function dueFromSection(raw) {
+    const out = { due: null, late: null };
+    for (const s of sections(raw).filter(s => s.name === '마감')) {
+      for (const line of s.lines) {
+        const at = toDue(line.match(DATE_RE));
+        if (!at) continue;
+        if (/지각/.test(line)) out.late ||= at;
+        else out.due ||= at;
+      }
+    }
+    return out;
   }
 
   // "N주차 과제" / "N주 과제": the one next to "안내" wins ("0주차 과제 수행하시느라…" is not the announcement)
@@ -110,8 +130,9 @@
 
   function parseNotice(raw) {
     const text = String(raw || '');
-    const due = toDue(text.match(DUE_RE));
-    const late = toDue(text.match(LATE_RE));
+    const bare = dueFromSection(text);
+    const due = toDue(text.match(DUE_RE)) || bare.due;
+    const late = toDue(text.match(LATE_RE)) || bare.late;
     return {
       dueAt: due ? due.at : null,
       lateDueAt: late ? late.at : null,
