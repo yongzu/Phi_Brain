@@ -188,7 +188,7 @@
     const shortcut = mailMenu
       ? `<button type="button" class="am-shortcut" data-link-target="${cell.targetId}" data-form-url="${safeHref(cell.url) ? esc(cell.url) : ''}" aria-haspopup="menu" aria-expanded="false" title="${esc(kindLabel)} 링크" aria-label="${esc(kindLabel)} 제출폼 또는 제출한 메일 열기">↗</button>`
       : safeHref(cell.url)
-      ? `<a class="am-shortcut" href="${esc(cell.url)}" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
+      ? `<a class="am-shortcut" href="${esc(cell.url)}" draggable="false" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
     // read-only mode has no detail panel (no mail details are published) — a plain label, not a button
     const shown = cellStatusKey(cell, note);
@@ -247,17 +247,16 @@
     const shown = [...favRows, ...rest, ...offRows];
     tbody.innerHTML = shown.map((row, i) => {
       const isFav = i < favRows.length, other = row.week !== week, off = row.courseState;
-      const cls = [isFav && i === favRows.length - 1 && i < shown.length - 1 ? 'am-fav-last' : '', off ? 'is-off' : ''].filter(Boolean).join(' ');
-      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : off ? `off-${off}` : 'rest'}"${cls ? ` class="${cls}"` : ''}>
+      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : off ? `off-${off}` : 'rest'}"${off ? ' class="is-off"' : ''} draggable="true">
         <td><span class="am-cell">
           <button type="button" class="am-grip" data-am-grip aria-label="${esc(row.code)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
-          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}${off ? ' is-off' : ''}"${off ? ' tabindex="-1" aria-hidden="true"' : ''} data-am-fav="${esc(row.code)}" data-am-week="${row.week}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
+          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}${off ? ' is-off' : ''}"${off ? ' tabindex="-1" aria-hidden="true"' : ''} data-am-fav-key="${esc(favKey(row.code, row.week))}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
           <button type="button" class="am-course-name" data-am-course="${esc(row.courseId)}" data-course-wk="${row.week}" aria-haspopup="menu" aria-expanded="false" title="수강기간 아님 · 완강 · 휴강"><b>${esc(row.code)}</b>_${esc(row.name)}</button>
           ${off
             ? `<span class="am-week-tag am-state-tag">${COURSE_STATE_LABEL[off]}</span>`
             : `<span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>${isRest(row) ? '<span class="am-week-tag am-state-tag" title="이 주 세션 없음 — 셀프피드백 해당 없음">휴강</span>' : ''}`}
           ${safeHref(row.boardUrl)
-            ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
+            ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" draggable="false" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
         </span></td>
         ${renderCell(row.code, `${row.code} 과제`, row.assignment, row.note)}
@@ -265,6 +264,7 @@
         ${renderCell(row.code, `${row.code} 셀프피드백`, row.selfFeedback, noteFor('self_feedback', row.note))}
       </tr>`;
     }).join('');
+    markFavLast();
     // 오른쪽 TO-DO 열(assignment-todo.js)도 같은 때 새로 읽는다 — 제출 상태·과제 내용이 바뀌었을 수 있다
     // 개인 할 일 줄(assignment-tasks.js)은 이 이벤트를 받아 표 아래쪽에 끼워 넣는다 — 보는 주차와 로그인(서버) 여부를 함께 준다
     document.dispatchEvent(new CustomEvent('phibrain:assignment-rendered', { detail: { week, live: !snapshot } }));
@@ -287,15 +287,21 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   // 다른 주차 즐겨찾기 줄을 그 주차 표에서 가져온다(주차마다 한 번). 읽기 전용이면 상태 파일에서
   async function loadPinnedRows(week) {
-    const weeksNeeded = [...new Set(favorites.map(k => Number(k.split(':')[1])).filter(w => Number.isInteger(w) && w !== week))];
+    const weeksNeeded = [...new Set(favorites.filter(k => !k.startsWith('task:')).map(k => Number(k.split(':')[1])).filter(w => Number.isInteger(w) && w !== week))];
     const lists = await Promise.all(weeksNeeded.map(async w => {
       const m = snapshot ? (snapshot.weeks ? snapshotMatrix(w) : null) : await apiJson(`/weeks/${w}/matrix`);
       return m ? m.rows.filter(r => favorites.includes(favKey(r.code, w))).map(r => ({ ...r, week: w })) : [];
     }));
     return lists.flat();
   }
-  function toggleAmFavorite(code, week) {
-    const key = favKey(code, week);
+  // 즐겨찾기 묶음 끝 줄의 회색 선 — 개인 할 일 줄(assignment-tasks.js)이 즐겨찾기 묶음에 끼어든 뒤에도 다시 부른다
+  function markFavLast() {
+    tbody.querySelectorAll('tr.am-fav-last').forEach(tr => tr.classList.remove('am-fav-last'));
+    const last = [...tbody.querySelectorAll('tr[data-am-group="fav"]')].pop();
+    if (last?.nextElementSibling) last.classList.add('am-fav-last');
+  }
+  // key = "AL:3"(과목 × 주차) 또는 "task:<id>"(개인 할 일, 사용자 지시 2026-10-06)
+  function toggleAmFavorite(key) {
     const on = !favorites.includes(key);
     favorites = on ? [...favorites, key] : favorites.filter(k => k !== key);
     saveFavorites();
@@ -312,7 +318,8 @@
     placeDetail(); // 열린 팝업이 있으면 옮겨 간 칸을 따라간다
   }
 
-  // ---- 줄 순서 바꾸기(사용자 지시 2026-10-01): 별표 왼쪽 ⠿를 끌어(또는 ⠿에서 ↑·↓) 같은 묶음 안 순서를 바꾼다 ----
+  // ---- 줄 순서 바꾸기(사용자 지시 2026-10-01): 줄을 끌어(2026-10-06부터 줄 어디든, 또는 ⠿에서 ↑·↓) 같은 묶음 안 순서를 바꾼다 ----
+  // 개인 할 일 줄(묶음 "task", 키 "task:<id>")도 같은 방식 — 순서는 과목 순서 목록에 키 그대로 함께 저장
   // 즐겨찾기 묶음은 favorites 배열 순서를, 나머지는 과목 순서(과목 코드 목록 — 모든 주차에 같이 적용)를 바꾼다.
   // 묶음을 넘나들지는 않는다(즐겨찾기 여부는 별표로). 즐겨찾기처럼 이 기기(브라우저)에만 저장.
   const ORDER_KEY = 'phi-brain:assignment-order';
@@ -325,7 +332,7 @@
       favorites = [...keys, ...favorites.filter(k => !keys.includes(k))];
       saveFavorites();
     } else {
-      const codes = keys.map(k => k.split(':')[0]);
+      const codes = keys.map(k => (k.startsWith('task:') ? k : k.split(':')[0])); // 개인 할 일은 "task:<id>" 그대로
       courseOrder = [...codes, ...courseOrder.filter(c => !codes.includes(c))];
       try { localStorage.setItem(ORDER_KEY, JSON.stringify(courseOrder)); } catch {}
     }
@@ -342,12 +349,8 @@
   }
   let dragRow = null;
   const clearRowDrop = () => tbody.querySelectorAll('.drop-before,.drop-after').forEach(tr => tr.classList.remove('drop-before', 'drop-after'));
-  // ⠿를 누를 때만 줄을 끌 수 있게 — 줄 전체가 늘 draggable이면 글자 선택·버튼 클릭이 끌기로 바뀐다
-  tbody.addEventListener('pointerdown', e => {
-    const grip = e.target.closest('[data-am-grip]');
-    if (grip) grip.closest('tr').draggable = true;
-  });
-  tbody.addEventListener('pointerup', () => { if (!dragRow) tbody.querySelectorAll('tr[draggable="true"]').forEach(tr => { tr.draggable = false; }); });
+  // 줄 어디를 잡아도 끈다(사용자 지시 2026-10-06 — 예전엔 ⠿만 잡혀 순서 바꾸기가 불편했다). 줄은 늘 draggable이고,
+  // 그 안의 버튼은 움직이지 않고 누르면 그대로 클릭, ↗ 링크는 draggable="false"라 링크 대신 줄이 끌린다. 줄 글자 선택은 안 된다
   tbody.addEventListener('dragstart', e => {
     const tr = e.target.closest?.('tr[draggable="true"]');
     if (!tr) return;
@@ -389,7 +392,7 @@
     applyRowOrder(group, keys, key);
   });
   tbody.addEventListener('dragend', () => {
-    if (dragRow) { dragRow.classList.remove('is-drag-src'); dragRow.draggable = false; }
+    if (dragRow) dragRow.classList.remove('is-drag-src');
     dragRow = null;
     clearRowDrop();
   });
@@ -405,6 +408,25 @@
     [keys[i], keys[j]] = [keys[j], keys[i]];
     applyRowOrder(group, keys, tr.dataset.amRow);
   });
+
+  // 개인 할 일 줄(assignment-tasks.js)이 같은 즐겨찾기·줄 순서를 쓰게
+  const saveOrder = () => { try { localStorage.setItem(ORDER_KEY, JSON.stringify(courseOrder)); } catch {} };
+  window.PhiBrain.amTable = {
+    favorites: () => favorites,
+    orderRank,
+    markFavLast,
+    // 지운 할 일을 되돌리면 새 id가 된다 — 별표·순서를 그 id로 옮긴다
+    renameKey(from, to) {
+      if (favorites.includes(from)) { favorites = favorites.map(k => (k === from ? to : k)); saveFavorites(); }
+      if (courseOrder.includes(from)) { courseOrder = courseOrder.map(k => (k === from ? to : k)); saveOrder(); }
+    },
+    // 서버 목록에 없는 할 일(다른 기기에서 지운 것 등)의 별표·순서는 지운다
+    pruneTasks(ids) {
+      const keep = k => !k.startsWith('task:') || ids.has(k.slice(5));
+      if (!favorites.every(keep)) { favorites = favorites.filter(keep); saveFavorites(); }
+      if (!courseOrder.every(keep)) { courseOrder = courseOrder.filter(keep); saveOrder(); }
+    },
+  };
 
   async function loadWeek(weekNo) {
     adoptLegacyFavorites(weekNo);
@@ -784,8 +806,8 @@
   addEventListener('resize', () => closeLinkMenu());
 
   tbody.addEventListener('click', e => {
-    const favBtn = e.target.closest('[data-am-fav]');
-    if (favBtn) { toggleAmFavorite(favBtn.dataset.amFav, Number(favBtn.dataset.amWeek)); return; }
+    const favBtn = e.target.closest('[data-am-fav-key]');
+    if (favBtn) { toggleAmFavorite(favBtn.dataset.amFavKey); return; }
     const linkBtn = e.target.closest('[data-link-target]');
     if (linkBtn) { linkMenuAnchor === linkBtn ? closeLinkMenu() : (closeLinkMenu(), openLinkMenu(linkBtn)); return; }
     const courseBtn = e.target.closest('[data-am-course]');

@@ -1,11 +1,25 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-10-06 (Assignment Manage 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
+최종 갱신: 2026-10-06 (Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 줄 어디든 끌기 · 개인 할 일 별표·순서 (2026-10-06, 사용자 지시 · Claude Code)
+
+- 사용자 지시: ① 개인 할 일도 별표·드래그 ② ⠿만이 아니라 줄 전체(스크린샷의 붉은 영역)를 잡아 끌 수 있게 — 순서 바꾸기가 불편.
+- `assignment.js?v=20261006-2`: 줄을 늘 `draggable="true"`로 그리고 ⠿ 누를 때만 켜던 pointerdown/pointerup을 없앴다. 줄 안 ↗ 링크(`a.am-shortcut`)는 `draggable="false"`(링크 대신 줄이 끌리게).
+  별표 버튼은 `data-am-fav-key`(과목 `AL:4` / 할 일 `task:<id>`) 하나로. 즐겨찾기 묶음 끝 회색 선은 `markFavLast()`로 할 일 줄이 끼어든 뒤 다시 계산.
+  할 일 줄의 순서는 과목 순서 목록(`phi-brain:assignment-order`)에 `task:<id>` 그대로 저장. `window.PhiBrain.amTable`(favorites·orderRank·markFavLast·renameKey·pruneTasks)로 할 일 파일과 공유.
+- `assignment-tasks.js?v=20261006-1`: 할 일 줄에 ⠿·별표. 별표한 할 일은 묶음 `fav`로 즐겨찾기 목록 순서 자리에 끼워 넣고, 나머지는 묶음 `task`로 저장 순서대로. 지운 할 일 되돌리기(새 id) 시 별표·순서를 새 id로 옮기고, 불러올 때 서버에 없는 할 일 키는 지운다.
+- `phi-brain.css?v=20261006-1`: 할 일 이름 들임 27px → `calc(var(--tab-pad-x) - 6px)`(별표 뒤, 과목명 글자와 같은 x — 1500 폭에서 둘 다 x412 확인). 마우스 환경에서 끌 수 있는 줄의 칸 바탕 커서 grab(버튼은 그대로 pointer).
+- 검증(로컬 5511, 로그아웃 상태라 개인 할 일은 페이지 안에서 `auth.fetch`·`session`을 가짜로 바꿔 가상 할 일 3개로 — 서버 호출 없음):
+  할 일 B·과목 SI·할 일 A 별표 → 즐겨찾기 묶음 B·SI·A 순서, 회색 선은 A 줄. 실제 마우스로 AOR 줄의 빈 곳을 잡아 AL 위로 → 순서 저장. 자세히보기 버튼 위에서 끌기 시작 → dragstart 발생·클릭 없음(이 브라우저 도구로는 놓기가 전달되지 않아 놓기는 합성 이벤트로 확인).
+  합성 끌기: 즐겨찾기 안 A를 B 위로, BI를 AOR 위로 → 둘 다 순서 반영. 할 일 C ⠿에서 ↑ → C·A 순서 저장·주차 이동 후에도 유지. 실제 클릭: 끌 수 있는 줄 안에서 AL 별표·할 일 자세히보기 팝업 정상. 375 폭 가로 스크롤 없음.
+  로컬 테스트 즐겨찾기·순서는 지움. 로그인 상태(실제 서버 할 일)는 직접 확인하지 못함.
+- 참고: 로컬 `tools/dev-server.js`는 저장소 안 파일이 바뀌면 열린 탭을 새로고침한다 — 검증 중 탭이 Findings로 돌아간 건 이 때문(코드 문제 아님).
 
 ### Assignment Manage: 마지막에 고른 주차로 고정 (2026-10-06, 사용자 지시 · Claude Code)
 

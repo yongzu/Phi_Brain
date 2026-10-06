@@ -660,8 +660,8 @@ html[data-hl="red"] .ico-mark,.hl-dot[data-hl="red"]{background:var(--mark-red)}
 
 /* 개인 할 일 줄(사용자 지시 2026-10-02, assignment-tasks.js): 과목 줄 뒤에 같은 4칸. 이름 + "개인" 박스(WK 박스와 같은 모양),
    Assignment 칸 = 직접 체크(완료 = 검정 점, 메일 확인 없음), 과제 내용 칸 = 자세히보기, Self-Feedback 칸은 비움.
-   이름은 과목명 글자와 같은 x에서 시작(별표 15px + 과목명 버튼 여백만큼 들임). 끝낸 할 일은 이름 회색 + 취소선 */
-.am-task-name{min-width:0;margin-left:27px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+   이름은 과목명 글자와 같은 x에서 시작 — 2026-10-06부터 ⠿·별표가 과목 줄과 같이 붙어, 별표 뒤 들임은 과목명 버튼 여백(-6px)과 같다. 끝낸 할 일은 이름 회색 + 취소선 */
+.am-task-name{min-width:0;margin-left:calc(var(--tab-pad-x) - 6px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 .am-task-row.is-done .am-task-name{color:var(--gray);text-decoration:line-through}
 .am-task-add-row td{padding-top:6px}
 .am-task-add{margin-left:calc(27px - var(--tab-pad-x))}
@@ -894,4 +894,6 @@ a.am-todo-title:hover{text-decoration-style:solid;text-decoration-color:var(--in
   /* 줄 순서 손잡이는 버튼이지만 끄는 것 — 위 버튼 규칙이 grab을 덮지 않게 */
   button.am-grip{cursor:grab}
   button.am-grip:active{cursor:grabbing}
+  /* 줄 어디를 잡아도 끈다(사용자 지시 2026-10-06) — 버튼·링크 밖의 줄 바탕은 grab */
+  .am-table tbody tr[draggable="true"] td{cursor:grab}
 }

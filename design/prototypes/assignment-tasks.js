@@ -49,16 +49,24 @@
     if (!auth.session) { tasks = null; return; }
     try {
       const res = await api('');
-      if (res.ok) tasks = (await res.json()).tasks || [];
+      if (res.ok) {
+        tasks = (await res.json()).tasks || [];
+        window.PhiBrain.amTable.pruneTasks(new Set(tasks.map(t => t.id)));
+      }
     } catch {}
   }
 
   const visibleIn = (t, w) => t.weekNo <= w && (!t.done || (t.doneWeek ?? t.weekNo) >= w);
 
-  function rowHtml(t) {
+  // 별표·줄 순서(사용자 지시 2026-10-06): 과목 줄과 같은 ⠿·별표. 즐겨찾기 키 "task:<id>"는 과목 즐겨찾기와 한 목록이라
+  // 별표한 할 일은 표 맨 위 즐겨찾기 묶음에 누른 순서대로 섞여 들어가고, 나머지 할 일끼리는 끌어서 순서를 바꾼다
+  const keyOf = t => `task:${t.id}`;
+  function rowHtml(t, isFav) {
     const doneLabel = t.done ? '완료' : '미완료';
-    return `<tr data-am-row="task:${esc(t.id)}" data-am-group="task" class="am-task-row${t.done ? ' is-done' : ''}">
+    return `<tr data-am-row="${esc(keyOf(t))}" data-am-group="${isFav ? 'fav' : 'task'}" class="am-task-row${t.done ? ' is-done' : ''}" draggable="true">
       <td><span class="am-cell">
+        <button type="button" class="am-grip" data-am-grip aria-label="${esc(t.name)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
+        <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav-key="${esc(keyOf(t))}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(t.name)}"></button>
         <span class="am-task-name" title="${esc(t.name)}">${esc(t.name)}</span>
         <span class="am-week-tag">개인</span>
       </span></td>
@@ -82,10 +90,22 @@
   function draw() {
     tbody.querySelectorAll('.am-task-row,.am-task-add-row').forEach(tr => tr.remove());
     if (!live || tasks === null || week == null) return;
-    const html = tasks.filter(t => visibleIn(t, week)).map(rowHtml).join('') + addRowHtml();
+    const am = window.PhiBrain.amTable, favs = am.favorites();
+    const shown = tasks.filter(t => visibleIn(t, week));
+    const rest = shown.filter(t => !favs.includes(keyOf(t))).sort((a, b) => am.orderRank(keyOf(a)) - am.orderRank(keyOf(b)));
+    const html = rest.map(t => rowHtml(t, false)).join('') + addRowHtml();
     // 과목 줄 뒤, 수강기간 아님·완강(회색) 줄 앞
     const firstOff = tbody.querySelector('tr.is-off');
     firstOff ? firstOff.insertAdjacentHTML('beforebegin', html) : tbody.insertAdjacentHTML('beforeend', html);
+    // 별표한 할 일 → 즐겨찾기 묶음 안, 즐겨찾기 목록 순서의 제자리
+    for (const t of shown.filter(x => favs.includes(keyOf(x)))) {
+      const i = favs.indexOf(keyOf(t)), favRows = [...tbody.querySelectorAll('tr[data-am-group="fav"]')];
+      const next = favRows.find(tr => favs.indexOf(tr.dataset.amRow) > i);
+      if (next) next.insertAdjacentHTML('beforebegin', rowHtml(t, true));
+      else if (favRows.length) favRows[favRows.length - 1].insertAdjacentHTML('afterend', rowHtml(t, true));
+      else tbody.insertAdjacentHTML('afterbegin', rowHtml(t, true));
+    }
+    am.markFavLast();
     const slot = tbody.querySelector('.am-task-add-due-slot');
     if (slot) slot.append(window.PhiBrain.duePicker({ value: addDue, onChange: v => { addDue = v; } }).el);
     if (adding) tbody.querySelector('.am-task-add-input')?.focus({ preventScroll: true });
@@ -145,6 +165,7 @@
         try { r = await api('', jsonOpts('POST', { name: t.name, weekNo: t.weekNo, detail: t.detail, dueAt: t.dueAt })); } catch {}
         if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
         const back = (await r.json()).task;
+        window.PhiBrain.amTable.renameKey(keyOf(t), keyOf(back)); // 별표·순서도 되살린다
         tasks.push(back);
         if (t.done) await update(back.id, { done: true, doneWeek: t.doneWeek }); // 완료였으면 완료로(새 id)
         else { draw(); changedEvent(); }
