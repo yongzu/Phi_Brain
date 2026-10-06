@@ -59,11 +59,11 @@
   const visibleIn = (t, w) => t.weekNo <= w && (!t.done || (t.doneWeek ?? t.weekNo) >= w);
 
   // 별표·줄 순서(사용자 지시 2026-10-06): 과목 줄과 같은 ⠿·별표. 즐겨찾기 키 "task:<id>"는 과목 즐겨찾기와 한 목록이라
-  // 별표한 할 일은 표 맨 위 즐겨찾기 묶음에 누른 순서대로 섞여 들어가고, 나머지 할 일끼리는 끌어서 순서를 바꾼다
+  // 별표한 할 일은 표 맨 위 즐겨찾기 묶음에 누른 순서대로 섞여 들어가고, 나머지는 과목 줄과 한 묶음("rest")이라 과목 사이 어디로든 끌어 옮긴다
   const keyOf = t => `task:${t.id}`;
   function rowHtml(t, isFav) {
     const doneLabel = t.done ? '완료' : '미완료';
-    return `<tr data-am-row="${esc(keyOf(t))}" data-am-group="${isFav ? 'fav' : 'task'}" class="am-task-row${t.done ? ' is-done' : ''}" draggable="true">
+    return `<tr data-am-row="${esc(keyOf(t))}" data-am-group="${isFav ? 'fav' : 'rest'}" class="am-task-row${t.done ? ' is-done' : ''}" draggable="true">
       <td><span class="am-cell">
         <button type="button" class="am-grip" data-am-grip aria-label="${esc(t.name)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
         <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}" data-am-fav-key="${esc(keyOf(t))}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(t.name)}"></button>
@@ -92,11 +92,23 @@
     if (!live || tasks === null || week == null) return;
     const am = window.PhiBrain.amTable, favs = am.favorites();
     const shown = tasks.filter(t => visibleIn(t, week));
-    const rest = shown.filter(t => !favs.includes(keyOf(t))).sort((a, b) => am.orderRank(keyOf(a)) - am.orderRank(keyOf(b)));
-    const html = rest.map(t => rowHtml(t, false)).join('') + addRowHtml();
-    // 과목 줄 뒤, 수강기간 아님·완강(회색) 줄 앞
-    const firstOff = tbody.querySelector('tr.is-off');
-    firstOff ? firstOff.insertAdjacentHTML('beforebegin', html) : tbody.insertAdjacentHTML('beforeend', html);
+    // 별표 안 한 할 일 → 과목 줄과 한 묶음("rest", 사용자 지시 2026-10-06): 같은 순서 목록의 순위대로 과목 줄 사이에 끼운다.
+    // 과목 줄은 render()가 이미 같은 순위로 세워 두었으니, 과목·할 일을 한 줄로 정렬(순위 같으면 과목 먼저 — 순서를 정한 적 없는
+    // 새 할 일은 과목 줄 아래)한 뒤 할 일만 바로 앞 줄 뒤에 넣는다. 마지막에 "+ 할 일 추가" 줄(수강기간 아님·완강 줄 앞)
+    const courseRows = [...tbody.querySelectorAll('tr[data-am-group="rest"]')];
+    const merged = [
+      ...courseRows.map(tr => ({ tr, rank: am.orderRank(tr.dataset.amRow.split(':')[0]) })),
+      ...shown.filter(t => !favs.includes(keyOf(t))).map(t => ({ t, rank: am.orderRank(keyOf(t)) })),
+    ].sort((a, b) => a.rank - b.rank || 0);
+    const favRowsNow = tbody.querySelectorAll('tr[data-am-group="fav"]');
+    let anchor = courseRows[0]?.previousElementSibling ?? favRowsNow[favRowsNow.length - 1] ?? null;
+    const putAfter = html => {
+      if (anchor) anchor.insertAdjacentHTML('afterend', html);
+      else tbody.insertAdjacentHTML('afterbegin', html);
+      anchor = anchor ? anchor.nextElementSibling : tbody.firstElementChild;
+    };
+    for (const m of merged) m.tr ? (anchor = m.tr) : putAfter(rowHtml(m.t, false));
+    putAfter(addRowHtml());
     // 별표한 할 일 → 즐겨찾기 묶음 안, 즐겨찾기 목록 순서의 제자리
     for (const t of shown.filter(x => favs.includes(keyOf(x)))) {
       const i = favs.indexOf(keyOf(t)), favRows = [...tbody.querySelectorAll('tr[data-am-group="fav"]')];
