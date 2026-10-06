@@ -7,7 +7,7 @@
   <meta name="description" content="Iterative Problem Solving 4주차 — 관심사별로 쌓아 둔 인스타그램 저장물(Saved)에서 필요한 것을 골라내지 못하는 문제의 사용자 분석과 가설 체인" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="w4.css?v=20261006-3" />
+  <link rel="stylesheet" href="w4.css?v=20261006-4" />
 </head>
 <body>
   <header class="site-header">
@@ -89,9 +89,17 @@
         <li><span class="swatch" aria-hidden="true"></span>펼쳐 본 가설</li>
         <li><span class="swatch is-infer" aria-hidden="true"></span>추론(관찰 근거 없음)</li>
       </ul>
-      <div class="tree-wrap" id="tree-wrap">
-        <svg class="tree-lines" id="tree-lines" aria-hidden="true"></svg>
-        <ul class="tree" id="tree"></ul>
+      <div class="tree-wrap" id="tree-detail">
+        <svg class="tree-lines" aria-hidden="true"></svg>
+        <ul class="tree"></ul>
+      </div>
+
+      <!-- 미니멀 버전 — 같은 CHAIN에서 메모를 빼고 번호와 가설 문장만 -->
+      <h3 class="row-title chain-sub" id="chain-min"><span class="bullet" aria-hidden="true"></span><span class="label">미니멀 버전</span></h3>
+      <p class="lead">같은 체인에서 근거와 확인 방법을 빼고, 번호와 가설 문장만 남겼다.</p>
+      <div class="tree-wrap" id="tree-min" data-notes="off">
+        <svg class="tree-lines" aria-hidden="true"></svg>
+        <ul class="tree"></ul>
       </div>
     </section>
 
@@ -190,6 +198,6 @@
   </main>
 
   <footer class="site-footer"><a href="../">IPS 전체 과정 보기 ↗</a></footer>
-  <script src="w4.js?v=20261006-3"></script>
+  <script src="w4.js?v=20261006-4"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* IPS 4주차 가설 체인: 데이터(CHAIN) → 중첩 목록 → 박스 사이 선(SVG).
+/* IPS 4주차 가설 체인: 데이터(CHAIN) → 중첩 목록 → 박스 사이 선(SVG). 페이지의 .tree-wrap마다 그린다(상세 · 미니멀).
    picked = 선택한 체인, cause = 체인 끝의 근본 원인, infer = 관찰 근거 없이 추론한 가설.
    note는 박스 안 본문 아래에 늘 펼쳐 둔다(상황 · 근거 · 추론 · 확인 방법). */
 (() => {
@@ -46,80 +46,96 @@
     ],
   };
 
-  const wrap = document.getElementById('tree-wrap');
-  const treeEl = document.getElementById('tree');
-  const svg = document.getElementById('tree-lines');
-  if (!wrap || !treeEl || !svg) return;
-
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const parentOf = new Map();
   const byId = new Map();
-
-  function nodeHTML(n, parent) {
+  (function index(n, parent) {
     byId.set(n.id, n);
     if (parent) parentOf.set(n.id, parent.id);
+    n.children?.forEach(c => index(c, n));
+  })(CHAIN, null);
+
+  // 같은 CHAIN을 두 번 그린다: 상세(메모 펼침)와 미니멀(번호 + 가설 문장만, data-notes="off")
+  function nodeHTML(n, withNotes) {
     const cls = ['node', n.top && 'is-top', n.picked && 'is-picked', n.cause && 'is-cause', n.infer && 'is-infer'].filter(Boolean).join(' ');
-    const kids = n.children?.length ? `<ul>${n.children.map(c => nodeHTML(c, n)).join('')}</ul>` : '';
+    const kids = n.children?.length ? `<ul>${n.children.map(c => nodeHTML(c, withNotes)).join('')}</ul>` : '';
     const tag = [n.top ? '현상' : n.id, n.infer && '추론', n.cause && '근본 원인'].filter(Boolean).join(' · ');
-    const notes = Object.entries(n.note || {}).map(([k, v]) => `<span class="note"><b>${esc(k)}</b> ${esc(v)}</span>`).join('');
+    const notes = withNotes ? Object.entries(n.note || {}).map(([k, v]) => `<span class="note"><b>${esc(k)}</b> ${esc(v)}</span>`).join('') : '';
     return `<li><button type="button" class="${cls}" data-node="${esc(n.id)}"><span class="node-id">${esc(tag)}</span><span class="node-text">${esc(n.text)}</span>${notes && `<span class="node-notes">${notes}</span>`}</button>${kids}</li>`;
   }
-  treeEl.innerHTML = nodeHTML(CHAIN, null);
 
-  const box = id => treeEl.querySelector(`[data-node="${CSS.escape(id)}"]`);
   const vertical = () => matchMedia('(max-width:940px)').matches;
+  const trees = [];
 
-  // 부모 → 자식 선: 가로 트리는 오른쪽 가운데 → 왼쪽 가운데 곡선, 세로 트리는 왼쪽 아래로 내려와 꺾는 선
-  function drawLines() {
-    const base = wrap.getBoundingClientRect();
-    svg.setAttribute('viewBox', `0 0 ${wrap.clientWidth} ${wrap.clientHeight}`);
-    const paths = [];
-    for (const [child, parent] of parentOf) {
-      const a = box(parent).getBoundingClientRect(), b = box(child).getBoundingClientRect();
-      let d;
-      if (vertical()) {
-        const x = a.left - base.left + 12, y1 = a.bottom - base.top, y2 = b.top - base.top + b.height / 2, x2 = b.left - base.left;
-        d = `M${x} ${y1} V${y2 - 8} Q${x} ${y2} ${x + 8} ${y2} H${x2}`;
-      } else {
-        const x1 = a.right - base.left, y1 = a.top - base.top + a.height / 2, x2 = b.left - base.left, y2 = b.top - base.top + b.height / 2;
-        const dx = (x2 - x1) / 2;
-        d = `M${x1} ${y1} C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`;
+  function mount(wrap) {
+    const treeEl = wrap.querySelector('.tree');
+    const svg = wrap.querySelector('.tree-lines');
+    if (!treeEl || !svg) return;
+    treeEl.innerHTML = nodeHTML(CHAIN, wrap.dataset.notes !== 'off');
+    const box = id => treeEl.querySelector(`[data-node="${CSS.escape(id)}"]`);
+
+    // 부모 → 자식 선: 가로 트리는 오른쪽 가운데 → 왼쪽 가운데 곡선, 세로 트리는 왼쪽 아래로 내려와 꺾는 선
+    function drawLines() {
+      const base = wrap.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${wrap.clientWidth} ${wrap.clientHeight}`);
+      const paths = [];
+      for (const [child, parent] of parentOf) {
+        const a = box(parent).getBoundingClientRect(), b = box(child).getBoundingClientRect();
+        let d;
+        if (vertical()) {
+          const x = a.left - base.left + 12, y1 = a.bottom - base.top, y2 = b.top - base.top + b.height / 2, x2 = b.left - base.left;
+          d = `M${x} ${y1} V${y2 - 8} Q${x} ${y2} ${x + 8} ${y2} H${x2}`;
+        } else {
+          const x1 = a.right - base.left, y1 = a.top - base.top + a.height / 2, x2 = b.left - base.left, y2 = b.top - base.top + b.height / 2;
+          const dx = (x2 - x1) / 2;
+          d = `M${x1} ${y1} C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`;
+        }
+        const picked = byId.get(child).picked && byId.get(parent).picked;
+        paths.push(`<path d="${d}" data-edge="${esc(child)}"${picked ? ' class="is-picked"' : ''}/>`);
       }
-      const picked = byId.get(child).picked && byId.get(parent).picked;
-      paths.push(`<path d="${d}" data-edge="${esc(child)}"${picked ? ' class="is-picked"' : ''}/>`);
+      svg.innerHTML = paths.join('');
     }
-    svg.innerHTML = paths.join('');
+
+    // 한 박스를 고르면 현상까지 올라가는 경로와 그 아래 가지를 함께 켠다
+    function trace(id) {
+      const on = new Set();
+      for (let cur = id; cur; cur = parentOf.get(cur)) on.add(cur);
+      (function down(n) { on.add(n.id); n.children?.forEach(down); })(byId.get(id));
+      wrap.classList.add('is-tracing');
+      treeEl.querySelectorAll('.node').forEach(el => el.classList.toggle('is-on', on.has(el.dataset.node)));
+      svg.querySelectorAll('path').forEach(p => p.classList.toggle('is-on', on.has(p.dataset.edge) && on.has(parentOf.get(p.dataset.edge))));
+    }
+    function untrace() {
+      wrap.classList.remove('is-tracing');
+      treeEl.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
+      svg.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
+    }
+    const t = { wrap, pinned: null, trace, untrace, drawLines };
+    // 누른 박스는 다른 박스를 누르거나 바깥을 누를 때까지 켜 둔다(터치 화면)
+    treeEl.addEventListener('pointerover', e => { const b = e.target.closest('.node'); if (b && !t.pinned) trace(b.dataset.node); });
+    treeEl.addEventListener('pointerleave', () => { if (!t.pinned) untrace(); });
+    treeEl.addEventListener('focusin', e => { const b = e.target.closest('.node'); if (b) trace(b.dataset.node); });
+    treeEl.addEventListener('focusout', e => { if (!treeEl.contains(e.relatedTarget) && !t.pinned) untrace(); });
+    treeEl.addEventListener('click', e => {
+      const b = e.target.closest('.node');
+      if (!b) return;
+      t.pinned = t.pinned === b.dataset.node ? null : b.dataset.node;
+      t.pinned ? trace(t.pinned) : untrace();
+    });
+
+    drawLines();
+    new ResizeObserver(() => { drawLines(); if (t.pinned) trace(t.pinned); }).observe(wrap);
+    document.fonts?.ready.then(drawLines);
+    trees.push(t);
   }
 
-  // 한 박스를 고르면 현상까지 올라가는 경로와 그 아래 가지를 함께 켠다
-  function trace(id) {
-    const on = new Set();
-    for (let cur = id; cur; cur = parentOf.get(cur)) on.add(cur);
-    (function down(n) { on.add(n.id); n.children?.forEach(down); })(byId.get(id));
-    wrap.classList.add('is-tracing');
-    treeEl.querySelectorAll('.node').forEach(el => el.classList.toggle('is-on', on.has(el.dataset.node)));
-    svg.querySelectorAll('path').forEach(p => p.classList.toggle('is-on', on.has(p.dataset.edge) && on.has(parentOf.get(p.dataset.edge))));
-  }
-  function untrace() {
-    wrap.classList.remove('is-tracing');
-    treeEl.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
-    svg.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
-  }
-  let pinned = null; // 누른 박스는 다른 박스를 누르거나 바깥을 누를 때까지 켜 둔다(터치 화면)
-  treeEl.addEventListener('pointerover', e => { const b = e.target.closest('.node'); if (b && !pinned) trace(b.dataset.node); });
-  treeEl.addEventListener('pointerleave', () => { if (!pinned) untrace(); });
-  treeEl.addEventListener('focusin', e => { const b = e.target.closest('.node'); if (b) trace(b.dataset.node); });
-  treeEl.addEventListener('focusout', e => { if (!treeEl.contains(e.relatedTarget) && !pinned) untrace(); });
-  treeEl.addEventListener('click', e => {
-    const b = e.target.closest('.node');
-    if (!b) return;
-    pinned = pinned === b.dataset.node ? null : b.dataset.node;
-    pinned ? trace(pinned) : untrace();
+  document.querySelectorAll('.tree-wrap').forEach(mount);
+  document.addEventListener('click', e => {
+    trees.forEach(t => { if (t.pinned && !t.wrap.contains(e.target.closest('.node'))) { t.pinned = null; t.untrace(); } });
   });
-  document.addEventListener('click', e => { if (pinned && !e.target.closest('.node')) { pinned = null; untrace(); } });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && wrap.classList.contains('is-tracing')) { pinned = null; untrace(); document.activeElement?.blur(); } });
-
-  drawLines();
-  new ResizeObserver(() => { drawLines(); if (pinned) trace(pinned); }).observe(wrap);
-  document.fonts?.ready.then(drawLines);
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    trees.forEach(t => { if (t.wrap.classList.contains('is-tracing')) { t.pinned = null; t.untrace(); } });
+    document.activeElement?.blur();
+  });
 })();
