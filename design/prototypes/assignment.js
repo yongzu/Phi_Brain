@@ -64,6 +64,18 @@
   let tableRows = []; // 지금 표에 있는 줄 전부(이번 주 + 다른 주차 즐겨찾기) — 과제 내용·상세 팝업이 여기서 줄을 찾는다
   let pendingConnectResult = null;
 
+  // 주차 고정(사용자 지시 2026-10-06): 날짜로 다음 주차에 자동으로 넘어가지 않는다 — 마지막에 ◀ ▶로 고른 주차를 그대로 연다.
+  // 저장한 주차가 없을 때만 날짜로 잡은 주차를 쓰고, 그 주차도 저장해 둔다. 즐겨찾기처럼 이 기기(브라우저)에만 저장.
+  const WEEK_KEY = 'phi-brain:assignment-week';
+  const saveWeek = n => { try { localStorage.setItem(WEEK_KEY, String(n)); } catch {} };
+  function startWeek(autoWeek) {
+    let saved = null;
+    try { const v = localStorage.getItem(WEEK_KEY); if (v) saved = Number(v); } catch {}
+    const ok = Number.isInteger(saved) && weeks.some(w => w.week_no === saved);
+    if (!ok) saveWeek(autoWeek);
+    return ok ? saved : autoWeek;
+  }
+
   // ---- read-only mode: the weekly sync's status file (server/snapshot.js) ----
   const SNAPSHOT_URL = 'data/assignment-status.json';
   const SNAPSHOT_STATUS = { mail: 'confirmed_mail', manual: 'confirmed_manual' };
@@ -111,7 +123,7 @@
     // 실패는 조용히 숨기지 않는다 — 지난 성공 결과는 그대로 보여주되 실패 사실을 붙인다
     if (snap.lastError) gmailStatus.textContent += ` · 마지막 동기화 실패: ${snap.lastError}`;
     gmailStatus.textContent += auth.session ? ' · 서버에 연결할 수 없어 저장본을 보여줘요' : ' · 로그인하면 상세·새로고침을 쓸 수 있어요';
-    loadWeek(currentWeekNo ?? snapshotCurrentWeek(snap));
+    loadWeek(currentWeekNo ?? startWeek(snapshotCurrentWeek(snap)));
     return true;
   }
   function showUnreachable() { backendHint.hidden = false; table.hidden = true; }
@@ -427,8 +439,8 @@
     return c;
   }
 
-  weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) loadWeek(currentWeekNo - 1); });
-  weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) loadWeek(currentWeekNo + 1); });
+  weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) { saveWeek(currentWeekNo - 1); loadWeek(currentWeekNo - 1); } });
+  weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) { saveWeek(currentWeekNo + 1); loadWeek(currentWeekNo + 1); } });
 
   // Google's consent page is a full-page visit, which can't carry our session —
   // the API hands back a URL with a signed state that brings the browser back here
@@ -1105,7 +1117,7 @@
     }
     const conn = await loadConnection();
     if (run !== initRun) return;
-    await loadWeek(currentWeekNo ?? cw);
+    await loadWeek(currentWeekNo ?? startWeek(cw));
     if (pendingConnectResult) {
       const [msg, kind] = CONNECT_RESULT[pendingConnectResult];
       pendingConnectResult = null;
