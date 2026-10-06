@@ -7,12 +7,13 @@
   <meta name="description" content="Iterative Problem Solving 4주차 — 관심사별로 쌓아 둔 인스타그램 저장물(Saved)에서 필요한 것을 골라내지 못하는 문제의 사용자 분석과 가설 체인" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="w4.css?v=20261006-4" />
+  <link rel="stylesheet" href="w4.css?v=20261006-5" />
 </head>
 <body>
   <header class="site-header">
     <a href="../" class="brand">IPS <span>/ 4주차</span></a>
     <nav class="site-nav" aria-label="이 페이지">
+      <a href="#goal">목적</a>
       <a href="#users">사용자 분석</a>
       <a href="#chain">가설 체인</a>
       <a href="#feedback">피드백 반영</a>
@@ -26,6 +27,40 @@
       <p class="eyebrow">인스타그램 · 저장(Saved)</p>
       <h1 id="hero-title">사람들은 관심사별로 인스타그램에 저장해 두지만,<br />필요할 때 맞는 것을 골라내지 못하고 하나씩 눌러 확인한다.</h1>
       <p class="hero-sub">디자인 레퍼런스, 화장법과 화장품, 패션, 아이돌, 음악. 저장(Saved)은 각자의 관심사를 모아 두는 보관함으로 쓰인다. 저장하는 이유도, 다시 찾는 이유도 게시물 전체보다 그 안의 한 부분일 때가 많다. 화면 전환 하나, 립 색 하나, 릴스에 깔린 곡 하나. 하지만 저장물에 남는 것은 게시물과 저장한 순서뿐이다.</p>
+    </section>
+
+    <!-- 0. 목적 — 사용자가 Saved로 하려는 것. 가설 체인·확인 계획이 이 목적을 향한다 -->
+    <section class="block" id="goal" aria-labelledby="goal-title">
+      <h2 class="block-title" id="goal-title"><span class="bullet" aria-hidden="true"></span><span class="label">목적</span></h2>
+      <div class="rows">
+        <article class="row">
+          <h3 class="row-title"><span class="bullet" aria-hidden="true"></span><span class="label">달성하려는 것</span></h3>
+          <div class="copy">
+            <p class="pick">어떻게 하면 사용자가 저장하는 흐름을 끊지 않고도, 필요하거나 다시 보고 싶어진 순간 기억하는 그 부분으로 저장물을 바로 다시 꺼내 볼 수 있을까?</p>
+            <p>저장은 목적이 아니라 나중에 다시 꺼내 보기 위한 준비다. 지금 Saved는 넣는 것까지만 돕고, 꺼내 보는 쪽은 비어 있다.</p>
+            <p>'다시 꺼내 본다'의 모습은 관심사마다 다르다. 디자인, 화장법, 패션에서는 작업에 쓰고, 따라 하고, 사는 것(적용)이다. 아이돌과 음악에서는 다시 감상하는 것이다. 그래서 목적은 '다시 꺼내 보기'로 두고, 적용은 그 대표 사례로 본다.</p>
+          </div>
+        </article>
+        <article class="row">
+          <h3 class="row-title"><span class="bullet" aria-hidden="true"></span><span class="label">범위</span></h3>
+          <div class="copy">
+            <p>핵심은 찾기다. 기억하는 그 부분으로 원하는 저장물을 바로 골라내는 것(장면 2). 선택한 가설 체인이 설명하는 것도 여기까지다.</p>
+            <p>찾은 것을 모아 두고 비교하는 것(장면 3)은 찾은 다음 단계라 이번 범위 밖에 둔다. 쌓인 것을 정리하는 것(장면 4)은 목적이 아니라 수단이다. 사용자는 정리를 포기하고 다시 저장만 한다. 정리를 목적으로 두면 노력을 사용자에게 떠넘기게 된다.</p>
+          </div>
+        </article>
+        <article class="row">
+          <h3 class="row-title"><span class="bullet" aria-hidden="true"></span><span class="label">목적이 아닌 것</span></h3>
+          <div class="copy">
+            <p>저장을 줄이게 하는 것. 많이 저장하는 것은 사용자가 원래 하려는 일이다. 완벽한 분류 체계를 만드는 것. 주제별로 나눠도 맥락이 남지 않는다는 반례가 있다. 인스타그램 전체 검색을 고치는 것. 범위는 내가 이미 저장한 것 안이다.</p>
+          </div>
+        </article>
+        <article class="row">
+          <h3 class="row-title"><span class="bullet" aria-hidden="true"></span><span class="label">달성했다는 기준</span></h3>
+          <div class="copy">
+            <p>다시 찾을 때 눌러 보는 개수와 걸리는 시간이 줄어든다. 찾다가 포기하는 일이 줄어든다. 스크린샷이나 메모 앱처럼 인스타그램 밖에 따로 남기는 우회가 줄어든다.</p>
+          </div>
+        </article>
+      </div>
     </section>
 
     <!-- 1. 사용자 분석 — Saved를 쓰는 사람 전체로 문제를 잡고, 디자이너인 내 경우는 근거로 쓴다 -->
@@ -198,6 +233,6 @@
   </main>
 
   <footer class="site-footer"><a href="../">IPS 전체 과정 보기 ↗</a></footer>
-  <script src="w4.js?v=20261006-4"></script>
+  <script src="w4.js?v=20261006-5"></script>
 </body>
 </html>
