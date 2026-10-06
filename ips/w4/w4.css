@@ -7,7 +7,7 @@
   --box-shadow:0 6px 18px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.03);
   --header-h:82px;--tab-w:200px;--col-gap:28px;--body-w:600px;
   --page-w:1100px;
-  --node-w:216px;--node-gap-x:56px;--node-gap-y:14px;
+  --node-w:228px;--node-gap-x:40px;--node-gap-y:14px;
   --phi-cursor:url("../cursor-arrow.svg?v=3") 0 1;
   --phi-cursor-pointer:url("../cursor-pointer.svg?v=10") 0 1;
   --phi-cursor-text:url("../cursor-text.svg?v=1") 0 7;
@@ -80,19 +80,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
 .node.is-picked{background:var(--ink);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.12)}
 .node.is-picked .node-id{color:rgba(255,255,255,.6)}
 .node.is-infer{box-shadow:none;border:1px dashed var(--faint)}
-.node.is-cause .node-id::after{content:' · 근본 원인'}
+/* 상황 · 근거 · 확인 — 늘 펼쳐 둔다(예전 말풍선 자리) */
+.node-notes{display:flex;flex-direction:column;gap:5px;margin-top:6px;padding-top:8px;border-top:1px solid var(--rule);color:var(--muted);font-size:10pt;line-height:1.55;font-weight:400}
+.note b{color:var(--text);font-weight:600}
+.node.is-picked .node-notes{border-top-color:rgba(255,255,255,.18);color:rgba(255,255,255,.72)}
+.node.is-picked .note b{color:#fff}
 .node:hover,.node:focus-visible,.node.is-on{transform:translateX(4px)}
 .node:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 /* 한 체인을 따라갈 때: 그 경로만 또렷하게 */
 .tree-wrap.is-tracing .node:not(.is-on){opacity:.32}
 .tree-wrap.is-tracing .tree-lines path:not(.is-on){opacity:.25}
 .tree-wrap.is-tracing .tree-lines path.is-on{stroke:var(--ink)}
-
-/* 근거 · 확인 방법 말풍선 — yongzu .graph-tooltip과 같은 상자 */
-.tip{position:absolute;z-index:5;width:max-content;max-width:280px;padding:10px 14px;border-radius:10px;background:#fff;box-shadow:var(--box-shadow);color:var(--text);font-size:10pt;line-height:1.6;pointer-events:none}
-.tip p{word-break:keep-all}
-.tip p+p{margin-top:6px}
-.tip b{color:var(--ink);font-weight:600}
 
 .site-footer{max-width:var(--page-w);margin:0 auto;padding:0 28px 60px;color:var(--muted)}
 .site-footer a:hover{color:var(--ink)}
@@ -102,7 +100,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;te
   a,button{cursor:var(--phi-cursor-pointer),pointer}
 }
 
-/* 중간 폭: 박스·간격을 줄여 가로 트리 유지(현상 → 가설 → 원인 4단 = 4×190 + 3×36 = 868px) */
+/* 넓은 폭 4단 = 4×228 + 3×40 = 1032px. 중간 폭: 박스·간격을 줄여 가로 트리 유지(4×190 + 3×36 = 868px) */
 @media (max-width:1180px){
   :root{--node-w:190px;--node-gap-x:36px}
 }

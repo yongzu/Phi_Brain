@@ -1,11 +1,11 @@
 /* IPS 4주차 가설 체인: 데이터(CHAIN) → 중첩 목록 → 박스 사이 선(SVG).
    picked = 선택한 체인, cause = 체인 끝의 근본 원인, infer = 관찰 근거 없이 추론한 가설.
-   note는 박스에 올리거나 눌렀을 때 뜨는 말풍선(근거 · 확인 방법). */
+   note는 박스 안 본문 아래에 늘 펼쳐 둔다(상황 · 근거 · 확인 방법). */
 (() => {
   const CHAIN = {
     id: '현상', top: true, picked: true,
     text: '디자이너는 작업에 쓸 레퍼런스를 찾으러 저장물로 돌아가지만, 맞는 것을 골라내지 못해 하나씩 눌러 확인한다',
-    note: { 근거: "화면 전환 레퍼런스가 필요해 '디자인' 컬렉션을 열지만, 처음부터 스크롤하며 하나씩 눌러 본다(장면 2).", 상황: "디자인 작업물과 튜토리얼을 '언젠가 내 작업에 적용할 부분'이 있어서 저장하고, 작업 중 그 부분이 필요할 때 되돌아간다." },
+    note: { 상황: "디자인 작업물과 튜토리얼을 '언젠가 내 작업에 적용할 부분'이 있어서 저장하고, 작업 중 그 부분이 필요할 때 되돌아간다.", 근거: "화면 전환 레퍼런스가 필요해 '디자인' 컬렉션을 열지만, 처음부터 스크롤하며 하나씩 눌러 본다(장면 2)." },
     children: [
       {
         id: 'A', picked: true, text: "저장물에 '어느 부분이 왜 쓸모 있었는지'가 남지 않는다",
@@ -49,8 +49,7 @@
   const wrap = document.getElementById('tree-wrap');
   const treeEl = document.getElementById('tree');
   const svg = document.getElementById('tree-lines');
-  const tip = document.getElementById('tip');
-  if (!wrap || !treeEl || !svg || !tip) return;
+  if (!wrap || !treeEl || !svg) return;
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const parentOf = new Map();
@@ -61,8 +60,9 @@
     if (parent) parentOf.set(n.id, parent.id);
     const cls = ['node', n.top && 'is-top', n.picked && 'is-picked', n.cause && 'is-cause', n.infer && 'is-infer'].filter(Boolean).join(' ');
     const kids = n.children?.length ? `<ul>${n.children.map(c => nodeHTML(c, n)).join('')}</ul>` : '';
-    return `<li><button type="button" class="${cls}" data-node="${esc(n.id)}" aria-describedby="tip">
-      <span class="node-id">${n.top ? '현상' : esc(n.id)}${n.infer ? ' · 추론' : ''}</span><span>${esc(n.text)}</span></button>${kids}</li>`;
+    const tag = [n.top ? '현상' : n.id, n.infer && '추론', n.cause && '근본 원인'].filter(Boolean).join(' · ');
+    const notes = Object.entries(n.note || {}).map(([k, v]) => `<span class="note"><b>${esc(k)}</b> ${esc(v)}</span>`).join('');
+    return `<li><button type="button" class="${cls}" data-node="${esc(n.id)}"><span class="node-id">${esc(tag)}</span><span class="node-text">${esc(n.text)}</span>${notes && `<span class="node-notes">${notes}</span>`}</button>${kids}</li>`;
   }
   treeEl.innerHTML = nodeHTML(CHAIN, null);
 
@@ -99,29 +99,12 @@
     wrap.classList.add('is-tracing');
     treeEl.querySelectorAll('.node').forEach(el => el.classList.toggle('is-on', on.has(el.dataset.node)));
     svg.querySelectorAll('path').forEach(p => p.classList.toggle('is-on', on.has(p.dataset.edge) && on.has(parentOf.get(p.dataset.edge))));
-    showTip(id);
   }
   function untrace() {
     wrap.classList.remove('is-tracing');
     treeEl.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
     svg.querySelectorAll('.is-on').forEach(el => el.classList.remove('is-on'));
-    tip.hidden = true;
   }
-  function showTip(id) {
-    const n = byId.get(id);
-    const lines = Object.entries(n.note || {}).map(([k, v]) => `<p><b>${esc(k)}</b> ${esc(v)}</p>`).join('');
-    if (!lines) { tip.hidden = true; return; }
-    tip.innerHTML = lines;
-    tip.hidden = false;
-    const base = wrap.getBoundingClientRect(), r = box(id).getBoundingClientRect();
-    const tw = tip.offsetWidth, th = tip.offsetHeight;
-    let left = r.left - base.left, top = r.bottom - base.top + 8;
-    if (left + tw > wrap.clientWidth) left = Math.max(0, wrap.clientWidth - tw);
-    if (r.bottom + 8 + th > innerHeight && r.top - th - 8 > 0) top = r.top - base.top - th - 8; // 화면 아래가 모자라면 위로
-    tip.style.left = `${left}px`;
-    tip.style.top = `${top}px`;
-  }
-
   let pinned = null; // 누른 박스는 다른 박스를 누르거나 바깥을 누를 때까지 켜 둔다(터치 화면)
   treeEl.addEventListener('pointerover', e => { const b = e.target.closest('.node'); if (b && !pinned) trace(b.dataset.node); });
   treeEl.addEventListener('pointerleave', () => { if (!pinned) untrace(); });

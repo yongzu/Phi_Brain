@@ -7,7 +7,7 @@
   <meta name="description" content="Iterative Problem Solving 4주차 — 인스타그램 저장(Saved)에서 디자이너가 레퍼런스를 다시 찾지 못하는 문제의 사용자 분석과 가설 체인" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="w4.css?v=20261006-1" />
+  <link rel="stylesheet" href="w4.css?v=20261006-2" />
 </head>
 <body>
   <header class="site-header">
@@ -77,7 +77,7 @@
     <!-- 2. 가설 체인 — 데이터는 w4.js CHAIN, 선은 박스 위치를 재서 SVG로 -->
     <section class="block" id="chain" aria-labelledby="chain-title">
       <h2 class="block-title" id="chain-title"><span class="bullet" aria-hidden="true"></span><span class="label">가설 체인</span></h2>
-      <p class="lead">"왜 맞는 것을 골라내지 못하는가?"에서 출발해 가설을 세 갈래로 펼치고, 갈래마다 "왜?"를 한두 번 더 물었다. 검은 박스가 선택한 체인이다. 박스에 마우스를 올리거나 누르면 그 체인의 경로와 근거, 확인 방법이 보인다.</p>
+      <p class="lead">"왜 맞는 것을 골라내지 못하는가?"에서 출발해 가설을 세 갈래로 펼치고, 갈래마다 "왜?"를 한두 번 더 물었다. 검은 박스가 선택한 체인이다. 박스마다 근거와 확인 방법을 함께 적었고, 박스에 마우스를 올리거나 누르면 그 체인의 경로가 강조된다.</p>
       <ul class="legend" aria-label="범례">
         <li><span class="swatch is-picked" aria-hidden="true"></span>선택한 체인</li>
         <li><span class="swatch" aria-hidden="true"></span>펼쳐 본 가설</li>
@@ -86,7 +86,6 @@
       <div class="tree-wrap" id="tree-wrap">
         <svg class="tree-lines" id="tree-lines" aria-hidden="true"></svg>
         <ul class="tree" id="tree"></ul>
-        <div class="tip" id="tip" role="tooltip" hidden></div>
       </div>
     </section>
 
@@ -172,6 +171,6 @@
   </main>
 
   <footer class="site-footer"><a href="../">IPS 전체 과정 보기 ↗</a></footer>
-  <script src="w4.js?v=20261006-1"></script>
+  <script src="w4.js?v=20261006-2"></script>
 </body>
 </html>
