@@ -4,8 +4,8 @@
   "semesterStart": "2026-09-07",
   "firstWeek": 0,
   "lastWeek": 16,
-  "lastSyncedAt": "2026-10-11T19:17:36.134Z",
-  "lastRunAt": "2026-10-11T19:17:36.134Z",
+  "lastSyncedAt": "2026-10-18T17:42:44.158Z",
+  "lastRunAt": "2026-10-18T17:42:44.158Z",
   "lastError": null,
   "courses": [
     {
@@ -178,15 +178,15 @@
     },
     "5": {
       "AL": {"assignment":"mail","selfFeedback":"mail"},
-      "AOR": {"assignment":null,"selfFeedback":"mail"},
-      "BI": {"assignment":null,"selfFeedback":"mail"},
+      "AOR": {"assignment":"mail","selfFeedback":"mail"},
+      "BI": {"assignment":"mail","selfFeedback":"mail"},
       "EWA": {"assignment":null,"selfFeedback":null},
       "IAE": {"assignment":null,"selfFeedback":null},
       "IPS": {"assignment":"mail","selfFeedback":"mail"},
       "PC": {"assignment":"mail","selfFeedback":null},
       "RW": {"assignment":null,"selfFeedback":null},
-      "SI": {"assignment":null,"selfFeedback":null},
-      "TF": {"assignment":null,"selfFeedback":"mail"},
+      "SI": {"assignment":"mail","selfFeedback":null},
+      "TF": {"assignment":"mail","selfFeedback":"mail"},
       "VT": {"assignment":null,"selfFeedback":null},
       "WI": {"assignment":null,"selfFeedback":null}
     },
@@ -196,8 +196,8 @@
       "BI": {"assignment":null,"selfFeedback":null},
       "EWA": {"assignment":null,"selfFeedback":null},
       "IAE": {"assignment":null,"selfFeedback":null},
-      "IPS": {"assignment":null,"selfFeedback":null},
-      "PC": {"assignment":null,"selfFeedback":null},
+      "IPS": {"assignment":"mail","selfFeedback":null},
+      "PC": {"assignment":"mail","selfFeedback":null},
       "RW": {"assignment":null,"selfFeedback":null},
       "SI": {"assignment":null,"selfFeedback":null},
       "TF": {"assignment":null,"selfFeedback":null},
@@ -205,7 +205,7 @@
       "WI": {"assignment":null,"selfFeedback":null}
     },
     "7": {
-      "AL": {"assignment":null,"selfFeedback":null},
+      "AL": {"assignment":"mail","selfFeedback":null},
       "AOR": {"assignment":null,"selfFeedback":null},
       "BI": {"assignment":null,"selfFeedback":null},
       "EWA": {"assignment":null,"selfFeedback":null},
