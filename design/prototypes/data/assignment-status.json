@@ -4,8 +4,8 @@
   "semesterStart": "2026-09-07",
   "firstWeek": 0,
   "lastWeek": 16,
-  "lastSyncedAt": "2026-10-25T14:01:33.389Z",
-  "lastRunAt": "2026-10-25T14:01:33.389Z",
+  "lastSyncedAt": "2026-10-25T18:01:08.685Z",
+  "lastRunAt": "2026-10-25T18:01:08.685Z",
   "lastError": null,
   "courses": [
     {
@@ -211,7 +211,7 @@
       "EWA": {"assignment":null,"selfFeedback":null},
       "IAE": {"assignment":null,"selfFeedback":null},
       "IPS": {"assignment":"mail","selfFeedback":null},
-      "PC": {"assignment":null,"selfFeedback":null},
+      "PC": {"assignment":"mail","selfFeedback":null},
       "RW": {"assignment":null,"selfFeedback":null},
       "SI": {"assignment":null,"selfFeedback":null},
       "TF": {"assignment":null,"selfFeedback":null},
