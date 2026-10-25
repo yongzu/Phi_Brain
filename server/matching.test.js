@@ -50,6 +50,27 @@ test('a dropdown label before the week ("Image 0주차", "Typesetting 0주차") 
   assert.equal(extractWeekNo('주차 *\n\n설명\n\n\nTypesetting 3주차\n'), 3);
 });
 
+// AL and IPS receipts from 2026-10-25: the question became "회차 *", the answer "7회차"
+const roundReceipt = (tag, answer) => {
+  const email = receipt({ tag, week: answer });
+  email.bodyText = email.bodyText.replace('주차 *', '회차 *').replace('공지한 주차를', '공지한 회차를');
+  return email;
+};
+
+test('a "회차 *" question with a bare "N회차" answer reads as that week', () => {
+  const al = matchEmail(roundReceipt('AL', '7회차'), CTX);
+  assert.equal(al.status, 'matched');
+  assert.equal(al.courseId, 'al');
+  assert.equal(al.weekNo, 7);
+  assert.equal(matchEmail(roundReceipt('Iterative Problem Solving', '7회차'), CTX).weekNo, 7);
+  assert.equal(extractWeekNo('회차 *\n\n디스코드에 공지된 회차를 고르세요.\n\n\n7회차\n\n\n6~8회차 산출물\n'), 7);
+});
+
+test('VT and TF module rounds ("Graphic 2회차 (B)", "Typesetting 6회차") are not weeks', () => {
+  assert.equal(extractWeekNo('회차 *\n\n설명\n\n\nGraphic 2회차 (B)\n\n\n포스터_Graphic 2회차\n'), null);
+  assert.equal(extractWeekNo('회차 *\n\n설명\n\n\nTypesetting 6회차\n\n\nTypesetting 1, 3, 5, 6회차\n'), null);
+});
+
 test('week 0 (Warm-up) is a real week, not "no week"', () => {
   const r = matchEmail(receipt({ week: '0주차' }), CTX);
   assert.equal(r.status, 'matched');

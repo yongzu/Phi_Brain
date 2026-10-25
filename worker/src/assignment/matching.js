@@ -32,13 +32,16 @@ const isExampleLine = line => EXAMPLE_MARKERS.some(m => line.includes(m));
 // the answer to "주차 *" — only a line that is *just* a week ("2주차", "Image 0주차"),
 // never a number inside the question's description
 const WEEK_ANSWER_RE = /^(?:[A-Za-z가-힣][A-Za-z가-힣 ]{0,20}\s)?(\d{1,2})\s*주차$/;
+// 2026-10 the AL·IPS forms renamed the question "회차 *" ("7회차" = 7주차). Only a bare
+// "N회차" counts: VT·TF answer with module rounds ("Graphic 2회차 (B)") that aren't weeks.
+const ROUND_ANSWER_RE = /^(\d{1,2})\s*회차$/;
 export function extractWeekNo(bodyText) {
   const lines = bodyText.split(/\r?\n/).map(l => l.trim());
-  const question = lines.findIndex(l => /^주차\s*\*?$/.test(l));
+  const question = lines.findIndex(l => /^(?:주차|회차)\s*\*?$/.test(l));
   const scan = question >= 0 ? lines.slice(question + 1) : lines;
   for (const line of scan) {
     if (isExampleLine(line)) continue;
-    const m = line.match(WEEK_ANSWER_RE);
+    const m = line.match(WEEK_ANSWER_RE) || line.match(ROUND_ANSWER_RE);
     if (m) return Number(m[1]);
   }
   return null;
@@ -60,7 +63,7 @@ export function extractLinks(bodyText) {
     lastLine = line;
   }
   flush();
-  delete links['학번']; delete links['트랙']; delete links['주차'];
+  delete links['학번']; delete links['트랙']; delete links['주차']; delete links['회차'];
   return links;
 }
 
