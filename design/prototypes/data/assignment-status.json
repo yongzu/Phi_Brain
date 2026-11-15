@@ -4,8 +4,8 @@
   "semesterStart": "2026-09-07",
   "firstWeek": 0,
   "lastWeek": 16,
-  "lastSyncedAt": "2026-11-08T19:16:30.044Z",
-  "lastRunAt": "2026-11-08T19:16:30.044Z",
+  "lastSyncedAt": "2026-11-15T20:04:40.989Z",
+  "lastRunAt": "2026-11-15T20:04:40.989Z",
   "lastError": null,
   "courses": [
     {
@@ -125,7 +125,7 @@
       "AOR": {"assignment":"mail","selfFeedback":"mail"},
       "BI": {"assignment":"mail","selfFeedback":"mail"},
       "EWA": {"assignment":"mail","selfFeedback":"mail"},
-      "IAE": {"assignment":null,"selfFeedback":"mail"},
+      "IAE": {"assignment":"mail","selfFeedback":"mail"},
       "IPS": {"assignment":"mail","selfFeedback":"mail"},
       "PC": {"assignment":"mail","selfFeedback":null},
       "RW": {"assignment":null,"selfFeedback":null},
@@ -253,9 +253,9 @@
       "EWA": {"assignment":null,"selfFeedback":null},
       "IAE": {"assignment":null,"selfFeedback":null},
       "IPS": {"assignment":null,"selfFeedback":null},
-      "PC": {"assignment":null,"selfFeedback":null},
+      "PC": {"assignment":"mail","selfFeedback":null},
       "RW": {"assignment":null,"selfFeedback":null},
-      "SI": {"assignment":null,"selfFeedback":null},
+      "SI": {"assignment":"mail","selfFeedback":null},
       "TF": {"assignment":null,"selfFeedback":null},
       "VT": {"assignment":null,"selfFeedback":null},
       "WI": {"assignment":null,"selfFeedback":null}
