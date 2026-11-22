@@ -82,8 +82,10 @@ export function matchEmail(email, ctx) {
   const course = findCourse(title.tag, ctx.courses);
   if (!course) return { status: 'ambiguous', reason: 'unknown_course' };
 
+  const links = extractLinks(email.bodyText);
   const weekNo = extractWeekNo(email.bodyText);
-  if (weekNo === null) return { status: 'ambiguous', reason: 'no_week_found' };
+  // 주차를 못 읽어도 과목·종류는 알려 준다 — service.js가 붙여넣은 공지 마감으로 주차를 정할 수 있다
+  if (weekNo === null) return { status: 'ambiguous', reason: 'no_week_found', courseId: course.id, kind: title.kind, links };
 
-  return { status: 'matched', courseId: course.id, kind: title.kind, weekNo, track: null, links: extractLinks(email.bodyText) };
+  return { status: 'matched', courseId: course.id, kind: title.kind, weekNo, track: null, links };
 }

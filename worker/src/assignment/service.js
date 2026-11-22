@@ -118,11 +118,71 @@ export async function setManualStatus(db, targetId, action, { force = false } = 
   return { ok: true, status: resolveStatus(action, count) };
 }
 
+// ── 공지 마감으로 주차 정하기 (사용자 지시 2026-11-23) ─────────────────────────────
+// 트랙이 바뀐 뒤 과목마다 폼의 "N주차·N회차"가 자기 회차라(예: 11월에 시작한 IAE의 "1주차"),
+// 숫자를 학기 주차로 쓰면 엉뚱한 칸에 들어간다. 사용자가 그 주 칸에 붙여넣은 과제 공지가 곧
+// 그 주의 과제이므로:
+//   1) 폼 숫자가 받은 날짜와 맞으면(그 학기 주차 시작 − 14일 ~ 끝 + 10일) 예전처럼 그 숫자.
+//   2) 안 맞거나 못 읽었으면(과제만) 받은 시각을 같은 과목 공지들의 마감과 견준다.
+//      - 다음 마감(받은 때 ≤ 마감, NEXT_DUE_LIMIT 안) = 제때 낸 그 주 과제
+//      - 지난 마감(마감 < 받은 때 ≤ 지각 마감, 없으면 마감 + LATE_GRACE) = 지각 제출
+//      - 둘 다면: 폼 숫자가 둘 중 하나면 그것, 아니면 아직 제출 없는 지난 주, 있으면 다음 주.
+//      - 자기 마감과 동떨어진 주 칸에 붙은 공지(예: 9월 2주차 칸의 11월 마감)는 쓰지 않는다.
+//   3) 그래도 없으면 예전처럼 검토 대기열.
+// 셀프피드백은 과제 마감과 따로 움직여 2)를 쓰지 않는다.
+const HOUR = 3600 * 1000, DAY = 24 * HOUR;
+export const LATE_GRACE_MS = 48 * HOUR;
+export const NEXT_DUE_LIMIT_MS = 7 * DAY; // 매주 과제 — 마감 일주일 전보다 이른 제출은 그 공지의 것이 아니다
+const EARLY_MS = 14 * DAY, AFTER_MS = 10 * DAY;
+// 공지 마감은 KST 벽시계 "YYYY-MM-DDTHH:MM" — 비교용 ms로
+const wallMs = wall => Date.parse(`${wall}:00+09:00`);
+const dayStartMs = date => Date.parse(`${date}T00:00:00+09:00`);
+
+// weeks: [{ week_no, start_date, end_date }]
+export function weekFitsDate(weeks, weekNo, atMs) {
+  const w = weeks.find(x => x.week_no === weekNo);
+  if (!w) return false;
+  return atMs >= dayStartMs(w.start_date) - EARLY_MS && atMs < dayStartMs(w.end_date) + DAY + AFTER_MS;
+}
+
+export function weekByDeadline(notes, receivedAt, { formWeek = null, submittedWeeks = new Set(), weeks = null } = {}) {
+  const t = Date.parse(receivedAt);
+  const dated = notes.filter(n => n.due_at).map(n => ({ week: n.week_no, due: wallMs(n.due_at), late: n.late_due_at ? wallMs(n.late_due_at) : null }))
+    .filter(n => !weeks || weekFitsDate(weeks, n.week, n.due))
+    .sort((a, b) => a.due - b.due || a.week - b.week);
+  const next = dated.find(n => n.due >= t && n.due - t <= NEXT_DUE_LIMIT_MS) || null;
+  const prev = [...dated].reverse().find(n => n.due < t && t <= (n.late ?? n.due + LATE_GRACE_MS)) || null;
+  if (!next && !prev) return null;
+  if (!next || !prev) return (next || prev).week;
+  if (formWeek === next.week || formWeek === prev.week) return formWeek;
+  return submittedWeeks.has(prev.week) ? next.week : prev.week;
+}
+
+async function deadlineWeek(db, courseId, kind, receivedAt, formWeek, exceptMessageId = null) {
+  const weeks = await getWeeks(db);
+  if (formWeek !== null && weekFitsDate(weeks, formWeek, Date.parse(receivedAt))) return formWeek;
+  if (kind !== 'assignment') return null;
+  const [notes, taken] = await db.batch([
+    db.prepare('SELECT week_no, due_at, late_due_at FROM assignment_notes WHERE course_id = ? AND due_at IS NOT NULL').bind(courseId),
+    db.prepare(`SELECT DISTINCT w.week_no FROM submission_evidence e JOIN submission_targets t ON t.id = e.target_id
+      JOIN weeks w ON w.id = t.week_id WHERE t.course_id = ? AND t.kind = ? AND e.gmail_message_id != ?`).bind(courseId, kind, exceptMessageId || ''),
+  ]);
+  return weekByDeadline(notes.results, receivedAt, { formWeek, weeks, submittedWeeks: new Set(taken.results.map(r => r.week_no)) });
+}
+
 // Apply one fetched message. Never throws on a message that just doesn't match.
 export async function ingestEmail(db, email, courses) {
   courses = courses || await getCourses(db);
-  const result = matchEmail(email, { courses, windowStart: RECEIPTS_FROM, windowEnd: RECEIPTS_UNTIL });
+  let result = matchEmail(email, { courses, windowStart: RECEIPTS_FROM, windowEnd: RECEIPTS_UNTIL });
   if (result.status === 'unrelated') return { outcome: 'unrelated' };
+
+  if (result.courseId) {
+    const formWeek = result.status === 'matched' ? result.weekNo : null;
+    const byDue = await deadlineWeek(db, result.courseId, result.kind, email.receivedAt, formWeek, email.messageId);
+    if (byDue !== null) result = { status: 'matched', courseId: result.courseId, kind: result.kind, weekNo: byDue, track: null, links: result.links };
+    // 폼 숫자가 날짜와 동떨어졌고 공지로도 못 정하면 엉뚱한 칸 대신 검토 대기열
+    else if (result.status === 'matched') result = { status: 'ambiguous', reason: 'week_not_in_date' };
+  }
 
   if (result.status === 'ambiguous') {
     const r = await db.prepare(`

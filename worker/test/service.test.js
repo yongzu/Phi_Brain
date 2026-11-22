@@ -136,3 +136,65 @@ test('the week matrix carries each confirmed cell\'s first receipt time', async 
   assert.equal(ewa.assignment.confirmedAt, '2026-09-19T03:00:00.000Z');
   assert.equal(ewa.selfFeedback.confirmedAt, null); // 확인메일이 없는 칸은 null
 });
+
+// ── 공지 마감으로 주차 정하기 (사용자 지시 2026-11-23) ──
+import { weekByDeadline } from '../src/assignment/service.js';
+
+const note = (week_no, due_at, late_due_at = null) => ({ week_no, due_at, late_due_at });
+const kst = wall => new Date(Date.parse(`${wall}:00+09:00`)).toISOString();
+
+test('weekByDeadline: on time → the week whose pasted notice is due next', () => {
+  const notes = [note(10, '2026-11-09T23:59'), note(11, '2026-11-16T23:59')];
+  assert.equal(weekByDeadline(notes, kst('2026-11-09T20:00')), 10);
+  assert.equal(weekByDeadline(notes, kst('2026-11-14T10:00')), 11);
+});
+
+test('weekByDeadline: just after a due → late for that week unless it was already submitted', () => {
+  const notes = [note(10, '2026-11-09T23:59'), note(11, '2026-11-16T23:59')];
+  assert.equal(weekByDeadline(notes, kst('2026-11-10T09:00')), 10);
+  assert.equal(weekByDeadline(notes, kst('2026-11-10T09:00'), { submittedWeeks: new Set([10]) }), 11);
+  // a form number that names one of the two candidates decides
+  assert.equal(weekByDeadline(notes, kst('2026-11-10T09:00'), { formWeek: 11 }), 11);
+});
+
+test('weekByDeadline: an explicit 지각 마감 widens the late window; no notice nearby → null', () => {
+  const notes = [note(7, '2026-10-25T23:59', '2026-10-28T23:59')];
+  assert.equal(weekByDeadline(notes, kst('2026-10-28T20:00')), 7);
+  assert.equal(weekByDeadline(notes, kst('2026-10-29T20:00')), null);
+  assert.equal(weekByDeadline([note(7, '2026-12-20T23:59')], kst('2026-10-29T20:00')), null); // due too far ahead
+  assert.equal(weekByDeadline([note(7, null)], kst('2026-10-25T20:00')), null);
+});
+
+test('a course-relative form week ("1주차" of a course that began in week 10) lands in the week of the pasted notice', async () => {
+  const db = testD1();
+  await db.prepare(`INSERT INTO assignment_notes (course_id, week_no, raw, due_at, updated_at) VALUES ('iae', 10, '1주차 과제', '2026-11-09T23:59', 'x'), ('iae', 11, '2주차 과제', '2026-11-16T23:59', 'x')`).run();
+  const r = await ingestEmail(db, receipt({ tag: 'Interviewing as Exploration', week: '1주차' }, { receivedAt: kst('2026-11-09T21:00'), messageId: 'iae-1' }));
+  assert.equal(r.outcome, 'matched');
+  assert.equal(r.weekNo, 10);
+  assert.equal((await getTargetDetail(db, await targetIdFor(db, 'iae', 1, 'assignment'))).status, 'unconfirmed');
+});
+
+test('a receipt whose week answer cannot be read ("Graphic 2회차 (B)") is placed by the notice deadline instead of review', async () => {
+  const db = testD1();
+  await db.prepare(`INSERT INTO assignment_notes (course_id, week_no, raw, due_at, updated_at) VALUES ('vt', 11, 'Project 3', '2026-11-17T23:59', 'x')`).run();
+  const r = await ingestEmail(db, receipt({ tag: 'Visual Translation', week: 'Graphic 2회차 (B)' }, { receivedAt: kst('2026-11-17T23:56'), messageId: 'vt-1' }));
+  assert.equal(r.outcome, 'matched');
+  assert.equal(r.weekNo, 11);
+  // without a notice it still goes to review, as before
+  const r2 = await ingestEmail(db, receipt({ tag: 'Typography as Foundation', week: 'Graphic 2회차 (B)' }, { receivedAt: kst('2026-11-17T23:56'), messageId: 'tf-1' }));
+  assert.equal(r2.outcome, 'review');
+});
+
+test('a form week that fits the received date is kept even when a notice deadline would point elsewhere', async () => {
+  const db = testD1();
+  await db.prepare(`INSERT INTO assignment_notes (course_id, week_no, raw, due_at, updated_at) VALUES ('si', 11, '앱', '2026-11-15T23:59', 'x')`).run();
+  const r = await ingestEmail(db, receipt({ tag: 'Self-Introduction', week: '9주차' }, { receivedAt: kst('2026-11-08T23:59'), messageId: 'si-9' }));
+  assert.equal(r.weekNo, 9);
+});
+
+test('a form week far from the received date with no notice to go by goes to review, not to a September cell', async () => {
+  const db = testD1();
+  const r = await ingestEmail(db, receipt({ tag: 'Interviewing as Exploration', week: '1주차' }, { receivedAt: kst('2026-11-09T21:00'), messageId: 'iae-x' }));
+  assert.deepEqual([r.outcome, r.reason], ['review', 'week_not_in_date']);
+  assert.equal((await db.prepare(`SELECT reason FROM review_queue WHERE gmail_message_id = 'iae-x'`).first()).reason, 'week_not_in_date');
+});
