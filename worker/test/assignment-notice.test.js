@@ -145,3 +145,14 @@ test('deadline formats: 월·일 after the label, a written year, 지각 line in
   // a labeled deadline wins over a date elsewhere in the section
   assert.equal(parseNotice('■ 마감\n공지일 9월 30일\n마감 기한: 10/7(수) 23:59').dueAt, '2026-10-07T23:59');
 });
+
+// 2026-11-23 사용자 제보: IAE 3주차 공지의 "26.11.23(월)" · "지각 제출: 26.11.24(화)"가 마감으로 안 잡혔다
+test('dotted dates: "26.11.23(월)" with a two-digit year, "지각 제출" line, and plain "11.23"', () => {
+  const r = parseNotice('안녕하세요 여러분, 3주차 과제 안내드립니다.\n\n■ 과제\n2차 인터뷰\n\n■ 마감\n마감 기한: 26.11.23(월)\n지각 제출: 26.11.24(화)  \n\n■ 제출 방법 \n아래 과제 제출폼으로 제출해주세요. https://go.phi.design/iae/assignment');
+  assert.equal(r.dueAt, '2026-11-23T23:59');
+  assert.equal(r.lateDueAt, '2026-11-24T23:59');
+  assert.equal(r.weekdayMismatch, false);
+  assert.equal(parseNotice('마감 기한: 2026.12.1 18:00').dueAt, '2026-12-01T18:00');
+  assert.equal(parseNotice('마감 기한: 11.30(월)').dueAt, '2026-11-30T23:59');
+  assert.equal(parseNotice('마감 기한: 26.11.24(월)').weekdayMismatch, true); // 2026-11-24 is a Tuesday
+});

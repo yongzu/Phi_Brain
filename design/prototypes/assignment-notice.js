@@ -26,8 +26,9 @@
   const yearFor = month => (month >= 8 ? 2026 : 2027);
 
   // "9/20(일) 23:59", "10월 7일(수) 23:59", "2026년 10월 7일(수) 23:59" → "2026-09-20T23:59"
+  // "26.11.23(월)", "2026.11.23", "11.23(월) 23:59" — 점으로 쓴 날짜(IAE 공지, 2026-11-23 사용자 제보). 앞 두 자리 연도는 20xx
   // (+ whether the written weekday agrees). A written year wins over the cohort's.
-  const DATE = String.raw`(?:(?:(?<y1>\d{4})\s*년\s*)?(?<m1>\d{1,2})\s*월\s*(?<d1>\d{1,2})\s*일|(?:(?<y2>\d{4})\s*/\s*)?(?<m2>\d{1,2})\s*/\s*(?<d2>\d{1,2}))`
+  const DATE = String.raw`(?:(?:(?<y1>\d{4})\s*년\s*)?(?<m1>\d{1,2})\s*월\s*(?<d1>\d{1,2})\s*일|(?:(?<y2>\d{4})\s*/\s*)?(?<m2>\d{1,2})\s*/\s*(?<d2>\d{1,2})|(?:(?<y3>\d{4}|\d{2})\s*\.\s*)?(?<m3>\d{1,2})\s*\.\s*(?<d3>\d{1,2})(?!\d))`
     + String.raw`\s*(?:\(\s*(?<dow>[월화수목금토일])\s*\))?\s*(?:(?<hh>\d{1,2})\s*:\s*(?<mi>\d{2}))?`;
   const DUE_RE = new RegExp(String.raw`(?<!지각\s*)마감\s*기한\s*[:：]?\s*` + DATE);
   const LATE_RE = new RegExp(String.raw`지각\s*마감\s*기한\s*[:：]?\s*` + DATE);
@@ -35,10 +36,10 @@
   function toDue(m) {
     if (!m) return null;
     const g = m.groups;
-    const month = Number(g.m1 ?? g.m2), day = Number(g.d1 ?? g.d2);
+    const month = Number(g.m1 ?? g.m2 ?? g.m3), day = Number(g.d1 ?? g.d2 ?? g.d3);
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-    const written = g.y1 ?? g.y2;
-    const year = written ? Number(written) : yearFor(month);
+    const written = g.y1 ?? g.y2 ?? g.y3;
+    const year = written ? (written.length === 2 ? 2000 + Number(written) : Number(written)) : yearFor(month);
     const date = new Date(year, month - 1, day);
     if (date.getMonth() !== month - 1) return null; // 2/30 and the like
     const hh = g.hh != null ? Number(g.hh) : 23, mm = g.mi != null ? Number(g.mi) : 59; // no time → 23:59
