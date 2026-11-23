@@ -80,6 +80,16 @@ test('a listed round answer ("12회차") is not read as week 12; without its not
   assert.deepEqual([row.round, row.assignment.status], ['12회차', 'confirmed_mail']);
 });
 
+test('a receipt placed by hand from 확인 필요 does not come back to the queue when Gmail is read again', async () => {
+  const db = testD1();
+  const mail = receipt({ tag: 'Visual Translation', week: 'Graphic 2회차 (B)' }, { receivedAt: kst('2026-11-17T23:56'), messageId: 'vt-again' });
+  assert.equal((await ingestEmail(db, mail)).outcome, 'review');
+  await placeReview(db, 'vt-again', { courseId: 'vt', weekNo: 11, round: 'Magazine 1회차', kind: 'assignment' });
+  assert.equal((await db.prepare(`SELECT count(*) c FROM gmail_seen WHERE gmail_message_id = 'vt-again'`).first()).c, 1);
+  assert.equal((await ingestEmail(db, mail)).outcome, 'duplicate');
+  assert.equal((await listReview(db)).length, 0);
+});
+
 test('확인 필요: an old queue row without course info is filled from the subject; dismiss removes it', async () => {
   const db = testD1();
   await db.prepare(`INSERT INTO review_queue (gmail_message_id, received_at, subject, reason, created_at) VALUES ('old-1', '2026-11-17T14:39:48.000Z', '[Typography as Foundation] 과제 제출 양식을 작성해 주셔서 감사합니다', 'no_week_found', 'x')`).run();

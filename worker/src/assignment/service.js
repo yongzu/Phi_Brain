@@ -222,6 +222,10 @@ export async function ingestEmail(db, email, courses) {
   let result = matchEmail(email, { courses, windowStart: RECEIPTS_FROM, windowEnd: RECEIPTS_UNTIL });
   if (result.status === 'unrelated') return { outcome: 'unrelated' };
 
+  // "확인 필요"에서 직접 넣은 메일이 다시 읽혀도(대기열로) 되돌아가지 않게 — 이미 근거가 있으면 그대로 둔다
+  const known = await db.prepare('SELECT 1 FROM submission_evidence WHERE gmail_message_id = ?').bind(email.messageId).first();
+  if (known) return { outcome: 'duplicate' };
+
   let round = '';
   if (result.courseId) {
     const placed = await placeReceipt(db, result, email);
@@ -296,11 +300,16 @@ export async function placeReview(db, messageId, body) {
       VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?) ON CONFLICT(gmail_message_id) DO NOTHING`)
       .bind(targetId, messageId, row.gmail_thread_id, row.received_at, row.subject, row.links_json || '{}', nowIso(), round),
     db.prepare('DELETE FROM review_queue WHERE gmail_message_id = ?').bind(messageId),
+    markSeen(db, messageId),
   ]);
   return { ok: true, targetId, round };
 }
 
+// 처리한 메일은 다시 읽지 않는다(새로고침이 같은 메일을 대기열에 되돌려 놓지 않게)
+const markSeen = (db, messageId) =>
+  db.prepare('INSERT INTO gmail_seen (gmail_message_id, seen_at) VALUES (?, ?) ON CONFLICT DO NOTHING').bind(messageId, nowIso());
+
 export async function dismissReview(db, messageId) {
-  const r = await db.prepare('DELETE FROM review_queue WHERE gmail_message_id = ?').bind(messageId).run();
+  const [r] = await db.batch([db.prepare('DELETE FROM review_queue WHERE gmail_message_id = ?').bind(messageId), markSeen(db, messageId)]);
   return { ok: true, deleted: !!r.meta.changes };
 }
