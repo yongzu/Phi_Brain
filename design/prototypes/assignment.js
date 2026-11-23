@@ -47,6 +47,11 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const safeHref = url => (typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null);
   const kstTime = iso => new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  // 회차 이름 비교 키 — worker/src/assignment/rounds.js roundKey와 같다("Magazine 2회차 (B)" → "magazine|2", "12주차" → "|12")
+  const roundKeyOf = label => {
+    const m = String(label ?? '').match(/^\s*([A-Za-z가-힣][A-Za-z가-힣 ]*?)?\s*(\d{1,2})\s*(?:회차|주차|회)/);
+    return m ? `${(m[1] || '').replace(/\s+/g, ' ').trim().toLowerCase()}|${Number(m[2])}` : null;
+  };
 
   const table = $('#am-table'), tbody = $('#am-tbody'), progressEl = $('#am-progress');
   const backendHint = $('#am-backend-hint');
@@ -63,6 +68,8 @@
   let pinnedRows = [];
   let tableRows = []; // 지금 표에 있는 줄 전부(이번 주 + 다른 주차 즐겨찾기) — 과제 내용·상세 팝업이 여기서 줄을 찾는다
   let pendingConnectResult = null;
+  // 과목별 회차 목록과 공지에 이미 붙은 회차(GET /rounds, 사용자 지시 2026-11-23) — 공지 붙여넣기의 회차 고르기에 쓴다
+  let roundLists = {}, roundsUsed = {};
 
   // 주차 고정(사용자 지시 2026-10-06): 날짜로 다음 주차에 자동으로 넘어가지 않는다 — 마지막에 ◀ ▶로 고른 주차를 그대로 연다.
   // 저장한 주차가 없을 때만 날짜로 잡은 주차를 쓰고, 그 주차도 저장해 둔다. 즐겨찾기처럼 이 기기(브라우저)에만 저장.
@@ -151,11 +158,24 @@
     try { return await res.json(); } catch { return null; }
   }
 
-  // 표의 주차 = 제출폼에서 고른 "N주차"(0~16) 그대로 — 과목마다 같은 날짜에 다른 주차를 내므로
-  // 날짜 범위는 표시하지 않는다(2026-09-14 사용자 결정, server/db.js 참고)
+  // 표의 주차 = 학기 주차(0~16, 9월 7일이 1주차). 2026-11-23부터 과제는 과목의 "회차"로 부르고(줄 = 과목 × 회차),
+  // 주차 아래 한 줄에 그 주의 기간을 적는다(사용자 지시 — 예전 2026-09-14 결정 "날짜 범위 표시 안 함"을 바꿈)
+  const weekRangeEl = $('#am-week-range');
+  const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  const dayLabel = date => { const d = new Date(`${date}T00:00:00Z`); return `${d.getUTCMonth() + 1}.${d.getUTCDate()}(${DOW[d.getUTCDay()]})`; };
+  const addDaysIso = (date, n) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+  function weekDates(weekNo) {
+    const w = weeks.find(x => x.week_no === weekNo);
+    if (w?.start_date) return { start: w.start_date, end: w.end_date };
+    if (!snapshot?.semesterStart) return null;
+    const start = addDaysIso(snapshot.semesterStart, (weekNo - 1) * 7);
+    return { start, end: addDaysIso(start, 6) };
+  }
 
   function renderWeekLabel(week) {
     weekLabel.textContent = `${week.week_no}주차`;
+    const range = weekDates(week.week_no);
+    weekRangeEl.textContent = range ? `${dayLabel(range.start)} – ${dayLabel(range.end)}` : '';
     weekPrev.disabled = week.week_no <= weeks[0]?.week_no;
     weekNext.disabled = week.week_no >= weeks[weeks.length - 1]?.week_no;
   }
@@ -185,8 +205,9 @@
   function renderCell(courseCode, kindLabel, cell, note) {
     // 메일로 제출이 확인된 칸(로그인 상태)은 ↗가 메뉴 — 과제 제출폼 / 제출한 메일(사용자 지시 2026-09-14). 그 밖은 제출폼 바로 열기
     const mailMenu = cell.status === 'confirmed_mail' && cell.targetId != null;
+    const rd = esc(cell.round || '');
     const shortcut = mailMenu
-      ? `<button type="button" class="am-shortcut" data-link-target="${cell.targetId}" data-form-url="${safeHref(cell.url) ? esc(cell.url) : ''}" aria-haspopup="menu" aria-expanded="false" title="${esc(kindLabel)} 링크" aria-label="${esc(kindLabel)} 제출폼 또는 제출한 메일 열기">↗</button>`
+      ? `<button type="button" class="am-shortcut" data-link-target="${cell.targetId}" data-link-round="${rd}" data-form-url="${safeHref(cell.url) ? esc(cell.url) : ''}" aria-haspopup="menu" aria-expanded="false" title="${esc(kindLabel)} 링크" aria-label="${esc(kindLabel)} 제출폼 또는 제출한 메일 열기">↗</button>`
       : safeHref(cell.url)
       ? `<a class="am-shortcut" href="${esc(cell.url)}" draggable="false" target="_blank" rel="noopener" title="${esc(kindLabel)} 제출폼 열기" aria-label="${esc(kindLabel)} 제출폼 열기">↗</a>`
       : '';
@@ -196,7 +217,7 @@
     return `<td><span class="am-cell">
       ${cell.targetId == null
         ? `<span class="am-status is-static${confirmedClass(shown)}">${status}</span>`
-        : `<button type="button" class="am-status${confirmedClass(shown)}" data-target-id="${cell.targetId}">${status}</button>`}
+        : `<button type="button" class="am-status${confirmedClass(shown)}" data-target-id="${cell.targetId}" data-round="${rd}">${status}</button>`}
       ${shortcut}
     </span></td>`;
   }
@@ -220,9 +241,11 @@
       return `<td><span class="am-note-cell"><button type="button" class="am-note-btn" data-note-login>자세히보기</button></span></td>`;
     }
     const label = row.note ? `${row.code} 과제 내용 보기` : `${row.code} 과제 공지 붙여넣기`;
+    // 공지는 있는데 마감을 못 읽었으면 "마감 없음" — 바로 채울 수 있게(사용자 지시 2026-11-23)
+    const noDue = row.note && !row.note.dueAt ? '<span class="fi-due am-note-due" title="자세히보기 → 수정하기에서 마감을 넣어 주세요">마감 없음</span>' : '';
     return `<td><span class="am-note-cell">
-      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" data-note-wk="${row.week}" aria-label="${esc(label)}">자세히보기</button>
-      ${dueBadge(row.note, row.assignment.status)}
+      <button type="button" class="am-note-btn${row.note ? ' is-set' : ''}" data-note-course="${esc(row.courseId)}" data-note-wk="${row.week}" data-note-round="${esc(row.round || '')}" aria-label="${esc(label)}">자세히보기</button>
+      ${dueBadge(row.note, row.assignment.status)}${noDue}
     </span></td>`;
   }
 
@@ -238,23 +261,31 @@
     adoptLegacyFavorites(week);
     const current = matrix.rows.map(r => ({ ...r, week }));
     // 수강기간 아님·완강 과목(과목 이름 메뉴)은 즐겨찾기와 상관없이 맨 아래·회색 — 수강기간 아님 → 완강 순(사용자 지시 2026-10-01)
+    if (matrix.rounds) roundLists = matrix.rounds;
     tableRows = [...current, ...pinnedRows.filter(r => r.week !== week && !r.courseState)];
-    const byKey = new Map(tableRows.map(r => [favKey(r.code, r.week), r]));
+    const byKey = new Map(tableRows.map(r => [favKey(r.code, r.week, r.round), r]));
     const favRows = favorites.map(k => byKey.get(k)).filter(r => r && !r.courseState);
     const byOrder = (a, b) => orderRank(a.code) - orderRank(b.code);
-    const rest = current.filter(r => !r.courseState && !favorites.includes(favKey(r.code, week))).sort(byOrder);
+    const rest = current.filter(r => !r.courseState && !favorites.includes(favKey(r.code, week, r.round))).sort(byOrder);
     const offRows = OFF_STATES.flatMap(st => current.filter(r => r.courseState === st).sort(byOrder));
     const shown = [...favRows, ...rest, ...offRows];
     tbody.innerHTML = shown.map((row, i) => {
       const isFav = i < favRows.length, other = row.week !== week, off = row.courseState;
-      return `<tr data-am-row="${esc(favKey(row.code, row.week))}" data-am-group="${isFav ? 'fav' : off ? `off-${off}` : 'rest'}"${off ? ' class="is-off"' : ''} draggable="true">
+      const key = favKey(row.code, row.week, row.round);
+      const what = row.round ? `${row.round}` : `${row.week}주차 과제`;
+      // 회차가 붙은 줄은 회차를(사용자 지시 2026-11-23: 과제는 회차로 표기), 없는 줄은 예전처럼 WK12.
+      // 회차 목록에 있는 회차면 옆에 "3/8"(남은 회차를 한눈에). 다른 주차 즐겨찾기 줄은 주차도 함께
+      const tags = row.round
+        ? `${other ? `<span class="am-week-tag is-other" title="${row.week}주차 — 다른 주차에서 즐겨찾기">WK${String(row.week).padStart(2, '0')}</span>` : ''}<span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 · ${esc(row.round)}">${esc(row.round)}</span>${row.roundPos ? `<span class="am-week-tag" title="회차 목록 마지막은 ${row.roundPos.last}회차">${row.roundPos.n}/${row.roundPos.last}</span>` : ''}`
+        : `<span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>`;
+      return `<tr data-am-row="${esc(key)}" data-am-group="${isFav ? 'fav' : off ? `off-${off}` : 'rest'}"${off ? ' class="is-off"' : ''} draggable="true">
         <td><span class="am-cell">
           <button type="button" class="am-grip" data-am-grip aria-label="${esc(row.code)} 줄 순서 바꾸기 — 끌거나 ↑·↓" title="끌어서 순서 바꾸기">⠿</button>
-          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}${off ? ' is-off' : ''}"${off ? ' tabindex="-1" aria-hidden="true"' : ''} data-am-fav-key="${esc(favKey(row.code, row.week))}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${row.week}주차 과제"></button>
-          <button type="button" class="am-course-name" data-am-course="${esc(row.courseId)}" data-course-wk="${row.week}" aria-haspopup="menu" aria-expanded="false" title="수강기간 아님 · 완강 · 휴강"><b>${esc(row.code)}</b>_${esc(row.name)}</button>
+          <button type="button" class="fi-box-fav am-fav${isFav ? ' is-fav' : ''}${off ? ' is-off' : ''}"${off ? ' tabindex="-1" aria-hidden="true"' : ''} data-am-fav-key="${esc(key)}" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 — 표 맨 위로'}: ${esc(row.code)} ${esc(what)}"></button>
+          <button type="button" class="am-course-name" data-am-course="${esc(row.courseId)}" data-course-wk="${row.week}" data-course-round="${esc(row.round || '')}" aria-haspopup="menu" aria-expanded="false" title="수강기간 아님 · 완강 · 휴강 · 회차 추가"><b>${esc(row.code)}</b>_${esc(row.name)}</button>
           ${off
             ? `<span class="am-week-tag am-state-tag">${COURSE_STATE_LABEL[off]}</span>`
-            : `<span class="am-week-tag${other ? ' is-other' : ''}" title="${row.week}주차 과제${other ? ' — 다른 주차에서 즐겨찾기' : ''}">WK${String(row.week).padStart(2, '0')}</span>${isRest(row) ? '<span class="am-week-tag am-state-tag" title="이 주 세션 없음 — 셀프피드백 해당 없음">휴강</span>' : ''}`}
+            : `${tags}${isRest(row) ? '<span class="am-week-tag am-state-tag" title="이 주 세션 없음 — 셀프피드백 해당 없음">휴강</span>' : ''}`}
           ${safeHref(row.boardUrl)
             ? `<a class="am-shortcut" href="${esc(row.boardUrl)}" draggable="false" target="_blank" rel="noopener" title="${esc(row.code)} Figma 보드 열기" aria-label="${esc(row.code)} Figma 보드 열기">↗</a>`
             : ''}
@@ -275,7 +306,8 @@
   // "AL:3" 같은 키 목록을 이 기기(브라우저)에만 저장한다(로그인 전 읽기 전용 표에서도 그대로).
   // 새로 누른 것이 즐겨찾기 묶음의 맨 끝으로 간다(누른 순서 유지).
   const FAV_KEY = 'phi-brain:assignment-favorites';
-  const favKey = (code, week) => `${code}:${week}`;
+  // 회차가 붙은 줄은 "TF:12:Fonts 3회차"(한 주에 같은 과목 회차가 여럿일 수 있다, 2026-11-23). 회차 없는 줄은 예전 그대로 "AL:3"
+  const favKey = (code, week, round = '') => (round ? `${code}:${week}:${round}` : `${code}:${week}`);
   let favorites = (() => { try { const v = JSON.parse(localStorage.getItem(FAV_KEY)); return Array.isArray(v) ? v.filter(c => typeof c === 'string') : []; } catch { return []; } })();
   const saveFavorites = () => { try { localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); } catch {} };
   // 주차 없이 과목만 저장하던 예전 즐겨찾기("AL")는 처음 보이는 주차의 과제로 옮긴다
@@ -290,7 +322,7 @@
     const weeksNeeded = [...new Set(favorites.filter(k => !k.startsWith('task:')).map(k => Number(k.split(':')[1])).filter(w => Number.isInteger(w) && w !== week))];
     const lists = await Promise.all(weeksNeeded.map(async w => {
       const m = snapshot ? (snapshot.weeks ? snapshotMatrix(w) : null) : await apiJson(`/weeks/${w}/matrix`);
-      return m ? m.rows.filter(r => favorites.includes(favKey(r.code, w))).map(r => ({ ...r, week: w })) : [];
+      return m ? m.rows.filter(r => favorites.includes(favKey(r.code, w, r.round))).map(r => ({ ...r, week: w })) : [];
     }));
     return lists.flat();
   }
@@ -430,13 +462,60 @@
 
   async function loadWeek(weekNo) {
     adoptLegacyFavorites(weekNo);
-    if (snapshot) { currentWeekNo = weekNo; pinnedRows = await loadPinnedRows(weekNo); render(snapshotMatrix(weekNo)); return; }
-    const [matrix, pinned] = await Promise.all([apiJson(`/weeks/${weekNo}/matrix`), loadPinnedRows(weekNo)]);
+    if (snapshot) { currentWeekNo = weekNo; pinnedRows = await loadPinnedRows(weekNo); render(snapshotMatrix(weekNo)); renderReview([]); return; }
+    const [matrix, pinned, rounds, review] = await Promise.all([apiJson(`/weeks/${weekNo}/matrix`), loadPinnedRows(weekNo), apiJson('/rounds'), apiJson('/review')]);
     if (!matrix || snapshot) return; // switched to read-only while waiting
     currentWeekNo = weekNo;
     pinnedRows = pinned;
+    if (rounds) { roundLists = rounds.rounds || {}; roundsUsed = rounds.used || {}; }
     render(matrix);
+    renderReview(review?.items || []);
   }
+
+  // ---- 확인 필요(사용자 지시 2026-11-23): 어느 주차 · 회차인지 못 정한 확인메일 ----
+  // 지금 보는 주차에 회차를 골라 넣는다(다른 주차로 가지 않는다). "관련 없음"은 목록에서만 뺀다
+  const reviewSection = $('#am-review'), reviewList = $('#am-review-list');
+  let reviewItems = [];
+  const KIND_WORD = { assignment: '과제', self_feedback: '셀프피드백' };
+  function reviewChoices(item) {
+    // 이 주 표에 있는 그 과목 줄의 회차 + 과목 회차 목록 + 회차 없음. 폼 답과 같은 회차를 먼저 고른다
+    const inWeek = (lastMatrix?.rows || []).filter(r => r.courseId === item.courseId).map(r => r.round || '');
+    const opts = [...new Set([...inWeek, ...(roundLists[item.courseId] || []), ''])];
+    const want = roundKeyOf(item.roundAnswer);
+    const pick = opts.find(o => o && roundKeyOf(o) === want) ?? inWeek[0] ?? '';
+    return opts.map(o => `<option value="${esc(o)}"${o === pick ? ' selected' : ''}>${o ? esc(o) : '회차 없음'}</option>`).join('');
+  }
+  function renderReview(items) {
+    reviewItems = items;
+    if (snapshot || !items.length) { reviewSection.hidden = true; reviewList.innerHTML = ''; return; }
+    reviewSection.hidden = false;
+    reviewList.innerHTML = items.map(it => {
+      const code = (lastMatrix?.rows || []).find(r => r.courseId === it.courseId)?.code || it.courseId?.toUpperCase() || '과목 모름';
+      const can = it.courseId && it.kind;
+      return `<li class="am-review-item" data-review-id="${esc(it.id)}">
+        <span class="am-review-what">${esc(code)} ${KIND_WORD[it.kind] || '제출'}</span>
+        <span>${kstTime(it.receivedAt)}${it.roundAnswer ? ` · 폼 답 "${esc(it.roundAnswer)}"` : ''}</span>
+        ${can ? `<select aria-label="넣을 회차">${reviewChoices(it)}</select>
+        <button type="button" class="pill" data-review-act="place">${currentWeekNo}주차에 넣기</button>` : ''}
+        ${it.threadId ? `<a href="https://mail.google.com/mail/u/0/#all/${encodeURIComponent(it.threadId)}" target="_blank" rel="noopener">메일 ↗</a>` : ''}
+        <button type="button" class="pill" data-review-act="dismiss">관련 없음</button>
+      </li>`;
+    }).join('');
+  }
+  reviewList.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-review-act]');
+    if (!btn) return;
+    const li = btn.closest('[data-review-id]'), id = li.dataset.reviewId, it = reviewItems.find(x => x.id === id);
+    if (!it) return;
+    btn.disabled = true;
+    const res = btn.dataset.reviewAct === 'place'
+      ? await api(`/review/${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId: it.courseId, kind: it.kind, weekNo: currentWeekNo, round: li.querySelector('select')?.value || '' }) })
+      : await api(`/review/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res?.ok) { btn.disabled = false; toast('저장하지 못했어요', null, 'error'); return; }
+    toast(btn.dataset.reviewAct === 'place' ? `${currentWeekNo}주차에 넣었어요` : '목록에서 뺐어요');
+    reloadTable();
+  });
 
   async function loadWeeksList() {
     const data = await apiJson('/weeks');
@@ -548,10 +627,10 @@
   function closeDetail() {
     // a paste that wasn't saved yet is kept for this course/week, so closing by accident doesn't lose it
     if (noteState?.mode === 'edit' && noteState.draft?.raw.trim() && noteState.draft.raw !== (noteState.note?.raw || '')) {
-      unsavedDrafts.set(`${noteState.courseId}:${noteState.week}`, { ...noteState.draft });
+      unsavedDrafts.set(draftKey(noteState), { ...noteState.draft });
     }
     // 아래 "추가" 입력창에 쓰다 만 것도 같은 과목·주차에 남겨 둔다
-    if (noteState?.append?.trim()) unsavedAppends.set(`${noteState.courseId}:${noteState.week}`, noteState.append);
+    if (noteState?.append?.trim()) unsavedAppends.set(draftKey(noteState), noteState.append);
     detailAnchor = null; noteState = null;
     if (!detail.hidden && detail.dataset.open) popOut(detail);
   }
@@ -566,10 +645,11 @@
     if (anchor && anchor.contains(e.target)) return;
     closeDetail();
   });
-  async function openDetail(targetId) {
-    const d = await apiJson(`/targets/${targetId}`);
+  const statusAnchor = (targetId, round = '') => `.am-status[data-target-id="${targetId}"][data-round="${CSS.escape(round)}"]`;
+  async function openDetail(targetId, round = '') {
+    const d = await apiJson(`/targets/${targetId}?round=${encodeURIComponent(round)}`);
     if (!d) return;
-    detailAnchor = `.am-status[data-target-id="${targetId}"]`;
+    detailAnchor = statusAnchor(targetId, round);
     noteState = null;
     detail.classList.remove('is-note', 'is-expanded');
     detail.innerHTML = renderDetail(d);
@@ -582,7 +662,7 @@
     const kindLabel = d.kind === 'assignment' ? '과제' : '셀프피드백';
     const latest = d.evidence[d.evidence.length - 1];
     // 표와 같은 기준으로 "지각 제출" — 첫 확인메일(evidence[0], 수신 시각 오름차순)과 그 주 과제 내용의 마감을 견준다
-    const note = noteFor(d.kind, rowOf(d.courseId, d.weekNo)?.note);
+    const note = noteFor(d.kind, rowOf(d.courseId, d.weekNo, d.round || '')?.note);
     const asCell = { status: d.status, confirmedAt: d.evidence[0]?.received_at || null };
     const statusLabel = cellLabel(asCell, note);
     const statusKey = cellStatusKey(asCell, note);
@@ -601,7 +681,7 @@
 
     return `
       <button type="button" class="am-detail-close" id="am-detail-close" aria-label="닫기">✕</button>
-      <h2 class="am-detail-title">${esc(d.courseCode)}_${esc(d.courseName)} · ${d.weekNo}주차 · ${kindLabel}</h2>
+      <h2 class="am-detail-title">${esc(d.courseCode)}_${esc(d.courseName)} · ${d.weekNo}주차${d.round ? ` · ${esc(d.round)}` : ''} · ${kindLabel}</h2>
       <p class="am-detail-status">${statusDot(statusKey)}${statusLabel}</p>
       ${conflictNote}
       ${evidenceBlock}
@@ -615,25 +695,25 @@
   function wireDetailActions(d) {
     $('#am-detail-close', detail).addEventListener('click', closeDetail);
     detail.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => setManual(d.targetId, btn.dataset.action));
+      btn.addEventListener('click', () => setManual(d.targetId, btn.dataset.action, false, d.round || ''));
     });
   }
 
-  async function setManual(targetId, action, force = false) {
+  async function setManual(targetId, action, force = false, round = '') {
     const res = await api(`/targets/${targetId}/manual`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, force }),
+      body: JSON.stringify({ action, force, round }),
     });
     if (!res) { toast('저장하지 못했어요', null, 'error'); return; }
     if (res.status === 409) {
       const body = await res.json();
       toast(`이미 확인메일 ${body.evidenceCount}건이 있어요 — 그래도 '해당 없음'으로 표시할까요?`,
-        { label: '표시하기', run: () => setManual(targetId, action, true) }, 'error');
+        { label: '표시하기', run: () => setManual(targetId, action, true, round) }, 'error');
       return;
     }
     if (!res.ok) { toast('저장하지 못했어요', null, 'error'); return; }
     toast('저장했어요');
-    openDetail(targetId);
+    openDetail(targetId, round);
     if (currentWeekNo != null) loadWeek(currentWeekNo);
   }
 
@@ -669,7 +749,7 @@
     draw(undefined);
     popIn(linkMenu);
     linkMenu.querySelector('a.cm-item')?.focus();
-    const d = await apiJson(`/targets/${btn.dataset.linkTarget}`);
+    const d = await apiJson(`/targets/${btn.dataset.linkTarget}?round=${encodeURIComponent(btn.dataset.linkRound || '')}`);
     if (linkMenuAnchor !== btn) return; // closed or another one opened while waiting
     const thread = d?.evidence?.length ? d.evidence[d.evidence.length - 1].gmail_thread_id : null;
     const hadFocus = linkMenu.contains(document.activeElement);
@@ -684,7 +764,7 @@
   const COURSE_STATE_LABEL = { inactive: '수강기간 아님', completed: '완강' };
   const OFF_STATES = ['inactive', 'completed']; // 맨 아래 쌓는 순서
   const isRest = row => row.selfFeedback.status === 'not_applicable'; // 휴강(그 주 셀프피드백 해당 없음)
-  let courseMenu = null; // { courseId, week, step: 'menu' | 'inactive' | 'completed' | 'rest' }
+  let courseMenu = null; // { courseId, week, round, step: 'menu' | 'inactive' | 'completed' | 'rest' }
 
   function placeMenu(btn) {
     linkMenu.hidden = false;
@@ -695,7 +775,7 @@
     linkMenu.style.left = `${Math.max(edge, Math.min(r.left, innerWidth - edge - w))}px`;
   }
   function drawCourseMenu() {
-    const row = rowOf(courseMenu.courseId, courseMenu.week);
+    const row = rowOf(courseMenu.courseId, courseMenu.week, courseMenu.round);
     if (!row) { closeLinkMenu(); return; }
     const state = row.courseState || null, rest = isRest(row);
     const weekWord = row.week === currentWeekNo ? '이번 주' : `${row.week}주차`;
@@ -705,7 +785,9 @@
         : row.selfFeedback.status === 'confirmed_mail' && !rest
         ? `<span class="cm-item" aria-disabled="true" title="이 주 셀프피드백은 이미 제출이 확인됐어요">휴강(${weekWord} 스킵)</span>`
         : item('rest', rest ? '휴강 해제' : `휴강(${weekWord} 스킵)`);
-      linkMenu.innerHTML = item('inactive', state === 'inactive' ? '수강기간 아님 해제' : '수강기간 아님')
+      // 회차 추가(사용자 지시 2026-11-23): 한 주에 같은 과목 회차가 여럿일 때 — 이 주차에 새 회차 줄을 만들고 공지를 붙여넣는다
+      const addRound = state ? '' : item('add-round', `${weekWord}에 회차 추가`);
+      linkMenu.innerHTML = addRound + item('inactive', state === 'inactive' ? '수강기간 아님 해제' : '수강기간 아님')
         + item('completed', state === 'completed' ? '완강 해제' : '완강') + restItem;
       linkMenu.querySelector('button.cm-item')?.focus({ preventScroll: true });
       return;
@@ -727,14 +809,14 @@
     linkMenu.querySelector('[data-course-act="cancel"]').focus({ preventScroll: true });
   }
   function openCourseMenu(btn) {
-    const courseId = btn.dataset.amCourse, week = Number(btn.dataset.courseWk);
-    const row = rowOf(courseId, week);
+    const courseId = btn.dataset.amCourse, week = Number(btn.dataset.courseWk), round = btn.dataset.courseRound || '';
+    const row = rowOf(courseId, week, round);
     if (!row) return;
     if (row.assignment.targetId == null) { toast('로그인하면 과목 상태를 바꿀 수 있어요'); return; } // 읽기 전용 표
     closeDetail();
     linkMenuAnchor = btn;
     btn.setAttribute('aria-expanded', 'true');
-    courseMenu = { courseId, week, step: 'menu' };
+    courseMenu = { courseId, week, round, step: 'menu' };
     drawCourseMenu();
     placeMenu(btn);
     popIn(linkMenu);
@@ -746,21 +828,21 @@
     const res = await api(`/course-states/${courseId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state }) });
     return !!res?.ok;
   }
-  async function postManual(targetId, action) {
-    const res = await api(`/targets/${targetId}/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+  async function postManual(targetId, action, round = '') {
+    const res = await api(`/targets/${targetId}/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, round }) });
     return !!res?.ok;
   }
   // 확인 단계의 "예" — 되돌리기는 원래 상태로
-  async function applyCourseAct({ courseId, week, step }) {
-    const row = rowOf(courseId, week);
+  async function applyCourseAct({ courseId, week, round = '', step }) {
+    const row = rowOf(courseId, week, round);
     if (!row) return;
     let ok, msg, undo;
     if (step === 'rest') {
       const cell = row.selfFeedback, on = !isRest(row);
       const before = cell.status === 'confirmed_manual' ? 'confirmed_manual' : 'clear';
-      ok = await postManual(cell.targetId, on ? 'not_applicable' : 'clear');
+      ok = await postManual(cell.targetId, on ? 'not_applicable' : 'clear', round);
       msg = on ? `${row.code} ${row.week}주차를 휴강으로 뒀어요` : `${row.code} ${row.week}주차 휴강을 해제했어요`;
-      undo = () => postManual(cell.targetId, on ? before : 'not_applicable');
+      undo = () => postManual(cell.targetId, on ? before : 'not_applicable', round);
     } else {
       const before = row.courseState || null, next = before === step ? null : step;
       ok = await putCourseState(courseId, next);
@@ -784,6 +866,7 @@
     if (act && courseMenu) {
       if (act === 'cancel') { closeLinkMenu(true); return; }
       if (act === 'confirm') { const target = courseMenu; closeLinkMenu(true); applyCourseAct(target); return; }
+      if (act === 'add-round') { const { courseId, week, round } = courseMenu; closeLinkMenu(); openNote(courseId, week, { round, isNew: true }); return; }
       courseMenu.step = act; // 메뉴는 열어 둔 채 확인 단계로
       drawCourseMenu();
       if (linkMenuAnchor) placeMenu(linkMenuAnchor);
@@ -815,44 +898,69 @@
     const btn = e.target.closest('button.am-status'); // read-only labels (span.is-static) have no detail
     if (e.detail > 1 && e.target.closest('[data-note-course]')) return; // 더블클릭의 두 번째 클릭은 닫지 않는다 — 아래 dblclick이 전체보기로 연다
     if (btn) {
-      const sel = `.am-status[data-target-id="${btn.dataset.targetId}"]`;
+      const sel = statusAnchor(btn.dataset.targetId, btn.dataset.round || '');
       if (detailAnchor === sel && !detail.hidden && detail.dataset.open) { closeDetail(); return; } // same cell again = close
-      openDetail(Number(btn.dataset.targetId));
+      openDetail(Number(btn.dataset.targetId), btn.dataset.round || '');
       return;
     }
     if (e.target.closest('[data-note-login]')) { toast('로그인하면 과제 공지를 붙여넣고 마감을 볼 수 있어요'); return; }
     const noteBtn = e.target.closest('[data-note-course]');
     if (noteBtn) {
-      if (detailAnchor === noteAnchor(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk)) && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
-      openNote(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk));
+      const round = noteBtn.dataset.noteRound || '';
+      if (detailAnchor === noteAnchor(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk), round) && !noteState?.isNew && !detail.hidden && detail.dataset.open) { closeDetail(); return; }
+      openNote(noteBtn.dataset.noteCourse, Number(noteBtn.dataset.noteWk), { round });
     }
   });
   // "자세히보기"를 더블클릭하면 바로 크게(전체보기) 연다(사용자 지시 2026-09-19)
   tbody.addEventListener('dblclick', e => {
     const noteBtn = e.target.closest('[data-note-course]');
     if (!noteBtn) return;
-    const courseId = noteBtn.dataset.noteCourse, week = Number(noteBtn.dataset.noteWk);
-    if (noteState?.courseId !== courseId || noteState.week !== week || detail.hidden || !detail.dataset.open) openNote(courseId, week);
+    const courseId = noteBtn.dataset.noteCourse, week = Number(noteBtn.dataset.noteWk), round = noteBtn.dataset.noteRound || '';
+    if (noteState?.courseId !== courseId || noteState.week !== week || noteState.round !== round || noteState.isNew || detail.hidden || !detail.dataset.open) openNote(courseId, week, { round });
     setNoteExpanded(true);
   });
 
   // ---- 과제 내용 팝오버: 보기 / 붙여넣기·수정 ----
-  // noteState = { courseId, mode: 'view'|'edit', note (saved one for this week or null), menu: false|'menu'|'confirm',
-  //               draft: { raw, dueAt, lateDueAt, dueTouched, week }, conflict: null|{ note } }
+  // noteState = { courseId, week, round (그 줄의 회차, '' = 회차 없음), isNew (같은 주 새 회차 줄), baseRound (팝업을 붙인 줄),
+  //               mode: 'view'|'edit', note (saved one for this row or null), menu: false|'menu'|'confirm',
+  //               draft: { raw, dueAt, lateDueAt, dueTouched, round, roundTouched }, conflict: null|{ note, roundTaken } }
   let noteState = null;
-  // 과제 내용은 그 줄의 주차 것 — 다른 주차 즐겨찾기 줄이면 그 주차 공지를 열고 저장한다
-  const rowOf = (courseId, week) => tableRows.find(r => r.courseId === courseId && r.week === week);
-  const noteAnchor = (courseId, week) => `[data-note-course="${courseId}"][data-note-wk="${week}"]`;
+  // 과제 내용은 그 줄(과목 × 주차 × 회차) 것 — 다른 주차 즐겨찾기 줄이면 그 주차 공지를 열고 저장한다.
+  // 공지는 언제나 그 줄의 주차에 저장한다 — 공지 본문의 "N주차"로 다른 주차에 옮기지 않는다(사용자 지시 2026-11-23:
+  // 회차 때문에 1·2주차에 저장되던 문제. 예전엔 붙여넣은 공지가 말하는 주차가 저장 기본값이었다)
+  const rowOf = (courseId, week, round = '') => tableRows.find(r => r.courseId === courseId && r.week === week && (r.round || '') === round);
+  const noteAnchor = (courseId, week, round = '') => `[data-note-course="${courseId}"][data-note-wk="${week}"][data-note-round="${CSS.escape(round)}"]`;
+  const draftKey = st => `${st.courseId}:${st.week}:${st.isNew ? '+' : st.round}`;
+  const anchorRow = st => rowOf(st.courseId, st.week, st.isNew ? st.baseRound : st.round);
   const WEEK_NOW = () => noteState.week;
+  // 새 공지의 회차 기본값: 공지 글의 "Fonts 3회차"·"12주차"가 그 과목 회차 목록에 있으면 그것, 아니면 아직 공지가 없는 다음 회차
+  function suggestRound(courseId, week, raw) {
+    const list = roundLists[courseId] || [];
+    if (!list.length) return '';
+    const said = [...String(raw).matchAll(/([A-Za-z]+\s*)?(\d{1,2})\s*(회차|주차)/g)].map(m => roundKeyOf(m[0])).filter(Boolean);
+    const num = k => k.split('|')[1];
+    const hit = said.map(k => list.find(l => roundKeyOf(l) === k) || list.find(l => num(roundKeyOf(l) || '|') === num(k))).find(Boolean);
+    if (hit) return hit;
+    const taken = new Set([...(roundsUsed[courseId] || []), ...tableRows.filter(r => r.courseId === courseId && r.week === week).map(r => r.round)]);
+    return list.find(l => !taken.has(l)) || '';
+  }
+  // 마감이 그 주 기간 밖(시작 전, 또는 끝 + 3일 뒤)이면 알려만 준다 — 저장은 그대로 이 주차
+  function dueOutsideWeek(dueAt, week) {
+    const r = weekDates(week);
+    if (!dueAt || !r) return false;
+    const day = dueAt.slice(0, 10);
+    return day < r.start || day > addDaysIso(r.end, 3);
+  }
 
-  function openNote(courseId, week = currentWeekNo, { mode } = {}) {
-    const row = rowOf(courseId, week);
+  function openNote(courseId, week = currentWeekNo, { mode, round = '', isNew = false } = {}) {
+    const row = rowOf(courseId, week, round);
     if (!row) return;
-    noteState = { courseId, week, note: row.note, mode: mode || (row.note ? 'view' : 'edit'), menu: false, conflict: null, draft: null };
-    const appendKey = `${courseId}:${week}`;
+    const note = isNew ? null : row.note;
+    noteState = { courseId, week, round: isNew ? '' : round, isNew, baseRound: round, note, mode: isNew ? 'edit' : mode || (note ? 'view' : 'edit'), menu: false, conflict: null, draft: null };
+    const appendKey = draftKey(noteState);
     if (unsavedAppends.has(appendKey)) { noteState.append = unsavedAppends.get(appendKey); unsavedAppends.delete(appendKey); }
     if (noteState.mode === 'edit') startDraft();
-    detailAnchor = noteAnchor(courseId, week);
+    detailAnchor = noteAnchor(courseId, week, round);
     detail.classList.add('is-note');
     detail.classList.remove('is-expanded'); // 새로 열 때는 늘 칸 옆 작은 팝업부터
     renderNote();
@@ -864,10 +972,11 @@
     const n = noteState.note;
     noteState.mode = 'edit';
     noteState.menu = false;
-    // editing a saved notice stays in its week unless the user picks another; a new paste defaults to the week it names
-    noteState.draft = { raw: n?.raw || '', dueAt: n?.dueAt || null, lateDueAt: n?.lateDueAt || null, dueTouched: !!n?.dueManual, week: WEEK_NOW(), weekChosen: !!n };
-    const kept = unsavedDrafts.get(`${noteState.courseId}:${noteState.week}`);
-    if (kept) { noteState.draft = kept; unsavedDrafts.delete(`${noteState.courseId}:${noteState.week}`); } // what was pasted before closing
+    // 저장은 늘 이 줄의 주차. 회차는 이 줄의 회차(있으면), 없으면 붙여넣는 글을 보고 고른다(직접 바꾸면 그대로)
+    const fixed = !noteState.isNew && (!!noteState.round || !!n);
+    noteState.draft = { raw: n?.raw || '', dueAt: n?.dueAt || null, lateDueAt: n?.lateDueAt || null, dueTouched: !!n?.dueManual, round: noteState.round, roundTouched: fixed };
+    const kept = unsavedDrafts.get(draftKey(noteState));
+    if (kept) { noteState.draft = kept; unsavedDrafts.delete(draftKey(noteState)); } // what was pasted before closing
   }
   // 전체보기: 칸 옆 작은 팝업 ↔ 화면 가운데 큰 창(사용자 지시 2026-09-19 — 팝업이 답답하다).
   // 여는 길은 셋 — "자세히보기" 더블클릭, 공지 본문 더블클릭, ⋯ 메뉴의 "전체보기". 닫으면 다음엔 다시 작게 열린다.
@@ -886,7 +995,7 @@
 
   function noteHeader(row, withMenu) {
     return `<div class="am-note-head">
-        <h2 class="am-detail-title">${esc(row.code)}_${esc(row.name)} · ${WEEK_NOW()}주차 · 과제 내용</h2>
+        <h2 class="am-detail-title">${esc(row.code)}_${esc(row.name)} · ${WEEK_NOW()}주차${noteState.round ? ` · ${esc(noteState.round)}` : noteState.isNew ? ' · 새 회차' : ''} · 과제 내용</h2>
         ${withMenu ? `<span class="am-note-more">
           <button type="button" class="pill pill-icon" data-note-act="menu" aria-haspopup="menu" aria-expanded="${!!noteState.menu}" aria-label="과제 내용 메뉴">⋯</button>
           ${noteState.menu === 'menu' ? `<div class="am-note-menu" role="menu">
@@ -903,7 +1012,7 @@
   }
 
   function renderNote() {
-    const st = noteState, row = rowOf(st.courseId, st.week);
+    const st = noteState, row = anchorRow(st);
     if (!row) { closeDetail(); return; }
     const close = '<button type="button" class="am-detail-close" data-note-act="close" aria-label="닫기">✕</button>';
     if (st.mode === 'view' && st.note) {
@@ -932,23 +1041,23 @@
     const st = noteState, d = st.draft;
     const parsed = notice.parseNotice(d.raw);
     if (!d.dueTouched) { d.dueAt = parsed.dueAt; d.lateDueAt = parsed.lateDueAt; }
-    if (!d.weekChosen) d.week = parsed.week ?? WEEK_NOW();
+    if (!d.roundTouched) d.round = suggestRound(st.courseId, st.week, d.raw);
     const found = [
       d.dueAt ? `마감 <b>${notice.dueLabelWithDow(d.dueAt)}</b>` : '마감을 찾지 못했어요',
       d.lateDueAt ? `지각 마감 <b>${notice.dueLabelWithDow(d.lateDueAt)}</b>` : '',
-      parsed.week != null ? `${parsed.week}주차` : '',
       parsed.course || '',
     ].filter(Boolean).join(' · ');
-    const weekChoice = d.raw.trim() && parsed.week != null && parsed.week !== WEEK_NOW()
-      ? `<p class="am-note-warn">공지는 ${parsed.week}주차예요 — 어느 주차에 저장할까요?</p>
-         <div class="am-note-weeks" role="group" aria-label="저장할 주차">
-           <button type="button" class="pill" data-note-week="${parsed.week}" aria-pressed="${d.week === parsed.week}">${parsed.week}주차 (공지)</button>
-           <button type="button" class="pill" data-note-week="${WEEK_NOW()}" aria-pressed="${d.week === WEEK_NOW()}">${WEEK_NOW()}주차 (이 칸)</button>
-         </div>` : '';
+    const range = weekDates(WEEK_NOW());
+    const weekChoice = d.raw.trim() && dueOutsideWeek(d.dueAt, WEEK_NOW())
+      ? `<p class="am-note-warn">마감이 이 주 기간(${dayLabel(range.start)} – ${dayLabel(range.end)}) 밖이에요. 저장은 ${WEEK_NOW()}주차에 해요.</p>` : '';
+    const roundOpts = [...new Set([...(roundLists[st.courseId] || []), ...(roundsUsed[st.courseId] || [])])];
     const courseWarn = d.raw.trim() && parsed.course && parsed.course !== row.code
       ? `<p class="am-note-warn">${esc(parsed.course)} 과목 공지 같아요 — 지금 칸은 ${esc(row.code)}예요.</p>` : '';
-    const conflict = st.conflict
-      ? `<p class="am-note-warn">${st.conflict.note ? (st.conflict.sameWeek ? '다른 기기에서 먼저 수정된 과제 내용이에요.' : `${d.week}주차에 이미 저장된 공지가 있어요.`) : '다른 기기에서 삭제된 과제 내용이에요.'}</p>
+    const conflict = st.conflict?.roundTaken
+      ? `<p class="am-note-warn">이 주에 이미 ${esc(d.round.trim() || '회차 없는')} 공지가 있어요. 회차를 바꿔 주세요.</p>
+         <div class="am-detail-actions" style="margin-bottom:10px"><button type="button" class="pill" data-note-act="theirs">저장된 내용 보기</button></div>`
+      : st.conflict
+      ? `<p class="am-note-warn">${st.conflict.note ? '다른 기기에서 먼저 수정된 과제 내용이에요.' : '다른 기기에서 삭제된 과제 내용이에요.'}</p>
          <div class="am-detail-actions" style="margin-bottom:10px">
            <button type="button" class="pill" data-note-act="force">${st.conflict.note ? '이 내용으로 덮어쓰기' : '다시 저장'}</button>
            ${st.conflict.note ? '<button type="button" class="pill" data-note-act="theirs">저장된 내용 보기</button>' : ''}
@@ -957,6 +1066,8 @@
       <p class="am-note-preview" aria-live="polite">${d.raw.trim() ? found : '붙여넣으면 마감을 찾아 보여줘요'}</p>
       ${weekChoice}${courseWarn}
       <div class="am-note-fields">
+        <label for="am-note-round">회차</label><input type="text" id="am-note-round" list="am-note-rounds" value="${esc(d.round || '')}" placeholder="회차 없음" autocomplete="off">
+        <datalist id="am-note-rounds">${roundOpts.map(o => `<option value="${esc(o)}"></option>`).join('')}</datalist>
         <label for="am-note-due">마감</label><input type="datetime-local" id="am-note-due" value="${esc(d.dueAt || '')}">
         <label for="am-note-late">지각 마감</label><input type="datetime-local" id="am-note-late" value="${esc(d.lateDueAt || '')}">
       </div>
@@ -967,7 +1078,7 @@
       </div>`;
   }
   const refreshNoteLive = () => {
-    const live = detail.querySelector('.am-note-live'), row = rowOf(noteState.courseId, noteState.week);
+    const live = detail.querySelector('.am-note-live'), row = anchorRow(noteState);
     if (live && row) live.innerHTML = noteLiveHTML(row);
     placeDetail();
   };
@@ -983,6 +1094,8 @@
     if (e.target.classList.contains('am-note-input')) {
       d.raw = e.target.value;
       refreshNoteLive();
+    } else if (e.target.id === 'am-note-round') {
+      d.round = e.target.value; d.roundTouched = true; // 직접 고르거나 적은 회차(목록에 없으면 저장할 때 목록에 더한다)
     } else if (e.target.id === 'am-note-due' || e.target.id === 'am-note-late') {
       d.dueTouched = true; // a deadline set by hand wins over what the text says
       d[e.target.id === 'am-note-due' ? 'dueAt' : 'lateDueAt'] = e.target.value || null;
@@ -990,8 +1103,6 @@
   });
   detail.addEventListener('click', e => {
     if (!noteState) return;
-    const weekBtn = e.target.closest('[data-note-week]');
-    if (weekBtn) { noteState.draft.week = Number(weekBtn.dataset.noteWeek); noteState.draft.weekChosen = true; refreshNoteLive(); return; }
     const act = e.target.closest('[data-note-act]')?.dataset.noteAct;
     if (!act) return;
     const st = noteState;
@@ -1006,7 +1117,7 @@
     else if (act === 'append') appendNote();
     else if (act === 'save') saveNote(false);
     else if (act === 'force') saveNote(true);
-    else if (act === 'theirs') showSavedWeek(st.draft.week);
+    else if (act === 'theirs') showSavedNote(st.conflict?.roundTaken ? st.draft.round.trim() : st.round);
   });
 
   // 보기 상태에서 팝업 어디든(제목·마감·본문) 더블클릭하면 전체보기 ↔ 작게 보기(사용자 지시 2026-09-19).
@@ -1023,22 +1134,20 @@
   // 기존 공지 아래에 구분선(---) 줄을 두고 이어 붙여 같은 공지로 저장한다. 마감은 그대로 두되,
   // 직접 입력한 마감이 아니고 아직 비어 있으면 합친 글에서 찾은 마감을 채운다
   let appending = false;
+  const notePut = (st, body) => api(`/notes/${st.courseId}/${st.week}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   async function appendNote() {
     const st = noteState, n = st?.note, text = st?.append?.trim();
     if (!n || !text || appending) return;
     appending = true;
-    const week = WEEK_NOW(), raw = `${n.raw.trimEnd()}\n\n---\n\n${text}`; // --- 줄은 보기에서 구분선으로 그려진다
+    const raw = `${n.raw.trimEnd()}\n\n---\n\n${text}`; // --- 줄은 보기에서 구분선으로 그려진다
     const parsed = n.dueManual ? {} : notice.parseNotice(raw);
-    const res = await api(`/notes/${st.courseId}/${week}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw, dueAt: n.dueAt || parsed.dueAt || null, lateDueAt: n.lateDueAt || parsed.lateDueAt || null, dueManual: !!n.dueManual, baseVersion: n.version }),
-    });
+    const res = await notePut(st, { raw, dueAt: n.dueAt || parsed.dueAt || null, lateDueAt: n.lateDueAt || parsed.lateDueAt || null, dueManual: !!n.dueManual, baseVersion: n.version, round: st.round });
     appending = false;
     const body = res && await res.json().catch(() => ({}));
     if (res?.status === 409) {
       // 다른 기기에서 먼저 바뀌었다 — 최신 공지를 불러와 보여주고, 쓴 내용은 입력창에 남겨 다시 누르게 한다
       await loadWeek(currentWeekNo);
-      if (noteState === st) { st.note = rowOf(st.courseId, st.week)?.note || null; st.note ? renderNote() : closeDetail(); placeDetail(); }
+      if (noteState === st) { st.note = rowOf(st.courseId, st.week, st.round)?.note || null; st.note ? renderNote() : closeDetail(); placeDetail(); }
       toast('다른 기기에서 먼저 수정됐어요 — 최신 내용을 확인하고 다시 추가해 주세요', null, 'error');
       return;
     }
@@ -1046,7 +1155,7 @@
     st.append = '';
     await loadWeek(currentWeekNo);
     if (noteState === st) {
-      st.note = rowOf(st.courseId, st.week)?.note || body.note;
+      st.note = rowOf(st.courseId, st.week, st.round)?.note || body.note;
       renderNote(); placeDetail();
       detail.querySelector('.am-note-body')?.lastElementChild?.scrollIntoView({ block: 'nearest' }); // 방금 붙인 곳이 보이게
       detail.querySelector('.am-note-append-input')?.focus({ preventScroll: true });
@@ -1055,46 +1164,52 @@
     toast('과제 내용을 추가했어요', {
       label: '되돌리기',
       run: async () => {
-        const r = await api(`/notes/${st.courseId}/${week}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: n.raw, dueAt: n.dueAt, lateDueAt: n.lateDueAt, dueManual: n.dueManual, baseVersion: added?.version ?? null }),
-        });
+        const r = await notePut(st, { raw: n.raw, dueAt: n.dueAt, lateDueAt: n.lateDueAt, dueManual: n.dueManual, baseVersion: added?.version ?? null, round: st.round });
         if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
         await loadWeek(currentWeekNo); // 그 줄은 이번 주 줄이거나 위의 즐겨찾기 줄
-        if (noteState?.courseId === st.courseId && noteState.mode === 'view') { noteState.note = rowOf(st.courseId, st.week)?.note || noteState.note; renderNote(); placeDetail(); }
+        if (noteState?.courseId === st.courseId && noteState.round === st.round && noteState.mode === 'view') { noteState.note = rowOf(st.courseId, st.week, st.round)?.note || noteState.note; renderNote(); placeDetail(); }
       },
     });
   }
 
+  // 목록에 없는 회차를 적어 저장하면 그 과목 회차 목록 끝에 더한다("+ 회차 추가" — 회차가 남은 목록보다 늘어날 때)
+  async function rememberRound(courseId, round) {
+    const list = roundLists[courseId] || [];
+    if (!round || list.some(l => l === round || roundKeyOf(l) === roundKeyOf(round))) return;
+    const res = await api(`/rounds/${courseId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rounds: [...list, round] }) });
+    if (res?.ok) roundLists = { ...roundLists, [courseId]: [...list, round] };
+  }
+
   async function saveNote(force) {
-    const st = noteState, d = st.draft, row = rowOf(st.courseId, st.week);
+    const st = noteState, d = st.draft;
     if (!d.raw.trim()) return;
-    const sameWeek = d.week === WEEK_NOW();
-    const base = st.conflict?.note?.version ?? (sameWeek && st.note ? st.note.version : null);
-    const res = await api(`/notes/${st.courseId}/${d.week}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw: d.raw, dueAt: d.dueAt, lateDueAt: d.lateDueAt, dueManual: d.dueTouched, baseVersion: base, force: force || undefined }),
-    });
+    const round = (d.round || '').replace(/\s+/g, ' ').trim();
+    const base = st.conflict?.note?.version ?? (st.note ? st.note.version : null);
+    // 저장은 늘 이 줄의 주차(st.week). 고치는 줄의 회차(fromRound)와 다르면 회차 이름 바꾸기 — 그 줄의 확인메일도 따라간다
+    const res = await notePut(st, { raw: d.raw, dueAt: d.dueAt, lateDueAt: d.lateDueAt, dueManual: d.dueTouched, baseVersion: base, force: force || undefined, round, ...(st.isNew ? {} : { fromRound: st.round }) });
     if (!res) { toast('저장하지 못했어요', null, 'error'); return; }
     const body = await res.json().catch(() => ({}));
-    if (res.status === 409) { st.conflict = { note: body.note, sameWeek }; refreshNoteLive(); return; }
-    if (!res.ok) { toast(body.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : '저장하지 못했어요', null, 'error'); return; }
-    toast(sameWeek ? '과제 내용을 저장했어요' : `${d.week}주차에 저장했어요`);
+    if (res.status === 409) { st.conflict = { note: body.note, roundTaken: !!body.roundTaken }; refreshNoteLive(); return; }
+    if (!res.ok) { toast(body.error === 'note_too_large' ? '공지가 너무 길어요(최대 20,000자)' : body.error === 'bad_round' ? '회차 이름은 40자까지예요' : '저장하지 못했어요', null, 'error'); return; }
+    await rememberRound(st.courseId, round);
+    toast(round ? `${st.week}주차 ${round} 과제 내용을 저장했어요` : '과제 내용을 저장했어요');
     st.mode = 'view'; // saved — nothing to keep as an unsaved paste
-    if (!sameWeek) { closeDetail(); await loadWeek(d.week); openNote(st.courseId, d.week); return; }
+    st.round = round; st.isNew = false; st.baseRound = round;
     await loadWeek(currentWeekNo);
-    if (noteState === st) { st.note = rowOf(st.courseId, st.week)?.note || body.note; st.mode = 'view'; st.conflict = null; renderNote(); placeDetail(); }
+    if (noteState !== st) return;
+    if (!rowOf(st.courseId, st.week, round)) { closeDetail(); return; } // 다른 주차 즐겨찾기 줄의 회차를 바꿔 줄이 사라진 경우
+    detailAnchor = noteAnchor(st.courseId, st.week, round);
+    st.note = rowOf(st.courseId, st.week, round)?.note || body.note; st.conflict = null; renderNote(); placeDetail();
   }
-  async function showSavedWeek(week) {
-    const courseId = noteState.courseId, noteWeek = noteState.week;
+  async function showSavedNote(round) {
+    const { courseId, week } = noteState;
     closeDetail();
-    // 이 칸의 주차면 표는 그대로(다른 주차 즐겨찾기 줄일 수 있다), 다른 주차면 그 주차 표로 간다
-    await loadWeek(week === noteWeek ? currentWeekNo : week);
-    openNote(courseId, week, { mode: 'view' });
+    await loadWeek(currentWeekNo);
+    openNote(courseId, week, { mode: 'view', round });
   }
   async function deleteNote() {
-    const st = noteState, week = WEEK_NOW(), saved = st.note;
-    const res = await api(`/notes/${st.courseId}/${week}?baseVersion=${saved.version}`, { method: 'DELETE' });
+    const st = noteState, saved = st.note;
+    const res = await api(`/notes/${st.courseId}/${st.week}?baseVersion=${saved.version}&round=${encodeURIComponent(st.round)}`, { method: 'DELETE' });
     const body = res && await res.json().catch(() => ({}));
     if (!res || (!res.ok && res.status !== 409)) { toast('삭제하지 못했어요', null, 'error'); return; }
     if (res.status === 409) { toast('다른 기기에서 먼저 수정돼서 삭제하지 않았어요', null, 'error'); closeDetail(); loadWeek(currentWeekNo); return; }
@@ -1103,10 +1218,7 @@
     toast('과제 내용을 삭제했어요', {
       label: '되돌리기',
       run: async () => {
-        const r = await api(`/notes/${st.courseId}/${week}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: saved.raw, dueAt: saved.dueAt, lateDueAt: saved.lateDueAt, dueManual: saved.dueManual, baseVersion: null }),
-        });
+        const r = await notePut(st, { raw: saved.raw, dueAt: saved.dueAt, lateDueAt: saved.lateDueAt, dueManual: saved.dueManual, baseVersion: null, round: st.round });
         if (!r?.ok) { toast('되돌리지 못했어요', null, 'error'); return; }
         loadWeek(currentWeekNo);
       },

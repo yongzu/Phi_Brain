@@ -16,13 +16,16 @@
 import { BadRequest } from '../journals.js';
 import { resolveStatus } from './service.js';
 import { getCourseStates } from './course-state.js';
+import { roundSlug } from './rounds.js';
 
 const PREFS_KEY = 'assignment_todo';
-export const TODO_KEY_RE = /^(?:[a-z]{2,4}:\d{1,2}:[as]|t:[0-9a-f-]{36})$/; // 과목:주차:a(과제)|s(셀프피드백), t:개인 할 일 id
+// 과목:주차:a(과제)|s(셀프피드백)[:회차 글자], t:개인 할 일 id. 회차가 붙은 공지는 회차마다 따로(2026-11-23)
+export const TODO_KEY_RE = /^(?:[a-z]{2,4}:\d{1,2}:[as](?::[a-z0-9]{1,24})?|t:[0-9a-f-]{36})$/;
 export const MEMO_MAX = 200;
 const LIST_MAX = 500;
 
-export const todoKey = (courseId, weekNo, kind) => `${courseId}:${weekNo}:${kind === 'assignment' ? 'a' : 's'}`;
+export const todoKey = (courseId, weekNo, kind, round = '') =>
+  `${courseId}:${weekNo}:${kind === 'assignment' ? 'a' : 's'}${round && roundSlug(round) ? `:${roundSlug(round)}` : ''}`;
 
 export async function getTodoPrefs(db) {
   const row = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(PREFS_KEY).first();
@@ -41,18 +44,18 @@ const kstToday = now => new Date(now + 9 * 36e5).toISOString().slice(0, 10);
 export async function getTodo(db, now = Date.now()) {
   const status = r => resolveStatus(r.manual_status, r.evidence_count);
   const { results: assignments } = await db.prepare(`
-    SELECT n.course_id, c.code, c.name, c.assignment_url, n.week_no, n.due_at,
+    SELECT n.course_id, c.code, c.name, c.assignment_url, n.week_no, n.round, n.due_at,
       t.id target_id, m.status manual_status,
-      (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id) evidence_count
+      (SELECT count(*) FROM submission_evidence e WHERE e.target_id = t.id AND e.round = n.round) evidence_count
     FROM assignment_notes n
     JOIN courses c ON c.id = n.course_id
     JOIN weeks w ON w.week_no = n.week_no
     JOIN submission_targets t ON t.course_id = n.course_id AND t.week_id = w.id AND t.kind = 'assignment'
-    LEFT JOIN manual_status m ON m.target_id = t.id
+    LEFT JOIN manual_status m ON m.target_id = t.id AND m.round = n.round
     WHERE n.due_at IS NOT NULL
   `).all();
   const items = assignments.map(r => ({
-    key: todoKey(r.course_id, r.week_no, 'assignment'), targetId: r.target_id,
+    key: todoKey(r.course_id, r.week_no, 'assignment', r.round), targetId: r.target_id, round: r.round,
     courseId: r.course_id, code: r.code, name: r.name, weekNo: r.week_no, kind: 'assignment',
     dueAt: r.due_at, status: status(r), url: r.assignment_url,
   }));
@@ -67,7 +70,7 @@ export async function getTodo(db, now = Date.now()) {
     FROM submission_targets t
     JOIN courses c ON c.id = t.course_id
     JOIN weeks w ON w.id = t.week_id
-    LEFT JOIN manual_status m ON m.target_id = t.id
+    LEFT JOIN manual_status m ON m.target_id = t.id AND m.round = ''
     WHERE t.kind = 'self_feedback' AND t.course_id IN (${ids.map(() => '?').join(',')}) AND w.start_date BETWEEN ? AND ?
   `).bind(...ids, addDays(from, -6), today).all();
   for (const r of feedbacks) {

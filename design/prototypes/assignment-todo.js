@@ -78,7 +78,8 @@
   function renderItem(it) {
     const [y, m, d] = (it.dueAt || '').slice(0, 10).split('-').map(Number);
     const dow = it.dueAt ? DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()] : '';
-    const title = isPersonal(it) ? it.title : `${it.code} ${it.weekNo}주차 ${KIND_LABEL[it.kind] || ''}`;
+    // 회차가 붙은 과제는 회차로 부른다(사용자 지시 2026-11-23)
+    const title = isPersonal(it) ? it.title : `${it.code} ${it.round || `${it.weekNo}주차`} ${KIND_LABEL[it.kind] || ''}`;
     const href = safeHref(it.url);
     const memo = prefs.memos[it.key] || '';
     const memoPart = editingKey === it.key

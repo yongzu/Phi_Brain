@@ -12,6 +12,7 @@ import { notesApi } from './assignment/notes.js';
 import { tasksApi } from './assignment/tasks.js';
 import { getTodo, saveTodoPrefs, getPageMemo, savePageMemo } from './assignment/todo.js';
 import { getCourseStates, setCourseState } from './assignment/course-state.js';
+import { getRoundsWithUsed, setRounds } from './assignment/rounds.js';
 import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, GoogleError } from './assignment/google.js';
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
@@ -88,12 +89,12 @@ async function assignmentApi(request, env, url, json, session) {
     return matrix ? json(200, matrix) : json(404, { error: 'week_not_found' });
   }
   if ((m = path.match(/^\/targets\/(\d+)$/)) && method === 'GET') {
-    const detail = await svc.getTargetDetail(db, Number(m[1]));
+    const detail = await svc.getTargetDetail(db, Number(m[1]), url.searchParams.get('round') || '');
     return detail ? json(200, detail) : json(404, { error: 'target_not_found' });
   }
   if ((m = path.match(/^\/targets\/(\d+)\/manual$/)) && method === 'POST') {
     const body = await request.json().catch(() => ({}));
-    const result = await svc.setManualStatus(db, Number(m[1]), body.action, { force: !!body.force });
+    const result = await svc.setManualStatus(db, Number(m[1]), body.action, { force: !!body.force, round: body.round ?? '' });
     if (result.error === 'target_not_found') return json(404, result);
     if (result.error) return json(400, result);
     return json(result.ok ? 200 : 409, result);
@@ -106,6 +107,21 @@ async function assignmentApi(request, env, url, json, session) {
   if ((m = path.match(/^\/course-states\/([a-z]{2,4})$/)) && method === 'PUT') {
     const body = await request.json().catch(() => null);
     return json(200, await setCourseState(db, m[1], body && 'state' in body ? body.state : undefined));
+  }
+  // 과목별 회차 목록(사용자 지시 2026-11-23) — "+ 회차 추가"로 늘린다
+  if (path === '/rounds' && method === 'GET') return json(200, await getRoundsWithUsed(db));
+  if ((m = path.match(/^\/rounds\/([a-z]{2,4})$/)) && method === 'PUT') {
+    const body = await request.json().catch(() => null);
+    return json(200, await setRounds(db, m[1], body?.rounds));
+  }
+  // 확인 필요(검토 대기열) — 판별 못 한 확인메일을 직접 주차 · 회차에 놓거나 뺀다
+  if (path === '/review' && method === 'GET') return json(200, { items: await svc.listReview(db) });
+  if ((m = path.match(/^\/review\/([A-Za-z0-9_-]{1,64})$/))) {
+    if (method === 'POST') {
+      const r = await svc.placeReview(db, m[1], await request.json().catch(() => null));
+      return json(r.ok ? 200 : 404, r);
+    }
+    if (method === 'DELETE') return json(200, await svc.dismissReview(db, m[1]));
   }
   // 페이지 머리 메모 한 칸
   if (path === '/memo' && method === 'GET') return json(200, await getPageMemo(db));

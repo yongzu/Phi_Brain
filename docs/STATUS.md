@@ -1,11 +1,34 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-11-23 (Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
+최종 갱신: 2026-11-23 (Assignment Manage 회차 체계 · 주차 기간 · 확인 필요 · Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Assignment Manage: 회차 체계 — 줄 = 과목 × 회차, 주차 기간, 확인 필요 (2026-11-23, 사용자 지시 · Claude Code)
+
+- 사용자 결정: **주차(학기 0~16)는 고정**, 과제는 앞으로 **회차**로 표기. 남은 과제 = VT Magazine 2~6회차, TF Fonts 2~8회차, IPS 11~16회차,
+  PC 12~14회차(폼은 "12주차"지만 회차로), IAE 3~7회차. 회차는 늘어날 수 있고(+알파), 같은 주차에 저장한 회차는 한 화면에서 관리.
+  원인이던 동작: 공지를 붙여넣으면 본문의 "N주차"가 **저장 주차 기본값**이라 1·2주차 칸에 저장됐다 → 없앰. 공지는 늘 그 줄의 주차에 저장한다.
+- 데이터(`worker/migrations/0012_rounds.sql`): `assignment_notes` 키 (과목, 주차) → (과목, 주차, `round`), `manual_status` 키 → (target, `round`),
+  `submission_evidence.round`, `review_queue`에 `course_id`·`kind`·`round_answer`·`links_json`. 예전 행은 `round = ''`(회차 없음) 그대로.
+  회차 목록은 `settings.assignment_rounds`(위 남은 과제로 시드). `rounds.js`: `roundKey`("Magazine 2회차 (B)" → `magazine|2`, "12주차" → `|12`) · 목록 API.
+- 판별(`service.js placeReceipt`): ① 폼 회차 답(`matching.js extractRoundAnswer`)과 같은 회차가 붙은 공지 → 그 주차·회차 ② 날짜와 맞는 폼 주차(회차 목록의 "12회차"는 주차로 안 씀)
+  ③ 과제는 공지 마감(아래 11-23 항목) ④ 대기열.
+- 표(`getWeekMatrix`): 한 과목이 한 주에 회차 여럿이면 줄 여럿. 줄마다 회차 태그 + 목록 위치 `3/8`. 상세·직접 확인·휴강·즐겨찾기 키(`TF:12:Fonts 3회차`)·TO-DO 키(`tf:12:a:fonts3`)도 회차별.
+- 화면(`assignment.js?v=20261123-1`, `phi-brain.css?v=20261123-1`, `home.html`): 주차·Gmail 줄 아래 **기간 한 줄**(`11.23(월) – 11.29(일)`).
+  공지 팝업에 **회차 칸**(공지 글의 회차 → 없으면 다음 회차를 기본값, 직접 적은 새 회차는 목록 끝에 더함 = "+ 회차 추가"), 마감이 이 주 기간 밖이면 안내만.
+  과목 이름 메뉴 **"이번 주에 회차 추가"**(같은 주 새 회차 줄). 공지에 마감이 없으면 **"마감 없음"** 배지. 표 아래 **확인 필요**(대기열 메일을 이 주차·회차에 넣기 / 관련 없음).
+  640px 이하에서 과목 칸 384px 고정 폭이 화면 밖으로 넘치던 것도 고침(375 폭 가로 스크롤 0).
+- 완강 처리(사용자 지시): AL·AOR·BI → `completed`(SI는 계속). EWA 완강 · RW·WI 수강기간 아님은 그대로.
+- 검증: `worker` `node --test` 122/122(새 `test/rounds.test.js` 9개). 실제 D1 내보내기를 로컬 D1에 넣고 0012 적용 → 공지 63·근거 135·수동 10·대기열 4 그대로.
+  로컬 `wrangler dev` + 5500 페이지(로컬 개발용 세션)로: 12주차 기간 줄 · IPS "마감 없음", TF 공지 붙여넣기 → 회차 `Fonts 2회차` 자동·주차 이동 안내 없음,
+  메뉴로 3회차 추가 → TF 두 줄(2/8·3/8), 확인 필요 4통 → TF 1통을 Fonts 2회차에 넣기 → 그 줄 "제출 확인", VT에 마감 12-10 공지 → 기간 밖 안내, 새 회차 "Magazine 7회차" → 목록에 추가.
+- 반영: 원격 D1 백업 후 0012 적용(행 수 그대로), 과목 상태 갱신, Worker 배포 `eb36ab38`, 푸시로 Pages.
+- 남은 일: 대기열 VT 2·TF 1통은 11-17 메일이라 다음 "제출 상태 새로고침" 때 다시 읽혀 마감 기준으로 11주차에 들어간다(회차는 그 칸 공지의 회차 = 없음). 로그인 상태의 실제 화면은 사용자 확인 필요.
+  로컬 `server/`(옛 Node 서버·주간 상태 파일)는 회차를 모른다 — 읽기 전용 화면은 예전처럼 주차 칸만.
 
 ### Assignment Manage: 회차가 학기 주차와 어긋난 제출을 공지 마감으로 놓기 (2026-11-23, 사용자 지시 · Claude Code)
 

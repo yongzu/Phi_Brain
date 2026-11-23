@@ -47,6 +47,21 @@ export function extractWeekNo(bodyText) {
   return null;
 }
 
+// 회차 답 원문(사용자 지시 2026-11-23): "Magazine 2회차 (B)", "Fonts 3회차", "11회차(Track B)", "12주차" —
+// 질문("주차 *"·"회차 *") 뒤에서 그 한 줄만인 답. 설명문 속 숫자("0주차를 …")는 줄 전체가 답 모양이 아니라 걸리지 않는다
+const ROUND_LINE_RE = /^[A-Za-z가-힣][A-Za-z가-힣 ]{0,23}\s?\d{1,2}\s*(?:회차|주차)\s*(?:\([^)]{0,20}\))?$|^\d{1,2}\s*(?:회차|주차)\s*(?:\([^)]{0,20}\))?$/;
+export function extractRoundAnswer(bodyText) {
+  const lines = bodyText.split(/\r?\n/).map(l => l.trim());
+  const question = lines.findIndex(l => /^(?:주차|회차)\s*\*?$/.test(l));
+  if (question < 0) return null;
+  for (const line of lines.slice(question + 1)) {
+    if (/\s\*$/.test(line)) break; // 다음 질문
+    if (isExampleLine(line)) continue;
+    if (ROUND_LINE_RE.test(line)) return line;
+  }
+  return null;
+}
+
 // submitted links keyed by question title; a URL counts only when it is the block's last line
 const QUESTION_RE = /^(.+?)\s\*$/;
 const URL_LINE_RE = /^https?:\/\/\S+$/;
@@ -84,8 +99,9 @@ export function matchEmail(email, ctx) {
 
   const links = extractLinks(email.bodyText);
   const weekNo = extractWeekNo(email.bodyText);
-  // 주차를 못 읽어도 과목·종류는 알려 준다 — service.js가 붙여넣은 공지 마감으로 주차를 정할 수 있다
-  if (weekNo === null) return { status: 'ambiguous', reason: 'no_week_found', courseId: course.id, kind: title.kind, links };
+  const roundAnswer = extractRoundAnswer(email.bodyText);
+  // 주차를 못 읽어도 과목·종류·회차 답은 알려 준다 — service.js가 회차 이름·공지 마감으로 주차를 정할 수 있다
+  if (weekNo === null) return { status: 'ambiguous', reason: 'no_week_found', courseId: course.id, kind: title.kind, links, roundAnswer };
 
-  return { status: 'matched', courseId: course.id, kind: title.kind, weekNo, track: null, links };
+  return { status: 'matched', courseId: course.id, kind: title.kind, weekNo, track: null, links, roundAnswer };
 }
