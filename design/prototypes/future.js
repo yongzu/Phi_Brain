@@ -1317,7 +1317,7 @@
   };
 
   // ---- view switch (only the built views; other nav tabs stay inert) ----
-  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive'), findings: $('#view-findings') };
+  const views = { journal: $('#view-journal'), future: view, assignment: $('#view-assignment'), 'journal-archive': $('#view-archive'), findings: $('#view-findings'), course: $('#view-course') };
   const navTabs = $$('.side-nav [data-view]');
   let currentView = 'findings'; // 첫 화면(사용자 지시 2026-09-26: Future Item → Findings)
   function show(name, { filter: f } = {}) {
@@ -1334,7 +1334,8 @@
     if (name === 'future') setFilters(f || filters); // 사이드바에서 들어오면(f 없음) 고르던 필터 유지
     // journal-archive/findings own their own hash (journal.js) — their filter
     // lives in the URL too, so don't clear it here before that module reads it
-    else if (name !== 'journal-archive' && name !== 'findings') history.replaceState(null, '', location.pathname + location.search);
+    // course(Course Agent, course-agent.js)도 #course/bi로 과목을 주소에 둔다
+    else if (name !== 'journal-archive' && name !== 'findings' && name !== 'course') history.replaceState(null, '', location.pathname + location.search);
     if (!reduce.matches) views[name].animate(
       [{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 320, easing: EASE });
     // other view modules (assignment.js, ...) load after this and need to know
@@ -1364,7 +1365,7 @@
     const h = location.hash;
     const name = h.startsWith('#future-item') ? 'future' : h.startsWith('#assignment') ? 'assignment'
       : h.startsWith('#journal-archive') ? 'journal-archive' : h.startsWith('#findings') ? 'findings'
-      : h.startsWith('#journal') ? 'journal' : 'findings'; // 해시가 없으면 Findings
+      : h.startsWith('#journal') ? 'journal' : h.startsWith('#course') ? 'course' : 'findings'; // 해시가 없으면 Findings
     show(name, { filter: filterFromHash(h) });
   };
   addEventListener('hashchange', route);

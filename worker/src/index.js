@@ -17,6 +17,7 @@ import { buildAuthUrl, exchangeCode, getProfileEmail, revokeToken, GMAIL_SCOPE, 
 import { journalsApi, BadRequest } from './journals.js';
 import { futureApi } from './future.js';
 import { settingsApi } from './settings.js';
+import { agentApi } from './agent.js';
 import { createLoginCode, exchangeLoginCode } from './desktop.js';
 
 const allowedOrigins = env => (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -222,6 +223,11 @@ export default {
         if (res) return res;
       }
       if (url.pathname.startsWith('/api/assignment/')) return await assignmentApi(request, env, url, json, session);
+      // Course Agent — 과목별 과목 기억(에이전트가 정리한 것)과 그 과목 과제 공지
+      if (url.pathname.startsWith('/api/agent/')) {
+        const res = await agentApi(request, env.DB, url.pathname, json);
+        if (res) return res;
+      }
       if (url.pathname === '/api/journals' || url.pathname.startsWith('/api/journals/')) {
         const res = await journalsApi(request, env, url, json);
         if (res) return res;

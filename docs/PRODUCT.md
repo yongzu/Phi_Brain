@@ -37,6 +37,7 @@ GitHub 저장소는 `https://github.com/yongzu/Phi_Brain`이다.
 ## 이후 단계의 비전
 
 - Phase 2: 과목별 저널·인사이트·작업물·피드백을 흡수하는 Course Agent.
+  - (2026-11-23 구현) 왼쪽 Course Agent의 과목 페이지 = 에이전트가 정리한 "과목 기억"(출처 달린 인사이트 · 방법 · 피드백 · 내 생각 · 적용 · 다음 과제에 쓸 것) + 회차 · 과제 · Findings 강조 · Future Item. 정리는 Claude Code 스킬 course-agent가 한다(STATUS 2026-11-23).
 - Phase 3: 과목 간 공통 패턴과 사고방식·역량 변화를 찾는 Second Brain / Agent Village.
 - Phase 1 설계안은 하나의 AI 처리 흐름과 과목별 context를 전제로 한다. 독립적인 AI 12개를 운영하는 구조는 요구하지 않는다.
 

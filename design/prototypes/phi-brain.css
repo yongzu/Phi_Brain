@@ -909,3 +909,33 @@ a.am-todo-title:hover{text-decoration-style:solid;text-decoration-color:var(--in
   /* 줄 어디를 잡아도 끈다(사용자 지시 2026-10-06) — 버튼·링크 밖의 줄 바탕은 grab */
   .am-table tbody tr[draggable="true"] td{cursor:grab}
 }
+
+/* ---------- Course Agent (2026-11-23) — 과목 기억 페이지. 새 색 없이 선 · 회색 · 굵기로만 ---------- */
+.view-course{max-width:760px}
+.ca-body{margin-top:8px}
+.ca-section{margin-top:32px}
+.ca-overview{margin-top:20px}
+.ca-overview p{margin:0 0 8px;color:var(--ink);line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+.ca-heading{margin:0 0 10px;font-size:inherit;font-weight:700;color:var(--ink)}
+.ca-list{list-style:none;margin:0;padding:0}
+.ca-item{padding:12px 0;border-top:1px solid var(--line)}
+.ca-item-title{margin:0;color:var(--ink);font-weight:700;word-break:keep-all;overflow-wrap:anywhere}
+.ca-item-body{margin:4px 0 0;color:var(--ink);line-height:1.7;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-line}
+.ca-sources{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.ca-src{padding:1px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--gray);background:none;font:inherit;font-size:.78rem;line-height:1.4;white-space:nowrap}
+button.ca-src:hover{color:var(--ink);border-color:var(--gray)}
+.ca-rows li{border-top:1px solid var(--line)}
+.ca-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;width:100%;padding:10px 0;background:none;border:0;font:inherit;text-align:left;color:var(--ink)}
+.ca-row:hover .ca-row-title{text-decoration:underline}
+.ca-row-title{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.ca-due{margin-left:0;cursor:inherit}
+.ca-status{color:var(--gray);white-space:nowrap}
+.ca-status.is-done{color:var(--ink)}
+.ca-findings{padding:12px 0;border-top:1px solid var(--line)}
+.ca-finding{margin:8px 0 0;color:var(--ink);line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+.ca-future{padding:8px 0;border-top:1px solid var(--line);color:var(--ink);white-space:pre-line;overflow-wrap:anywhere}
+.ca-future.is-done{color:var(--gray);text-decoration:line-through}
+.ca-finding mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.ca-finding mark[data-hl="blue"]{background:var(--mark-blue)}
+.ca-finding mark[data-hl="red"]{background:var(--mark-red)}
+.ca-finding b,.ca-overview b{font-weight:700} /* 전역 b 초기화(400)를 저널 에디터처럼 되돌린다 */

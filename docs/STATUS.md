@@ -1,11 +1,29 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-11-23 (Assignment Manage 회차 체계 · 주차 기간 · 확인 필요 · Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
+최종 갱신: 2026-11-23 (Course Agent 과목 기억 · Assignment Manage 회차 체계 · 주차 기간 · 확인 필요 · Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### Course Agent: 과목별 과목 기억 페이지 + 정리 에이전트 (2026-11-23, 사용자 지시 · Claude Code)
+
+- 사용자 지시: 과목별로 정리된 내용을 Course Agent 탭에 정리하고, 에이전트를 최선의 방식으로 알아서 구현.
+- 구조(에이전트 제안 → 구현): **LLM은 앱 안이 아니라 Claude Code 스킬**(`~/.claude/skills/course-agent`)로 돈다 — API 키 · 추가 비용 없이 사용자의 Claude로.
+  스킬이 `tools/course-agent/agent-data.mjs pull`로 D1을 내려받아 과목별 맥락(저널 과목 상자별 4F · 굵게/하이라이트, 공지 · 회차 · 마감, 제출, Future Item, 지금 기억, Phi_1 로컬 파일 목록)을 만들고,
+  읽고 쓴 JSON을 `push`로 D1 `course_memory`(과목마다 통째로) + `Phi_1/NN/COURSE_MEMORY.md`에 남긴다. 방식 3가지: 정리(harvest) · 종합(synthesize, `general`) · 적용(apply, `next` 갱신).
+  규칙: overview 말고는 출처 필수(저널 날짜 · N주차 공지 · 파일 · 과목), 수업 내용과 내 생각 구분, 지어내지 않기.
+- D1 `0013_course_memory.sql`: `course_memory`(id, course_id, section ∈ overview · insight · method · feedback · mine · apply · next · synthesis, title, body, sources JSON, position) · `course_memory_runs`.
+- Worker `src/agent.js`: `GET /api/agent/courses`, `GET /api/agent/courses/:id`(기억 + 그 과목 공지 · 회차 · 마감 · 상태), `DELETE /api/agent/memory/:id`. 세션 필요.
+- 화면 `course-agent.js`(+ `home.html` 왼쪽 Course Agent 버튼에 `data-course-agent`, 맨 위 "종합", `#view-course`, `future.js` 라우트 `#course/bi`):
+  한눈에 → 다음 과제에 쓸 것 → (종합: 과목을 잇는 인사이트) → 핵심 인사이트 · 방법 · 전문가 피드백 · 내 생각 · 내 작업에 적용 → 회차 · 과제(누르면 그 주 Assignment Manage, `PhiBrain.assignmentWeek`) →
+  Findings 강조(저널 Finding 칸의 굵게 · 하이라이트 문단, 화면이 가진 저널 저장소에서) → Future Item. 출처 버튼: 저널 → 그 날 저널, 공지 → 그 주 과제, 과목 → 그 과목 페이지. 새 색 없음(`.ca-*`).
+- 첫 정리(이 세션에서 에이전트로 실행): 10과목 + 종합, 항목 141개(D1 · COURSE_MEMORY.md 11개). 재료 = D1 내보내기 + VT INSIGHTS · CONCEPT · magazine, IPS 1117 인사이트 · 휴리스틱, IAE 1117 분석 v1~v5, TF CLAUDE.md(LO · OE) · 1117, AOR 5주차 원고, EWA 메타프롬프팅 자료.
+- 검증: `worker` `node --test` 127/127(새 `agent.test.js` 3개), `node --test tools/course-agent/agent-data.test.mjs` 4/4(저널 조각 · 검증 · 실제 스키마에 SQL · 마크다운).
+  원격 D1을 내려받은 로컬 D1 + `wrangler dev` + 5500 페이지로 TF · BI · VT · 종합 페이지(섹션 · 항목 · 회차 줄 8개 · Findings 강조 25문단 · 하이라이트 9 · Future 25), 공지 출처 → Assignment Manage, 375 폭 가로 스크롤 0.
+  로컬 검증 중 발견: Findings 굵게가 전역 b 초기화로 400 → `.ca-finding b` 700. 로그인 상태의 실제 화면은 사용자 확인 필요(로컬은 auth.js 캐시 때문에 요청을 페이지 안에서 돌려 확인).
+- 남은 일: 화면에서 항목 지우기 버튼은 아직 없다(API만). 앱 안에서 에이전트에게 묻기(Workers AI · API 키)는 하지 않았다 — 필요하면 다음 단계.
 
 ### 과제 공지: 점으로 쓴 마감 "26.11.23(월)" 읽기 (2026-11-23, 사용자 제보 · Claude Code)
 

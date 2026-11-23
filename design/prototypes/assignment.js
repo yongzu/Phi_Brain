@@ -540,6 +540,9 @@
     return c;
   }
 
+  // 다른 화면(Course Agent의 "N주차 공지" 출처)에서 이 주차로 열게 — 그다음 show('assignment')가 이 주차를 그린다
+  window.PhiBrain.assignmentWeek = n => { if (!Number.isInteger(n)) return; saveWeek(n); currentWeekNo = n; };
+
   weekPrev.addEventListener('click', () => { if (currentWeekNo > weeks[0]?.week_no) { saveWeek(currentWeekNo - 1); loadWeek(currentWeekNo - 1); } });
   weekNext.addEventListener('click', () => { if (currentWeekNo < weeks[weeks.length - 1]?.week_no) { saveWeek(currentWeekNo + 1); loadWeek(currentWeekNo + 1); } });
 

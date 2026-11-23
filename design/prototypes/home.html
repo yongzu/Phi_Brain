@@ -8,7 +8,7 @@
 <!-- Pretendard for everyone, not just machines that have it installed.
      Dynamic subset: only the unicode-range chunks the page uses download. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"><link rel="stylesheet" href="../style-kit/theme.css">
-<link rel="stylesheet" href="phi-brain.css?v=20261123-1">
+<link rel="stylesheet" href="phi-brain.css?v=20261123-3">
 </head>
 <body>
 
@@ -68,18 +68,20 @@
   <details class="nav-group nav-accordion" open>
     <summary class="nav-tab tab1">Course Agent<span class="caret nav-caret" aria-hidden="true">▾</span></summary>
     <div class="nav-list nav-list-course accordion-content">
-      <button type="button" class="nav-tab tab2"><span class="nav-code">AL</span>_Aesthetic Literacy</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">AOR</span>_Art of Reading</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">BI</span>_Beautiful Interface</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">EWA</span>_Engaging with AI</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">IAE</span>_Interviewing as Exploration</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">IPS</span>_Iterative Problem Solving</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">PC</span>_Peer Coaching</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">RW</span>_Readable Writing</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">SI</span>_Self Introduction</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">TF</span>_Typography as Foundation</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">VT</span>_Visual Translation</button>
-      <button type="button" class="nav-tab tab2"><span class="nav-code">WI</span>_What If</button>
+      <!-- Course Agent(사용자 지시 2026-11-23): 과목마다 과목 기억 페이지(course-agent.js), 맨 위는 과목을 잇는 종합 -->
+      <button type="button" class="nav-tab tab2" data-course-agent="general"><span class="nav-code">종합</span>_과목을 잇는 인사이트</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="al"><span class="nav-code">AL</span>_Aesthetic Literacy</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="aor"><span class="nav-code">AOR</span>_Art of Reading</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="bi"><span class="nav-code">BI</span>_Beautiful Interface</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="ewa"><span class="nav-code">EWA</span>_Engaging with AI</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="iae"><span class="nav-code">IAE</span>_Interviewing as Exploration</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="ips"><span class="nav-code">IPS</span>_Iterative Problem Solving</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="pc"><span class="nav-code">PC</span>_Peer Coaching</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="rw"><span class="nav-code">RW</span>_Readable Writing</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="si"><span class="nav-code">SI</span>_Self Introduction</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="tf"><span class="nav-code">TF</span>_Typography as Foundation</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="vt"><span class="nav-code">VT</span>_Visual Translation</button>
+      <button type="button" class="nav-tab tab2" data-course-agent="wi"><span class="nav-code">WI</span>_What If</button>
     </div>
   </details>
 </nav>
@@ -394,6 +396,15 @@
   <!-- Findings: insights pulled from saved journals' Finding(4F) sections,
        grouped by course — read-only over the same store Journaling writes to,
        no separate data model (journal.js). -->
+  <!-- Course Agent 과목 페이지(course-agent.js) -->
+  <div class="view view-course" id="view-course" hidden>
+    <section aria-labelledby="ca-heading">
+      <header class="journal-head"><h1 class="journal-heading" id="ca-heading">Course Agent</h1></header>
+      <p class="field-hint" id="ca-meta"></p>
+      <div class="ca-body" id="ca-body"></div>
+    </section>
+  </div>
+
   <div class="view view-findings" id="view-findings" hidden>
     <section aria-labelledby="findings-heading">
       <header class="journal-head">
@@ -501,16 +512,17 @@
 </script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="config.js?v=1"></script>
-<script src="future.js?v=20261001-2"></script>
+<script src="future.js?v=20261123-1"></script>
 <script src="auth.js?v=20260917-2"></script>
 <script src="future-sync.js?v=3"></script>
 <script src="journal-store.js?v=5"></script>
 <script src="journal.js?v=20261001-1"></script>
 <script src="assignment-notice.js?v=20261123-1"></script>
-<script src="assignment.js?v=20261123-1"></script>
+<script src="assignment.js?v=20261123-2"></script>
 <script src="assignment-todo.js?v=20261123-1"></script>
 <script src="assignment-memo.js?v=20261001-2"></script>
 <script src="due-picker.js?v=20261002-1"></script>
 <script src="assignment-tasks.js?v=20261006-2"></script>
+<script src="course-agent.js?v=20261123-1"></script>
 </body>
 </html>
