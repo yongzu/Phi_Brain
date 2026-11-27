@@ -1,11 +1,21 @@
 # Phi Brain — 작업 상태와 인계
 
-최종 갱신: 2026-11-23 (Course Agent 과목 기억 · Assignment Manage 회차 체계 · 주차 기간 · 확인 필요 · Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
+최종 갱신: 2026-11-27 (데스크톱 로그인 앱 복귀 버튼 · Course Agent 과목 기억 · Assignment Manage 회차 체계 · 주차 기간 · 확인 필요 · Assignment Manage 공지 마감으로 주차 정하기 · Assignment Manage `회차` 답 인식 · AL 7주차 칸 메일 · IPS 4주차를 yongzu/IPS로 옮김 · IPS 4주차 가설 체인 재구성(전문가 피드백) · Assignment Manage 줄 전체 끌기 · 개인 할 일 별표·순서 · 주차 고정 · IPS 4주차 가설 체인 페이지·SVG · 과제 내용 칸 마감 배지 한 줄 · 줄 순서 손잡이 ⠿ 여백·잡는 영역·금지 커서 · 과제 공지 마감 인식 · Assignment Manage 개인 할 일 · 가로 스크롤 제거) / Claude Code
 
 **참고(다음에 이 저장소를 여는 사람 — Codex 포함):** 예전에 여기 적혀 있던 "로컬 DB의 `demo-` 가짜 근거 행"은 M1 완료 후 **삭제했다**.
 로컬 `server/data/assignment-manage.sqlite`(git 미포함)의 "제출 확인"은 이제 전부 실제 Gmail 확인메일 매칭 결과다.
 
 ## 현재 단계
+
+### 데스크톱 로그인: 브라우저에서 앱으로 안 돌아오던 문제 — "Phi Brain 앱 열기" 버튼 (2026-11-27, 사용자 제보 · Claude Code)
+
+- 증상: 설치본 v0.1.1에서 로그인 → Chrome에서 로그인은 되지만 "앱으로 돌아가는 중…"에서 끝나고 "열기" 확인창이 뜨지 않으며 앱은 로그인되지 않음. 앱 `session.bin` 없음 = 앱이 코드를 받은 적이 없음.
+- 확인: 서버 `/api/session/desktop/exchange` 정상(잘못된 코드에 400 `bad_code`), 배포 페이지에 넘김 코드 있음, `HKCU\Software\Classes\phibrain` 등록 정상, Chrome에 phibrain 차단 설정 없음.
+  주소창에 `phibrain://test`를 직접 치면 "열기" 확인창이 뜸(사용자 확인) → **Chrome(Chromium 계열)이 클릭 없는 자동 이동(`location.href`)을 확인창 없이 막는 것**이 원인.
+  참고: 이 PC의 Windows 기본 브라우저는 Edge라 앱의 로그인 버튼은 Edge를 연다(`shell.openExternal`). 둘 다 Chromium이라 같은 수정으로 해결된다.
+- 수정(`design/prototypes/auth.js`, `home.html`의 `auth.js?v=20261127-1`): 자동 이동은 그대로 시도하고, 같은 코드로 앱을 여는 토스트 버튼 "Phi Brain 앱 열기"를 함께 띄운다(포커스 이동).
+  코드가 45초보다 오래되면(서버 수명 60초) 버튼을 누를 때 새 코드를 받는다. 토스트를 놓쳐도 그 탭을 새로고침하면(`?desktop=` 유지) 다시 뜬다. 앱(`desktop/`)은 바꾸지 않음 — 재설치 불필요.
+- 검증: `auth.js` 문법 검사 통과(설치본 Electron의 Node로 `--check`). 실제 브라우저 로그인 → 버튼 → 앱 로그인은 배포 후 사용자 확인 필요.
 
 ### Course Agent: 과목별 과목 기억 페이지 + 정리 에이전트 (2026-11-23, 사용자 지시 · Claude Code)
 

@@ -247,15 +247,36 @@
     if (fromUrl) { try { sessionStorage.setItem(DESKTOP_STATE_KEY, fromUrl); } catch {} return fromUrl; }
     try { return sessionStorage.getItem(DESKTOP_STATE_KEY); } catch { return null; }
   };
-  async function handOffToDesktop(state) {
+  // 서버의 코드 수명(60초)보다 조금 짧게 — 그보다 오래된 코드는 버튼을 누를 때 새로 받는다
+  const DESKTOP_CODE_REUSE_MS = 45 * 1000;
+  async function desktopCode(state) {
     const res = await apiFetch('/api/session/desktop/code', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state }),
     }).catch(() => null);
     const body = await res?.json().catch(() => null);
-    if (!res?.ok || !body?.code) { toast('앱으로 돌아가지 못했어요 — 앱에서 다시 로그인해 주세요', null, 'error'); return; }
+    return res?.ok && body?.code ? { code: body.code, at: Date.now() } : null;
+  }
+  const desktopUrl = (state, code) => `phibrain://auth?state=${encodeURIComponent(state)}&code=${encodeURIComponent(code)}`;
+  const desktopFailed = () => toast('앱으로 돌아가지 못했어요 — 앱에서 다시 로그인해 주세요', null, 'error');
+  async function handOffToDesktop(state) {
+    let issued = await desktopCode(state);
+    if (!issued) { desktopFailed(); return; }
     try { sessionStorage.removeItem(DESKTOP_STATE_KEY); } catch {}
-    toast('앱으로 돌아가는 중…');
-    location.href = `phibrain://auth?state=${encodeURIComponent(state)}&code=${encodeURIComponent(body.code)}`;
+    // 먼저 저절로 넘겨 본다. 그러나 Chrome(Edge 등 같은 계열 포함)은 클릭 없이 다른 앱을 여는 것을 확인창도 없이 막는다
+    // (2026-11-27 사용자 PC의 Chrome에서 확인 — 로그인 직후 자동 이동은 무시되고, 주소창에서 직접 열면 확인창이 뜬다).
+    // 그래서 같은 코드로 앱을 여는 버튼을 함께 둔다 — 클릭이면 브라우저가 "Phi Brain 열기" 확인창을 띄운다.
+    // 자동 이동이 이미 통했다면 앱은 이 로그인을 마쳤으므로, 버튼을 또 눌러도 앱 창만 앞으로 온다(앱이 다시 받지 않는다).
+    location.href = desktopUrl(state, issued.code);
+    toast('앱이 열리지 않으면 눌러 주세요', {
+      label: 'Phi Brain 앱 열기',
+      run: async () => {
+        if (Date.now() - issued.at > DESKTOP_CODE_REUSE_MS) {
+          issued = await desktopCode(state);
+          if (!issued) { desktopFailed(); return; }
+        }
+        location.href = desktopUrl(state, issued.code);
+      },
+    }, '', true);
   }
   (() => {
     const state = desktopState();
